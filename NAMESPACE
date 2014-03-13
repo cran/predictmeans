@@ -1,0 +1,30 @@
+if (requireNamespace("lme4", quietly = TRUE)) {
+    importFrom(lme4, ranef, fixef)
+}
+
+if (requireNamespace("nlme", quietly = TRUE)) {
+    importFrom(nlme)
+}
+
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+    import(ggplot2)
+}
+
+if (requireNamespace("pbkrtest", quietly = TRUE)) {
+    import(pbkrtest)
+}
+
+if (requireNamespace("plyr", quietly = TRUE)) {
+    importFrom(plyr, alply)
+}
+
+if (requireNamespace("lattice", quietly = TRUE)) {
+    import(lattice)
+}
+
+if (requireNamespace("parallel", quietly = TRUE)) {
+    import(parallel)
+}
+
+export(contrastmeans, covariatemeans, CookD, PMplot, permmodels, permindex, predictmeans, Kmatrix, residplot)
+

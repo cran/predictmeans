@@ -1,0 +1,71 @@
+\name{covariatemeans}
+\alias{covariatemeans}
+\title{
+  Predicted Means of a Linear Model with Covariate Variable(s)
+}
+\description{
+  This function obtains predicted means with graph for a new set of covariate values.
+}
+\usage{
+  covariatemeans(model, modelterm, covariate, level=0.05, Df, trans, responsen, 
+    plot=TRUE, plotord, mtitle, jitterv=0, newwd=TRUE)
+}
+\arguments{
+  \item{model}{
+  Model object returned by \code{aov}, \code{lm}, \code{glm}, \code{gls}, \code{lme}, and \code{lmer}. 
+}
+  \item{modelterm}{
+  Name (in "quotes") for indicating which factor term's predicted mean to be calculated. 
+  The \code{modelterm} must be given exactly as it appears in the printed model, e.g. "A" or "A:B". 
+}
+  \item{covariate}{
+  Name(s) (in "quotes") of the covariate variable(s) in the \code{model}.
+}
+  \item{level}{
+  A significant level for calculating confident interval. The default value is 0.05.
+}
+
+\item{Df}{
+A degree of freedom for calculating CI of predicted means (you can manually specified Df here). For the above models, Df is obtained from the function automatically.
+}
+  \item{trans}{
+A function object for calculating the back transformed means, e.g. \code{trans=exp}.
+}
+  \item{responsen}{
+  Name (in "quotes") of the back transformed response variable in the \code{model}.
+}
+  \item{plot}{
+  A logical variable. If set to TRUE (default), plots of predicted means with CI will be drawn.
+}
+ \item{plotord}{
+  A numeric vector specifying the order of plotting for two or three way interaction (e.g. 
+  \code{plotord = c(2, 1, 3)} will put the second variable in \code{modelterm} on the \code{X} 
+  axis, the first variable as the grouping variable, and the third one as the panel variable). 
+  The defaults are \code{c(1, 2)} and \code{c(1, 2, 3)} for two and three way interactions. 
+}
+  \item{mtitle}{
+  The main title in the graph.
+}
+  \item{jitterv}{
+  A degree of jitter in x and y direction in the graph. The default is zero.
+}
+\item{newwd}{
+A logical variable to indicate whether to print graph in a new window. The default value is TRUE.
+} 
+}
+
+\value{
+ \item{Predicted Means}{A table of predicted means.}
+}
+\author{
+Dongwen Luo, Siva Ganesh and John Koolaard
+}
+
+\examples{
+  library(predictmeans)
+  data(Oats, package="nlme")
+  fm <- lme(yield ~ nitro*Variety, random=~1|Block/Variety, data=Oats)
+# library(lme4)
+# fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
+  covariatemeans(fm, "Variety", covariate="nitro")
+}
