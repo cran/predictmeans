@@ -1,10 +1,10 @@
-9ac6b200cbd4d25b48feaafd7243a8ad *DESCRIPTION
-113887c14bc7de9c4fb663e2ef577bb3 *NAMESPACE
+00c303ea0e672cf4b59178c9bd6843f3 *DESCRIPTION
+3251e3b71eda1e8a74efc5d86e9dc3cb *NAMESPACE
 0c7c05956adacf5c5cabd2e8cf064b14 *R/CookD.R
-33598409d17eaf234e58e1e7945df168 *R/Kmatrix.R
+d52338c5354d1f95cf71566fc499e12f *R/Kmatrix.R
 01eb843d5deb87e5961c7b694645474f *R/PMplot.R
 6957686985e20e86dcf65ad43dbd8aff *R/contrastmeans.R
-c8aec4f7b277288d00375c8a3f1e648e *R/covariatemeans.R
+ad695b8f506ef4ed5b189ad3c6b56951 *R/covariatemeans.R
 401db46db5cd5ea27aa1f0b5cd5f3860 *R/misc.R
 05aa6bff9af0302fef48151ba4464162 *R/model.parm.functs.R
 3211b6126f54b626da3a8d17c826d3cf *R/mymodelparm.R
@@ -14,7 +14,7 @@ d2b314b5af160a785f4b9bd8a93247b9 *R/permindex.R
 b279075ff18b36baccc61b8ebb5ca575 *R/residplot.R
 d5e4935b78baf43dc61eec1aa4788e3e *R/rsplot.gls.R
 fd04d738c5283ccffef913707a507f72 *R/rsplot.lme.R
-0a2f8aedd4bf90d34bfbf560ba6b27f0 *inst/NEWS
+ef32cee532a1c55d61ffa41381fbb33d *inst/NEWS
 1ada0af3f5f1f1c6de4bc4a87f463263 *man/CookD.Rd
 3e9a7b612a9fdb54353edc12275712bc *man/Kmatrix.Rd
 574537c61e65234b6ada6e013b8a053d *man/PMplot.Rd
@@ -22,6 +22,6 @@ d149d7b773a8f7d10397ffc71bdedc1d *man/contrastmeans.Rd
 19cde40620941b865abf57b31297eeff *man/covariatemeans.Rd
 c94885ed30b9e058b0b27298557eef6f *man/permindex.Rd
 c7fb29cab46b6b46d1c7503c350ff945 *man/permmodels.Rd
-db6ec20d5d796cd7a09cda9cdfadc86e *man/predictmeans-package.Rd
+f6f17430649c1258f078af5df9442ee6 *man/predictmeans-package.Rd
 cc58d0ddf007476d9b0cc68ff4c61432 *man/predictmeans.Rd
 e8f8310e8b084db4fcc6ab36a25ac4ca *man/residplot.Rd

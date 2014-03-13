@@ -22,9 +22,5 @@ if (requireNamespace("lattice", quietly = TRUE)) {
     import(lattice)
 }
 
-if (requireNamespace("parallel", quietly = TRUE)) {
-    import(parallel)
-}
-
 export(contrastmeans, covariatemeans, CookD, PMplot, permmodels, permindex, predictmeans, Kmatrix, residplot)
 

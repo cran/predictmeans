@@ -30,6 +30,7 @@ Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
   
   # All the variables in the model
   nm <- all.vars(formrhs)
+  nm <- nm[nm!="pi"]
   
   # Figure out if any are coerced to factor or ordered
   anm <- all.names(formrhs)    
@@ -41,6 +42,7 @@ Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
   X <- model.frame(form, eval(thecall$data, envir=envir), 
                   subset = eval(thecall$subset, enclos=envir),
                   na.action = na.omit, drop.unused.levels = TRUE)
+  preddf <- X
   baselevs <- xlev <- matdat <- list()  
   all.var.names <- names(X)
 
@@ -123,5 +125,5 @@ Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
   K <-t(K)
   K <- K[rnK, , drop=FALSE]
   
-  return(list(K=K, fctnames=fctnames, response=yname))
+  return(list(K=K, fctnames=fctnames, response=yname, preddf=preddf))
 }
