@@ -1,0 +1,6 @@
+Changelog for 'predictmeans' package
+
+0.98
+    Corrected colour setting for 'PMplot' function
+    Added an option 'bkplot' to control output of back transformed means plot in 'predictmeans' function
+    Added Letter-based representation of pairwise comparisons

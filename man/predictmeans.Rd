@@ -10,10 +10,11 @@ Predicted Means of a Linear Model
   and permutation tests.
 }
 \usage{
-predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL, 
-             level=0.05, covariate=NULL, trans = NULL, count=FALSE, plotord=NULL, 
-             plottitle=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, plot=TRUE, 
-             jitterv=0, basesz=12, prtnum=TRUE, newwd=TRUE, permlist=NULL)
+predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", 
+  Df=NULL, level=0.05, covariate=NULL, trans = NULL, responsen=NULL, 
+  count=FALSE, plotord=NULL, plottitle=NULL, mplot=TRUE, barplot=FALSE, 
+  pplot=TRUE, bkplot=TRUE, plot=TRUE, jitterv=0, basesz=12, prtnum=TRUE, 
+  newwd=TRUE, permlist=NULL)
 }
 \arguments{
   \item{model}{
@@ -48,6 +49,9 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
   \item{trans}{
   A function object for calculating the back transformed means, e.g. \code{trans=exp}.
 }
+  \item{responsen}{
+  Name (in "quotes") of the back transformed response variable in the \code{model}.
+}
   \item{count}{
   An option for indicating the back transformed mean values are counts or not. The default is FALSE.
 } 
@@ -68,6 +72,9 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
 }
   \item{pplot}{
   An option for drawing a p-values plot, or not when there are more than six p-values. The default is TRUE.
+}
+  \item{bkplot}{
+  An option for drawing back transformed plot, or not. The default is TRUE.
 }
   \item{plot}{
   An option for drawing plots, or not. The default is TRUE.

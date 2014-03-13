@@ -7,8 +7,9 @@
   This function obtains predicted means with graph for a new set of covariate values.
 }
 \usage{
-  covariatemeans(model, modelterm, covariate, level=0.05, Df, trans, responsen, 
-    plot=TRUE, plotord, mtitle, jitterv=0, newwd=TRUE)
+  covariatemeans(model, modelterm=NULL, covariate, level=0.05, Df=NULL, 
+    trans=NULL, responsen=NULL, trillis=TRUE, plotord=NULL, mtitle=NULL, 
+    ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE)
 }
 \arguments{
   \item{model}{
@@ -34,8 +35,8 @@ A function object for calculating the back transformed means, e.g. \code{trans=e
   \item{responsen}{
   Name (in "quotes") of the back transformed response variable in the \code{model}.
 }
-  \item{plot}{
-  A logical variable. If set to TRUE (default), plots of predicted means with CI will be drawn.
+  \item{trillis}{
+  A logical variable. If set to TRUE (default), a trillis plots of predicted means with CI will be drawn.
 }
  \item{plotord}{
   A numeric vector specifying the order of plotting for two or three way interaction (e.g. 
@@ -46,6 +47,12 @@ A function object for calculating the back transformed means, e.g. \code{trans=e
   \item{mtitle}{
   The main title in the graph.
 }
+\item{ci}{
+A logical variable to indicate whether to print confidence interval. The default value is TRUE.
+} 
+\item{point}{
+A logical variable to indicate whether to print raw data points. The default value is TRUE.
+} 
   \item{jitterv}{
   A degree of jitter in x and y direction in the graph. The default is zero.
 }

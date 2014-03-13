@@ -1,4 +1,4 @@
-model.frame.gls <- function(object, ...) model.frame(formula(object), getData(object),...)
+model.frame.gls <- function(object, ...) model.frame(formula(object), nlme::getData(object),...)
 	
 model.frame.lme <- function(object, ...) object$data
 
@@ -7,7 +7,7 @@ model.matrix.aovlist <- function(object, ...)
          sQuote("aovlist"))
 		 
 model.matrix.gls <- function(object, ...)
-    model.matrix(terms(object), data = getData(object), ...)
+    model.matrix(terms(object), data = nlme::getData(object), ...)
 	
 model.matrix.lme <- function(object, ...)
     model.matrix(terms(object), data = model.frame(object), ...)

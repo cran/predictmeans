@@ -18,17 +18,19 @@ PMplot <- function(pmatrix, level=0.05, mtitle=NULL, xylabel=NULL, margin=5, leg
   }else{
     if (is.null(mtitle)) mtitle <- paste("Level Plot of p-value Matrix")
     if (newwd) dev.new()
-    pltm <- t(pmatrix[nr:1,])
-    if (level == 0.05) pltm <- matrix(as.numeric(cut(as.numeric(pltm), c(-0.1, 0.01, 0.05, 0.1, 1))), nrow=nr)
-    else  pltm <- matrix(as.numeric(cut(as.numeric(pltm), c(-0.1, level, 1))), nrow=nr)
+    pltmm <- t(pmatrix[nr:1,])
+    if (level == 0.05) {
+      pltm <- matrix(as.numeric(cut(as.numeric(pltmm), c(-0.1, 0.01, 0.05, 0.1, 1))), nrow=nr)
+      pltmm <- matrix(as.numeric(droplevels(cut(as.numeric(pltmm), c(-0.1, 0.01, 0.05, 0.1, 1)))), nrow=nr)
+    }else  pltm <- matrix(as.numeric(cut(as.numeric(pltmm), c(-0.1, level, 1))), nrow=nr)
 
     if (level == 0.05) pcolr <- c("#0D0DFF", "#5D5DFF", "#A1A1FF", "#E4E4FF") else pcolr <-  c("#0D0DFF", "#A1A1FF")
     colr <- pcolr[sort(unique(na.omit(as.numeric(pltm))))]
     max.len <- max(nchar(rnpltm))/6
     mar <- rep(margin, 2) #c(8, 8)
     op <- par(mar = c(mar[1] + max.len, mar[1] + max.len, 4, 4))
-    zlim <- range(pltm, na.rm=TRUE)
-    image(pltm, col = colr, axes = FALSE, main = mtitle, zlim = zlim)
+    zlim <- range(pltmm, na.rm=TRUE)
+    image(pltmm, col = colr, axes = FALSE, main = mtitle, zlim = zlim)
     at1 <- (0:(nr - 1))/(nr - 1)
     tk <- at1 - 0.5/(nr - 1)
     if (max.len > 0.5) {

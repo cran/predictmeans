@@ -11,7 +11,7 @@ rsplot.gls <- function (model, group="none", id=FALSE){
     
    	form <- attr(model$modelStruct$corStruct, "formula")
     if (is.null(form)) form <- ~1
-    plot(ACF ~ lag, type="h", col="blue", data=ACF(model, form=form))
+    plot(ACF ~ lag, type="h", col="blue", data=nlme::ACF(model, form=form))
     abline(h=0)
     abline(h=0.1, col="blue", lty=2)
     abline(h=-0.1, col="blue", lty=2)

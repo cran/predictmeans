@@ -8,7 +8,7 @@ Matrix of Coefficients in a Linear Model
   \code{glm}, \code{gls}, \code{lme}, and \code{lmer}.
 }
 \usage{
-Kmatrix(model, modelterm, covariate, prtnum=FALSE)
+Kmatrix(model, modelterm, covariate=NULL, prtnum=FALSE)
 }
 \arguments{
   \item{model}{

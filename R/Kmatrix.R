@@ -1,4 +1,4 @@
-Kmatrix <- function(model, modelterm, covariate, prtnum=FALSE)
+Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
 {
    if (inherits(model, "mer") || inherits(model, "merMod")) {
     if(!lme4::isLMM(model) && !lme4::isGLMM(model))
@@ -65,9 +65,9 @@ Kmatrix <- function(model, modelterm, covariate, prtnum=FALSE)
   }
  
   covlevname <- setdiff(names(baselevs), c(names(xlev), coerced))
-  
-  if (!missing(covariate) && is.numeric(covariate)) baselevs[covlevname] <- as.list(covariate)
-  if (!missing(covariate) && is.character(covariate) && covariate%in%covlevname) baselevs[[covariate]] <- seq(min(X[[covariate]]), max(X[[covariate]]), length=50)
+
+  if ((!is.null(covariate) && !covariate%in%c("NULL", "")) && is.numeric(covariate)) baselevs[covlevname] <- as.list(covariate)
+  if ((!is.null(covariate) && !covariate%in%c("NULL", "")) && is.character(covariate) && covariate%in%covlevname) baselevs[[covariate]] <- seq(min(X[[covariate]]), max(X[[covariate]]), length=50)
 
   if (all(length(covlevname)!=0, prtnum)) {
     cat("\n", "The predicted means are estimated at \n\n")
@@ -100,7 +100,7 @@ Kmatrix <- function(model, modelterm, covariate, prtnum=FALSE)
 
   # These are the variables involved; and the label to use in the results
   facs <- all.vars(form)
-  if (!missing(covariate) && all(is.character(covariate), !covariate%in%facs)) facs <- c(facs, covariate)   
+  if ((!is.null(covariate) && !covariate%in%c("NULL", "")) && all(is.character(covariate), !covariate%in%facs)) facs <- c(facs, covariate)   
      
   if (any(sapply(facs, function(nm) length(grep(nm, allFacs)) == 0)))
     stop(paste("Unknown factor(s) in specification:", paste(form, collapse=" ")))

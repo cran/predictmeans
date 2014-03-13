@@ -1,6 +1,7 @@
 contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none", Df, permlist) {
   options(scipen=6)
   
+  if (is.null(ctrnames) || ctrnames%in%c("NULL", "")) ctrnames <- NULL
   K <- Kmatrix(model, modelterm)$K
   termsLabel <- rownames(K)
   if (missing(ctrmatrix)) {

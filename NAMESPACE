@@ -3,7 +3,7 @@ if (requireNamespace("lme4", quietly = TRUE)) {
 }
 
 if (requireNamespace("nlme", quietly = TRUE)) {
-    importFrom(nlme)
+    importFrom(nlme, getData, ACF)
 }
 
 if (requireNamespace("ggplot2", quietly = TRUE)) {

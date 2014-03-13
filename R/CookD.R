@@ -3,7 +3,7 @@ CookD <- function (model, group=NULL, plot=TRUE, idn=3, newwd=TRUE) {
   if (class(model)[1] %in% c("gls", "lme")) model <- update(model, method="ML") 
   if (class(model)[1]=="lmerMod") model <- update(model, REML=FALSE)
   if (class(model)[1] =="gls") {
-    mdf <- getData(model)
+    mdf <- nlme::getData(model)
   }else{
     mdf <- model.frame(model)
   }
@@ -12,7 +12,7 @@ CookD <- function (model, group=NULL, plot=TRUE, idn=3, newwd=TRUE) {
   vcovb <- mp$vcov
   vb.inv <- solve(vcovb)
 
-  if (is.null(group)) {
+  if (is.null(group) || group%in%c("NULL", "")) {
     rn <- rownames(mdf)
     LOOmp <- lapply(rn, function(x)  mymodelparm(update(model, data=mdf[rn!=x, ])))
   }else{
