@@ -1,4 +1,4 @@
-rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE){  #model@call$family
+rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask=FALSE){  #model@call$family
 
   mf <- model.frame(model)
 #  tm <- terms(model) 
@@ -30,7 +30,7 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE){  #
     obsv <- eval(parse(text=yname), mf)
     if (length(obsv)!=length(fittedv)) obsv <- na.omit(obsv)
   }else{
-    if (class(model)[1]%in%c("lmerMod", "glmerMod")){
+    if (class(model)[1]%in%c("lmerMod", "merModLmerTest", "glmerMod")){
       if (slope) {
         qqy <- as.data.frame(lme4::ranef(model)[[level]])[,2]
         mtitle <- "Normal Plot for Random Slope"
@@ -46,7 +46,7 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE){  #
       stop("This function only works for \'lme\' or \'lmer\' models!")
     }
   } # end of mcls if
-  op <- par(mfrow=c(2, 2), cex=0.6, mar=c(5, 5, 4, 2), mex=0.8)
+  op <- par(mfrow=c(2, 2), cex=0.6, mar=c(5, 5, 4, 2), mex=0.8, ask=ask)
   qqnorm(qqy, col="blue", main = mtitle)
   qqline(qqy)
   

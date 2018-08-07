@@ -10,11 +10,11 @@ Predicted Means of a Linear Model
   and permutation tests.
 }
 \usage{
-predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", 
-  Df=NULL, level=0.05, covariate=NULL, trans = NULL, responsen=NULL, 
-  count=FALSE, plotord=NULL, plottitle=NULL, mplot=TRUE, barplot=FALSE, 
-  pplot=TRUE, bkplot=TRUE, plot=TRUE, jitterv=0, basesz=12, prtnum=TRUE, 
-  newwd=TRUE, permlist=NULL)
+predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
+  level=0.05, covariate=NULL, letterdecr=TRUE, trans = NULL, transOff = 0, 
+  responsen=NULL, count=FALSE, plotord=NULL, plottitle=NULL, plotxlab=NULL, 
+  plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE, 
+  jitterv=0, basesz=12, prtnum=TRUE, newwd=TRUE, permlist=NULL)
 }
 \arguments{
   \item{model}{
@@ -34,7 +34,7 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none",
   \item{adj}{
   Name (in "quote") for indicating a method for adjusting p-values of pairwise comparisons. 
   The choices are "none", "tukey", "holm", "hochberg", "hommel", "bonferroni", "BH", "BY" and "fdr". 
-  The default method is "none".
+  The default method is "none". Note that LSD can't be adjusted except for "bonferroni" method.
 }
   \item{Df}{
   A degree of freedom for calculating LSD. For the above models, Df is obtained from the function automatically.
@@ -46,8 +46,14 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none",
   A numerical vector to specify values of covariates for calculating predicted means. The default 
   values are the means of the associated covariates.
 }
+  \item{letterdecr}{
+  A logical variable to indicate whether to print letters for multiple comparisons by decreasing order. The default is TRUE.
+}
   \item{trans}{
   A function object for calculating the back transformed means, e.g. \code{trans=exp}.
+}
+  \item{transOff}{
+When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
 }
   \item{responsen}{
   Name (in "quotes") of the back transformed response variable in the \code{model}.
@@ -63,6 +69,12 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none",
 } 
   \item{plottitle}{
   A character vector specifying the main title for plot(s). The default is NULL. 
+}
+  \item{plotxlab}{
+  A character vector specifying the x label for plot(s). The default is NULL. 
+}
+  \item{plotylab}{
+  A character vector specifying the y label for plot(s). The default is NULL. 
 }
   \item{mplot}{
   An option for drawing a means plot, or not. The default is TRUE.
@@ -105,6 +117,10 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none",
  \item{Back Transformed Means}{When \code{trans!=NULL}, a table of back transformed means with CIs are shown.}
  \item{Pairwise p-value}{A matrix with t-values above the diagonal and p-values below the diagonal, or 
  matrix of pairwise comparison p-values for each level of \code{atvar}.}
+ \item{predictmeansPlot}{ggplot of predicted means.}
+ \item{predictmeansBKPlot}{ggplot of back transformed means.}
+ \item{predictmeansBarPlot}{gg bar plot of predicted means.}
+ \item{p_valueMatrix}{p_value matrix for pairwise comparison.}
 }
 \note{
   The \code{predictmeans} function becomes confused if a factor or covariate is changed to the other
@@ -138,6 +154,10 @@ Dongwen Luo, Siva Ganesh and John Koolaard
 # library(lme4)
 # fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
   predictmeans(fm, "nitro", adj="BH")
-  predictmeans(fm, "nitro:Variety", pair=TRUE, atvar="Variety", adj="BH")
+  predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH")
+  predictout <- predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH", barplot=TRUE)
+  names(predictout)
+  print(predictout$predictmeansPlot)
+  print(predictout$predictmeansBarPlot)
 }
 

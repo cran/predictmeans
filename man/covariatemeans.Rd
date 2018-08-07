@@ -7,9 +7,9 @@
   This function obtains predicted means with graph for a new set of covariate values.
 }
 \usage{
-  covariatemeans(model, modelterm=NULL, covariate, level=0.05, Df=NULL, 
-    trans=NULL, responsen=NULL, trillis=TRUE, plotord=NULL, mtitle=NULL, 
-    ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE)
+  covariatemeans(model, modelterm=NULL, covariate, as.is=FALSE, level=0.05, Df=NULL,
+    trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, 
+	ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE)
 }
 \arguments{
   \item{model}{
@@ -22,6 +22,9 @@
   \item{covariate}{
   Name(s) (in "quotes") of the covariate variable(s) in the \code{model}.
 }
+  \item{as.is}{
+A logic value to specify wheather or not using original covariate values, the default is FALSE.
+}
   \item{level}{
   A significant level for calculating confident interval. The default value is 0.05.
 }
@@ -32,11 +35,14 @@ A degree of freedom for calculating CI of predicted means (you can manually spec
   \item{trans}{
 A function object for calculating the back transformed means, e.g. \code{trans=exp}.
 }
+  \item{transOff}{
+When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
+}
   \item{responsen}{
   Name (in "quotes") of the back transformed response variable in the \code{model}.
 }
-  \item{trillis}{
-  A logical variable. If set to TRUE (default), a trillis plots of predicted means with CI will be drawn.
+  \item{trellis}{
+  A logical variable. If set to TRUE (default), a trellis plots of predicted means with CI will be drawn.
 }
  \item{plotord}{
   A numeric vector specifying the order of plotting for two or three way interaction (e.g. 

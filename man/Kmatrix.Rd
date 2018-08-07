@@ -8,7 +8,7 @@ Matrix of Coefficients in a Linear Model
   \code{glm}, \code{gls}, \code{lme}, and \code{lmer}.
 }
 \usage{
-Kmatrix(model, modelterm, covariate=NULL, prtnum=FALSE)
+Kmatrix(model, modelterm, covariate=NULL, as.is=FALSE, prtnum=FALSE)
 }
 \arguments{
   \item{model}{
@@ -21,6 +21,9 @@ Model object returned by \code{aov}, \code{lm}, \code{glm}, \code{gls}, \code{lm
   \item{covariate}{
 A numerical vector to specify values of covariates for calculating predicted means, 
 default values are the means of the associated covariates. It also can be the name of covariate in the model.
+}
+  \item{as.is}{
+A logic value to specify wheather or not using original covariate values, the default is FALSE.
 }
   \item{prtnum}{
 An option for printing covariate info on the screen or not. The default is FALSE.

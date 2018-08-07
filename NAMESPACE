@@ -1,5 +1,7 @@
+S3method(print, pdmlist)
+
 if (requireNamespace("lme4", quietly = TRUE)) {
-    importFrom(lme4, ranef, fixef)
+    import(lme4)
 }
 
 if (requireNamespace("nlme", quietly = TRUE)) {
@@ -10,6 +12,10 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     import(ggplot2)
 }
 
+if (requireNamespace("Matrix", quietly = TRUE)) {
+    importFrom(Matrix, tcrossprod)
+}
+
 if (requireNamespace("pbkrtest", quietly = TRUE)) {
     import(pbkrtest)
 }
@@ -18,9 +24,26 @@ if (requireNamespace("plyr", quietly = TRUE)) {
     importFrom(plyr, alply)
 }
 
-if (requireNamespace("lattice", quietly = TRUE)) {
-    import(lattice)
+if (requireNamespace("numDeriv", quietly = TRUE)) {
+    importFrom(numDeriv, hessian)
 }
 
-export(contrastmeans, covariatemeans, CookD, PMplot, permmodels, permindex, predictmeans, Kmatrix, residplot)
+if (requireNamespace("parallel", quietly = TRUE)) {
+    import(parallel)
+}
+
+  importFrom("grDevices", "dev.new")
+  importFrom("graphics", "abline", "axis", "box", "identify", "image",
+             "legend", "lines", "par", "plot", "points", "text", "title")
+  importFrom("methods", "slot")
+  importFrom("stats", "anova", "as.formula", "coef", "delete.response",
+             "density", "family", "fitted", "formula", "ftable",
+             "lm.influence", "loess.smooth", "logLik", "make.link",
+             "model.frame", "model.matrix", "na.omit", "na.pass",
+             "p.adjust", "pf", "ppoints", "predict", "pt", "ptukey",
+             "qnorm", "qqline", "qqnorm", "qt", "resid", "residuals",
+             "setNames", "sigma", "terms", "update", "vcov", "xtabs")
+  importFrom("utils", "edit")
+
+export(anovalmer, contrastmeans, covariatemeans, CookD, PMplot, permanova.lmer, permlmer, permindex, predictmeans, Kmatrix, residplot)
 

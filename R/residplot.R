@@ -1,9 +1,9 @@
-residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd=TRUE) {
+residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd=TRUE, ask=FALSE) {
 
   if (class(model)[1]=="aovlist") stop("Plese use model 'lme' instead of 'aov'!")
   if (newwd) dev.new()
   if (class(model)[1]%in%c("lm", "aov")){
-    op <- par(mfrow=c(2, 2), cex=0.7, mar=c(5, 5, 4, 2), mex=0.8)
+    op <- par(mfrow=c(2, 2), cex=0.7, mar=c(5, 5, 4, 2), mex=0.8, ask=ask)
     plot(model, cex.caption=0.8, which=1:4, col="blue")
     par(op)
   }
@@ -77,6 +77,6 @@ residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd
 	  }
 	  par(mfrow = c(1, 1))
   }
-  if (class(model)[1]=="gls")  rsplot.gls(model, group, id)
-  if (class(model)[1]%in%c("lme", "lmerMod", "glmerMod"))  rsplot.lme(model, group, level, slope, id)
+  if (class(model)[1]=="gls")  rsplot.gls(model, group, id, ask)
+  if (class(model)[1]%in%c("lme", "lmerMod", "merModLmerTest", "glmerMod"))  rsplot.lme(model, group, level, slope, id, ask)
 }

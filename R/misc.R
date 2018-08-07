@@ -175,4 +175,198 @@ multcompLetters <- function (x, compare = "<", threshold = 0.05,   # function fr
   return(monoVec)
 }
 
+######################## Functions from lmerTest #################
+
+calcKRDDF <- function(model, term){
+  
+  rho <- list() ## environment containing info about model
+  rho$model <- model
+  rho$fixEffs <- fixef(rho$model)
+  rho$sigma <- sigma(rho$model)
+  rho$thopt <- getME(rho$model, "theta")
+  rho$Xlist <- createDesignMat(rho) ## X design matrix for fixed effects
+  
+  ## define the terms that are to be tested
+  rho$test.terms <- attr(terms(rho$model), "term.labels")[unique(attr(rho$Xlist$X.design.red, "assign"))] 
+  ## calculate general set of hypothesis matrix 
+  L <- calcGeneralSet12(rho$Xlist$X.design.red)
+  L <- makeContrastType1(L, rho$Xlist$X.design.red, 
+                         rho$Xlist$trms, rho$test.terms)
+  Lc <- L[[term]]			 	
+  # DDF <- pbkrtest::get_Lb_ddf(rho$model, Lc)
+  res.KR <- pbkrtest::KRmodcomp(rho$model, Lc )
+  return(res.KR)
+}
+
+calcGeneralSet12 <- function(X){
+  p <- ncol(X)
+  XtX <- crossprod(X)
+  U <- doolittle(XtX)$U
+  d <- diag(U)
+  for(i in 1:nrow(U))
+    if(d[i] > 0) U[i, ] <- U[i, ] / d[i]
+  L <- U
+  L
+}
+
+
+makeContrastType1 <- function(L, X, trms, trms.lab){
+  asgn <- attr(X, "assign")
+  #trms.lab <- attr(trms, "term.labels")
+  p <- ncol(X)
+  ind.list <- split(1L:p, asgn)
+  df <- unlist(lapply(ind.list, length))
+  Lt.master <- L
+  Lt.list <- lapply(ind.list, function(i) Lt.master[i, , drop=FALSE])
+  if(attr(trms,"intercept") == 0)
+    names(Lt.list) <- trms.lab
+  else
+    names(Lt.list) <- c("(Intercept)", trms.lab)
+  Lt.list
+}
+
+########################
+## construct design matrix for F test 
+createDesignMat <- function(rho)
+{
+  model.term <- terms(rho$model)
+  fixed.term <- attr(model.term,"term.labels") 
+  X.design <- names.design.mat <-  names.design <- NULL
+  X.design.red <- model.matrix(rho$model)
+  attr(X.design.red, "dataClasses") <- 
+    attr(terms(rho$model, FALSE), "dataClasses")
+  dd <- model.frame(rho$model) 
+  
+  for(i in 1:length(fixed.term))
+  {
+    formula.term <- as.formula(paste("~", fixed.term[i], "- 1"))
+    X.design <- cbind(X.design, model.matrix(formula.term, dd))
+    names.design.mat <- c(names.design.mat, 
+                          rep(fixed.term[i],
+                              ncol(model.matrix(formula.term, dd))))
+  }
+  
+  if(attr(model.term, "intercept") != 0){
+    names.design <- c("(Intercept)", colnames(X.design))
+    X.design <- cbind(rep(1,dim(X.design)[1]), X.design)
+    names.design.mat <- c("(Intercept)", names.design.mat)
+  }
+  else
+    names.design <- colnames(X.design)
+  colnames(X.design) <- names.design.mat
+  
+  # if(length(which(colSums(X.design)==0)) != 0){
+    # warning(paste("missing cells for some factors (combinations of factors) \n", 
+                  # "care must be taken with type",
+                  # as.roman(3) ,
+                  # " hypothesis "))
+  # }
+  
+  fullCoefs <- rep(0, ncol(X.design))
+  fullCoefs <- setNames(fullCoefs, names.design) 
+  if("(Intercept)" %in% names.design)
+    names(fullCoefs)[1] <- "(Intercept)"
+  fullCoefs[names(rho$fixEffs)] <- rho$fixEffs
+  nums.Coefs <- which(names(fullCoefs) %in% names(rho$fixEffs))
+  nums.Coefs <- setNames(nums.Coefs, names(fullCoefs[nums.Coefs])) 
+  Xlist <- list(X.design.red = X.design.red, 
+                trms = model.term,
+                X.design = X.design,
+                names.design = names.design,
+                fullCoefs = fullCoefs,
+                nums.Coefs = nums.Coefs)
+  return(Xlist)
+}
+##################
+
+doolittle <- function(x, eps = 1e-6) {
+  
+  if(!is.matrix(x)) stop("argument 'x' is not a matrix")
+  if(ncol(x) != nrow(x))
+    stop( "argument x is not a square matrix" )
+  if (!is.numeric(x) )
+    stop( "argument x is not numeric" )
+  n <- nrow(x)
+  L <- U <- matrix(0, nrow=n, ncol=n)
+  diag(L) <- rep(1, n)
+  for(i in 1:n) {
+    ip1 <- i + 1
+    im1 <- i - 1
+    for(j in 1:n) {
+      U[i,j] <- x[i,j]
+      if (im1 > 0) {
+        for(k in 1:im1) {
+          U[i,j] <- U[i,j] - L[i,k] * U[k,j]
+        }
+      }
+    }
+    if ( ip1 <= n ) {
+      for ( j in ip1:n ) {
+        L[j,i] <- x[j,i]
+        if ( im1 > 0 ) {
+          for ( k in 1:im1 ) {
+            L[j,i] <- L[j,i] - L[j,k] * U[k,i]
+          }
+        }
+        L[j, i] <- if(abs(U[i, i]) < eps) 0 else L[j,i] / U[i,i]
+      }
+    }
+  }
+  L[abs(L) < eps] <- 0
+  U[abs(U) < eps] <- 0
+  list( L=L, U=U )
+}
+
+
+#######################
+
+# waldVar2 <- function(object) {
+  # ## test for/warn if ML fit?
+  # dd <- lme4:::devfun2(object,useSc=TRUE,signames=FALSE)
+  # nvp <- length(attr(dd,"thopt"))+1 ## variance parameters (+1 for sigma)
+  # pars <- attr(dd,"optimum")[seq(nvp)] ## var params come first
+  # hh <- numDeriv::hessian(dd,pars)
+  # ## factor of 2: deviance -> negative log-likelihood
+  # vv <- 2*solve(hh)
+  # nn <- tn(object)
+  # dimnames(vv) <- list(nn,nn)
+  # return(vv)
+# }
+
+# tn <- function(object) {
+  # c(names(getME(object,"theta")),"sigma")
+# }
+
+# confintlmer <- function (object, parm, level = 0.95, ...) 
+# {
+  # cf <- coef(object)
+  # pnames <- names(cf)
+  # if (missing(parm)) 
+    # parm <- pnames
+  # else if (is.numeric(parm)) 
+    # parm <- pnames[parm]
+  # a <- (1 - level)/2
+  # a <- c(a, 1 - a)
+  # pct <- format.perc(a, 3)
+  # fac <- qnorm(a)
+  # ci <- array(NA, dim = c(length(parm), 2L), dimnames = list(parm, pct))
+  # ses <- sqrt(diag(object$vcov))[parm]
+  # ci[] <- cf[parm] + ses %o% fac
+  # ci
+# }
+
+# format.perc <- function (probs, digits) {
+  # paste(format(100 * probs, trim = TRUE, scientific = FALSE,
+               # digits = digits), "%")
+# }
+
+  ###################### for print
+print.pdmlist = function(x, ...){
+  pos = grep('predictmeansPlot|predictmeansBKPlot|predictmeansBarPlot|p_valueMatrix', names(x))
+  x = x[names(x)[-pos]]
+  NextMethod()
+}
+
+
+
 

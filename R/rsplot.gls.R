@@ -1,4 +1,4 @@
-rsplot.gls <- function (model, group="none", id=FALSE){  
+rsplot.gls <- function (model, group="none", id=FALSE, ask=FALSE){  
 
     mf <- model.frame(model)
     yname <- names(attr(terms(model),"dataClasses"))[1]
@@ -7,7 +7,7 @@ rsplot.gls <- function (model, group="none", id=FALSE){
     obsv <- eval(parse(text=yname), mf)
     if (length(obsv)!=length(fittedv)) obsv <- na.omit(obsv)
     
-    op <- par(mfrow=c(2, 2), cex=0.6, mar=c(5, 5, 4, 2), mex=0.8)
+    op <- par(mfrow=c(2, 2), cex=0.6, mar=c(5, 5, 4, 2), mex=0.8, ask=ask)
     
    	form <- attr(model$modelStruct$corStruct, "formula")
     if (is.null(form)) form <- ~1

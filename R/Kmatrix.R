@@ -1,4 +1,4 @@
-Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
+Kmatrix <- function(model, modelterm, covariate=NULL, as.is=FALSE, prtnum=FALSE)
 {
    if (inherits(model, "mer") || inherits(model, "merMod")) {
     if(!lme4::isLMM(model) && !lme4::isGLMM(model))
@@ -39,7 +39,9 @@ Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
   # Obtain a simplified formula -- needed to recover the data in the model
   form <- as.formula(paste("~", paste(nm, collapse = "+")))
   envir <- attr(Terms, ".Environment")
-  X <- model.frame(form, eval(thecall$data, envir=envir), 
+  #eval(thecall$data, envir=envir)
+  
+  X <- model.frame(form, model.frame(model), 
                   subset = eval(thecall$subset, enclos=envir),
                   na.action = na.omit, drop.unused.levels = TRUE)
   preddf <- X
@@ -69,8 +71,10 @@ Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
   covlevname <- setdiff(names(baselevs), c(names(xlev), coerced))
 
   if ((!is.null(covariate) && !covariate%in%c("NULL", "")) && is.numeric(covariate)) baselevs[covlevname] <- as.list(covariate)
-  if ((!is.null(covariate) && !covariate%in%c("NULL", "")) && is.character(covariate) && covariate%in%covlevname) baselevs[[covariate]] <- seq(min(X[[covariate]]), max(X[[covariate]]), length=50)
-
+  if ((!is.null(covariate) && !covariate%in%c("NULL", "")) && is.character(covariate) && covariate%in%covlevname)  {
+    if (as.is) baselevs[[covariate]] <- sort(unique(X[[covariate]]))
+	else baselevs[[covariate]] <- seq(min(X[[covariate]]), max(X[[covariate]]),length=50)
+  }
   if (all(length(covlevname)!=0, prtnum)) {
     cat("\n", "The predicted means are estimated at \n\n")
     print(round( unlist(baselevs[covlevname]), 4))
@@ -91,7 +95,6 @@ Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
   X <- model.matrix(Terms, m, contrasts.arg = contrasts)
 
   # All factors (excluding covariates)
-  # version 1.10 - no longer excluding covariates
   allFacs <- all.var.names
   
   ### Array of indexes for rows of X, organized by dimensions
@@ -124,6 +127,8 @@ Kmatrix <- function(model, modelterm, covariate=NULL, prtnum=FALSE)
   dimnames(K)[[2]] <- do.call("paste", c(combs, sep=":"))      
   K <-t(K)
   K <- K[rnK, , drop=FALSE]
+  if (length(setdiff(colnames(model.matrix(model)), colnames(K)))!=0) stop(paste("You may need drop empty levels in factor", modelterm))
+  K <- K[, colnames(model.matrix(model)), drop=FALSE]
   
   return(list(K=K, fctnames=fctnames, response=yname, preddf=preddf))
 }

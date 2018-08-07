@@ -1,13 +1,12 @@
-covariatemeans <- function (model, modelterm=NULL, covariate, level=0.05, Df=NULL, trans=NULL, 
-                            responsen=NULL, trillis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE) {
+covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE) {
   
   if (is.null(modelterm) || modelterm%in%c("NULL", "")) {
     modelterm <- covariate
-    trillis=FALSE
+    trellis=FALSE
   }
   
   vars <- unlist(strsplit(modelterm, "\\:"))
-  ctr.matrix <- Kmatrix(model, modelterm, covariate)
+  ctr.matrix <- Kmatrix(model, modelterm, covariate, as.is)
   KK <- ctr.matrix$K
   pltdf <- ctr.matrix$fctnames
   response <- ctr.matrix$response
@@ -23,13 +22,9 @@ covariatemeans <- function (model, modelterm=NULL, covariate, level=0.05, Df=NUL
   if (is.null(Df) || Df%in%c("NULL", "")) {
     if (class(model)[1] == "lme") {
       Df <- terms(model$fixDF)[modelterm]
-    }else if (class(model)[1] == "lmerMod") {
-      termlabel <- attr(terms(model),"term.labels")
-      for (i in vars) termlabel <- termlabel[grep(i, termlabel)]
-      termlabel <- paste(termlabel, collapse="-")
-      model.b <- update( model, as.formula(paste(".~. -", termlabel)))
-      Df <- getKR(KRmodcomp(model, model.b), "ddf")
-    }else Df <- mp$df
+    }else if (inherits(model, "merMod")) {
+		  Df <- pbkrtest::getKR(calcKRDDF(model, modelterm), "ddf")
+        }else Df <- mp$df
     if (Df==0) stop("You need provide Df for this model!")
   }
   
@@ -42,9 +37,18 @@ covariatemeans <- function (model, modelterm=NULL, covariate, level=0.05, Df=NUL
     pltdf$LL <- pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses
     pltdf$UL <- pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses
   }else{
-    pltdf$Mean <- trans(pltdf$yhat)
-    pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)
-    pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)
+    # if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) {
+	  # bkmtlog <- t(mapply(bt.log, meanlog=pltdf$yhat, sdlog=pltdf$ses, n=rep(round(Df*50/nrow(pltdf), 0), length(pltdf$yhat)), alpha=level, SIMPLIFY = T))[, c(1,8,9)]
+	  # bkmtlog <- bkmtlog-transOff
+	  # pltdf$Mean <- bkmtlog[, "btmean"]
+	  # pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)-transOff
+	  # pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff	
+	# }else{
+    pltdf$Mean <- trans(pltdf$yhat)-transOff
+	if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) pltdf$Mean <- exp(pltdf$yhat+pltdf$ses/2)-transOff
+    pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)-transOff
+    pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff
+	#}
   }
   pltdf$yhat <- pltdf$ses <- NULL 
   if (modelterm==covariate) pltdf$factors <- factor(1) else pltdf$factors <- factor(do.call("paste", c(pltdf[, vars, drop=FALSE], sep=":")))
@@ -98,17 +102,17 @@ covariatemeans <- function (model, modelterm=NULL, covariate, level=0.05, Df=NUL
   }
   if (modelterm==covariate) mdf$factors <- factor(1) else mdf$factors <- do.call("paste", c(mdf[, vars, drop=FALSE], sep=":"))
   names(mdf)[names(mdf)==covariate] <- "xvar"
-  if (!trillis) {
+  if (!trellis) {
     if (newwd) dev.new()
     if (modelterm==covariate)  {
       plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n")) +
         theme_bw()
-      if (ci) plt <- plt + geom_smooth(aes(ymin = LL, ymax = UL), alpha = 0.2, data=pltdf, stat="identity")
+      if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
     }else{
       plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n"), colour=factors) +
         theme_bw()
-      if (ci) plt <- plt + geom_smooth(aes(ymin = LL, ymax = UL, fill=factors), alpha = 0.2, data=pltdf, stat="identity")
+      if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factors), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
       plt <- plt+guides(col = guide_legend(modelterm), fill=guide_legend(modelterm))
     }
@@ -119,7 +123,7 @@ covariatemeans <- function (model, modelterm=NULL, covariate, level=0.05, Df=NUL
       plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n"), colour=factors) +
           facet_wrap(~  factors)+
 		  theme_bw()
-      if (ci) plt <- plt + geom_smooth(aes(ymin = LL, ymax = UL, fill=factors), alpha = 0.2, data=pltdf, stat="identity")
+      if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factors), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
       plt <- plt+guides(col = guide_legend(modelterm), fill=guide_legend(modelterm))
       if (modelterm==covariate)  plt <- plt+ theme(legend.position="none")
@@ -134,7 +138,7 @@ covariatemeans <- function (model, modelterm=NULL, covariate, level=0.05, Df=NUL
                    geom="line", colour=factor(eval(parse(text = fact1)))) +
         facet_grid(eval(parse(text = paste("~",fact2, sep=""))))+
         theme_bw()
-      if (ci) plt <- plt + geom_smooth(aes(ymin = LL, ymax = UL, fill=factor(eval(parse(text = fact1)))), alpha = 0.2, data=pltdf, stat="identity")
+      if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factor(eval(parse(text = fact1)))), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
       plt <- plt+guides(col = guide_legend(fact1), fill=guide_legend(fact1))
       print(plt)
@@ -149,7 +153,7 @@ covariatemeans <- function (model, modelterm=NULL, covariate, level=0.05, Df=NUL
                    geom="line", colour=factor(eval(parse(text = fact1)))) +
         facet_grid(eval(parse(text = paste(fact2, "~",fact3, sep=""))))+
         theme_bw()
-      if (ci) plt <- plt + geom_smooth(aes(ymin = LL, ymax = UL, fill=factor(eval(parse(text = fact1)))), alpha = 0.2, data=pltdf, stat="identity")
+      if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factor(eval(parse(text = fact1)))), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
       plt <- plt+guides(col = guide_legend(fact1), fill=guide_legend(fact1))
       print(plt)
