@@ -6,6 +6,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 {  
   options(scipen=6)
   slevel <- level
+  predictmeansPlot <- predictmeansBarPlot <- NULL
   if (class(model)[1]=="aovlist") stop("Plese use model 'lme' instead of 'aov'!")
   if (class(model)[1]=="glm") {
     trans <- model$family$linkinv  # identical(trans, make.link("log")$linkinv)
@@ -205,8 +206,10 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 		t.p.valuemGrp <- t.p.valuemGrp[groupRn, groupRn]
         # multGrp <- data.frame(multcompLetters(t.p.valuem, Letters=LETTERS, threshold=slevel))
 		multGrp <- data.frame(multcompLetters(t.p.valuemGrp, Letters=LETTERS, threshold=slevel)[rnK])
-		
-        names(multGrp) <- "Group" 
+		names(multGrp) <- "Group"
+		multGrp <- data.frame(Treatment=groupRn, Mean=mt$pm[order(mt$pm, decreasing = letterdecr)], Group=multcompLetters(t.p.valuemGrp, Letters=LETTERS, threshold=slevel)) 
+		rownames(multGrp) <- NULL
+         
         attr(t.p.valuem, paste("Letter-based representation of pairwise comparisons at significant level", sQuote(slevel))) <- multGrp
         if (all(nrow(t.p.valuep) > 3, pplot, plot)) {
           mtitle <- plottitle
@@ -218,7 +221,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
         # atvar <- vars[which(vars %in% atvar)] # ensure a proper order for atvar
         dses.df$tvalue <- t.v
         dses.df$pvalue <- t.p.values        
-        dses.df <- merge(dses.df, KKvarndiff, all=TRUE)
+        dses.df <- merge(dses.df, KKvarndiff, all=TRUE, sort=FALSE)
         atvar.df <- dses.df  
         for (i in which(vars%in%atvar)) { # To find rows relating atvar
           atvar.df <- atvar.df[which(as.character(atvar.df[, i]) == as.character(atvar.df[, length(vars) + i])), ]
@@ -281,7 +284,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
       } # if (is.null(atvar))
     }# end of if(pairwise)
     
-	predictmeansPlot <- predictmeansBarPlot <- NULL
+	
     if (plot) {
       if (length(vars) > 3)
         cat("\n", "There is no plot for more than three-way interaction! \n\n")
@@ -558,12 +561,11 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 		outputlist[[listlength+8]] <- predictmeansBKPlot
 		outputlist[[listlength+9]] <- predictmeansBarPlot
 		outputlist[[listlength+10]] <- p_valueMatrix
-		
         if (is.null(permlist) || permlist%in%c("NULL", "")) {
           names(outputlist) <- c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
                                    "LSD", paste("Pairwise comparison p-value (adjusted by", sQuote(adj), "method)"), 
 								   atvar.levels, "Back Transformed Means", "predictmeansPlot", "predictmeansBKPlot", 
-								   "predictmeansBarPlot", "p_valueMatrix")												 
+								   "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]												 
         }else{
           names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
                                    "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
@@ -611,11 +613,10 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 		outputlist[[listlength+6]] <- predictmeansPlot
 		outputlist[[listlength+7]] <- predictmeansBarPlot
 		outputlist[[listlength+8]] <- p_valueMatrix
-		
         if (is.null(permlist) || permlist%in%c("NULL", "")) {
           names(outputlist)<- c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
                                    "LSD", paste("Pairwise comparison p-value (adjusted by", sQuote(adj), "method)"), 
-								   atvar.levels, "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")								   
+								   atvar.levels, "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]								   
         }else{
           names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
                                    "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 

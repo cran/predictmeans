@@ -1,7 +1,7 @@
 Package: predictmeans
 Type: Package
 Title: Calculate Predicted Means for Linear Models
-Version: 1.0
+Version: 1.0.1
 Date: 2018-08-06
 Author: Dongwen Luo, Siva Ganesh and John Koolaard
 Maintainer: Dongwen Luo <dongwen.luo@agresearch.co.nz>
@@ -15,6 +15,6 @@ Imports: ggplot2, graphics, grDevices, Matrix, methods, numDeriv,
         pbkrtest, plyr, stats, utils
 URL: https://CRAN.R-project.org/package=predictmeans
 Repository: CRAN
-Date/Publication: 2018-08-07 05:00:03 UTC
+Date/Publication: 2018-08-23 04:40:07 UTC
 NeedsCompilation: no
-Packaged: 2018-08-07 01:44:35 UTC; luod
+Packaged: 2018-08-22 23:37:48 UTC; luod

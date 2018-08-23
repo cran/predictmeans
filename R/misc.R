@@ -337,28 +337,28 @@ doolittle <- function(x, eps = 1e-6) {
   # c(names(getME(object,"theta")),"sigma")
 # }
 
-# confintlmer <- function (object, parm, level = 0.95, ...) 
-# {
-  # cf <- coef(object)
-  # pnames <- names(cf)
-  # if (missing(parm)) 
-    # parm <- pnames
-  # else if (is.numeric(parm)) 
-    # parm <- pnames[parm]
-  # a <- (1 - level)/2
-  # a <- c(a, 1 - a)
-  # pct <- format.perc(a, 3)
-  # fac <- qnorm(a)
-  # ci <- array(NA, dim = c(length(parm), 2L), dimnames = list(parm, pct))
-  # ses <- sqrt(diag(object$vcov))[parm]
-  # ci[] <- cf[parm] + ses %o% fac
-  # ci
-# }
+confintlmer <- function (object, parm, level = 0.95, ...) 
+{
+  cf <- coef(object)
+  pnames <- names(cf)
+  if (missing(parm)) 
+    parm <- pnames
+  else if (is.numeric(parm)) 
+    parm <- pnames[parm]
+  a <- (1 - level)/2
+  a <- c(a, 1 - a)
+  pct <- format.perc(a, 3)
+  fac <- qnorm(a)
+  ci <- array(NA, dim = c(length(parm), 2L), dimnames = list(parm, pct))
+  ses <- sqrt(diag(object$vcov))[parm]
+  ci[] <- cf[parm] + ses %o% fac
+  ci
+}
 
-# format.perc <- function (probs, digits) {
-  # paste(format(100 * probs, trim = TRUE, scientific = FALSE,
-               # digits = digits), "%")
-# }
+format.perc <- function (probs, digits) {
+  paste(format(100 * probs, trim = TRUE, scientific = FALSE,
+               digits = digits), "%")
+}
 
   ###################### for print
 print.pdmlist = function(x, ...){

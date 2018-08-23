@@ -43,7 +43,7 @@ Kmatrix <- function(model, modelterm, covariate=NULL, as.is=FALSE, prtnum=FALSE)
   
   X <- model.frame(form, model.frame(model), 
                   subset = eval(thecall$subset, enclos=envir),
-                  na.action = na.omit, drop.unused.levels = TRUE)
+                  na.action = na.omit, drop.unused.levels = TRUE)			  
   preddf <- X
   baselevs <- xlev <- matdat <- list()  
   all.var.names <- names(X)

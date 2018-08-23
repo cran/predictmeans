@@ -14,8 +14,8 @@ errors, contrasts, multiple comparisons, permutation tests and graphs.
 \tabular{ll}{
 Package: \tab predictmeans\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2018-08-06\cr
+Version: \tab 1.0.1\cr
+Date: \tab 2018-08-23\cr
 License: \tab GPL (>= 2)\cr
 }
 }

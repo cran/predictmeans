@@ -46,6 +46,7 @@ mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ..
     if (any(is.na(ocoef))) {
         estimable[is.na(ocoef)] <- FALSE
         beta <- ocoef[estimable]
+        sigma <- sigma[estimable, estimable]
     }
 
     ### just in case...
