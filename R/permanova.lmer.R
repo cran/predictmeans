@@ -1,6 +1,6 @@
-permanova.lmer <- function(model, perms = 999, ncore=3, drop=TRUE)  {
+permanova.lmer <- function(model, nperm = 999, ncore=3, drop=TRUE, ...)  { # perms
   if (!inherits(model, "merMod")) stop("The model must be a lmer object!")
-  aTable <- anova(model, ddf="Kenward-Roger", type=1)
+  aTable <- anovalmer(model)
   Perm.p <- numeric(nrow(aTable))
   termlabel1 <- termlabel2 <- row.names(aTable)
   names(Perm.p) <- termlabel1
@@ -14,11 +14,11 @@ permanova.lmer <- function(model, perms = 999, ncore=3, drop=TRUE)  {
     for (i in varsn) termlabel2 <- termlabel2[grep(i, termlabel2)]
     termlabel <- paste(termlabel2, collapse="-")
     model.b <- update( model, as.formula(paste(".~. -", termlabel)))
-	Perm.p[vars] <- permlmer(model.b, model, perms, ncore, plot=FALSE)$`Perm-p`[2]
+	Perm.p[vars] <- permlmer(model.b, model, nperm, ncore, plot=FALSE, ...)$`Perm-p`[2]
     termlabel2 <- termlabel1
 	}else{
 	model.1 <- update(model.0, as.formula(paste(".~. +", vars)))
-	Perm.p[vars] <- permlmer(model.0, model.1, perms, ncore, plot=FALSE)$`Perm-p`[2]
+	Perm.p[vars] <- permlmer(model.0, model.1, nperm, ncore, plot=FALSE, ...)$`Perm-p`[2]
 	model.0 <- model.1	
 	}
   }

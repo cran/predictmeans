@@ -1,4 +1,4 @@
-PMplot <- function(pmatrix, level=0.05, mtitle=NULL, xylabel=NULL, margin=5, legendx=0.73, newwd=TRUE){
+PMplot <- function(pmatrix, level=0.05, mtitle=NULL, xylabel=NULL, margin=5, legendx=0.73, newwd=TRUE){  
   
   if (is.matrix(pmatrix)) {
     nr <- nrow(pmatrix)

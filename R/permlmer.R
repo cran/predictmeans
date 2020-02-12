@@ -1,4 +1,4 @@
-permlmer <- function(lmer0, lmer1, perms = 999, ncore=3, plot=TRUE){
+permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
   
   if (any(!inherits(lmer0, "merMod"), !inherits(lmer1, "merMod"))) stop("The model must be a lmer object!")
   if (!setequal(getME(lmer0, "y"), getME(lmer1, "y"))) stop("The data for modelling is changed along different model terms!")
@@ -36,9 +36,15 @@ permlmer <- function(lmer0, lmer1, perms = 999, ncore=3, plot=TRUE){
   wterrors <- wt%*%errors
   
   # permute weighted resid, then unweighted it for 999 times
-  permy <- as.data.frame(xbeta+replicate(perms, as.vector(Ut%*%sample(wterrors, replace=FALSE))))
+  permResid <- matrix(0, length(wterrors), nperm)
+  for (i in 1:nperm) {
+    if(!missing(seed)) set.seed(seed+i)
+	permResid[, i] <- as.vector(Ut%*%sample(wterrors)) 
+  }
+  permy <- as.data.frame(xbeta+permResid)
+  # permy <- as.data.frame(xbeta+replicate(nperm, as.vector(Ut%*%sample(wterrors, replace=FALSE))))
   
-  #Calculating the restricted likelihood ratio test statistic for each permutation.  
+  # Calculating the likelihood ratio test statistic for each permutation.  
   
   lrtest1 <- 2*(logLik(lmer1, REML=ref)-logLik(lmer0, REML=ref))
   lrtest1 <- ifelse(lrtest1 < 0, 0, lrtest1)
@@ -56,7 +62,7 @@ permlmer <- function(lmer0, lmer1, perms = 999, ncore=3, plot=TRUE){
   lrtest <- na.omit(unlist(lrtest2))
   lrtest <- ifelse(lrtest < 0, 0, lrtest)
   perm_p <- (sum(lrtest >= lrtest1) +1)/(length(lrtest) + 1)
-  aod <- anova(lmer0, lmer1)
+  aod <- anova(lmer0, lmer1, refit=!ref)
   aod$'Perm-p' <- c(NA, perm_p)
   
   if (plot) {

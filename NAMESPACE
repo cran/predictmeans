@@ -45,5 +45,5 @@ if (requireNamespace("parallel", quietly = TRUE)) {
              "setNames", "sigma", "terms", "update", "vcov", "xtabs")
   importFrom("utils", "edit")
 
-export(anovalmer, contrastmeans, covariatemeans, CookD, PMplot, permanova.lmer, permlmer, permindex, predictmeans, Kmatrix, residplot)
+export(anovalmer, contrastmeans, covariatemeans, CookD, PMplot, permanova.lmer, permlmer, permmodels, permindex, predictmeans, Kmatrix, residplot, varcomp.lmer)
 

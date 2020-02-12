@@ -1,4 +1,4 @@
-anovalmer <- function(model, DDf=NULL)  {
+anovalmer <- function(model, DDf=NULL)  { 
   if (!inherits(model, "merMod")) stop("The model must be a lmer object!")
   aTable <- anova(model, ddf="Kenward-Roger", type=1)
   if (is.null(DDf) || DDf%in%c("NULL", "")){

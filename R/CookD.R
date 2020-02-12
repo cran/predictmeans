@@ -1,8 +1,8 @@
 CookD <- function (model, group=NULL, plot=TRUE, idn=3, newwd=TRUE) {
 
-  if (class(model)[1] %in% c("gls", "lme")) model <- update(model, method="ML") 
+  if (inherits(model, "gls") || inherits(model, "lme")) model <- update(model, method="ML") 
   if (inherits(model, "merMod")) model <- update(model, REML=FALSE)
-  if (class(model)[1] =="gls") {
+  if (inherits(model, "gls")) { inherits(model, "gls")
     mdf <- nlme::getData(model)
   }else{
     mdf <- model.frame(model)

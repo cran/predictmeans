@@ -1,12 +1,12 @@
-rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask=FALSE){  #model@call$family
+rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask=FALSE){ 
 
-  mf <- model.frame(model)
+  mf <- as.data.frame(model.frame(model)) # in case tible
 #  tm <- terms(model) 
 #  if (class(model)[1]%in%c("lmerMod", "glmerMod")) cls <- sapply(all.vars(formula(model, fixed.only=TRUE)),function(x) class(model.frame(model)[[x]])[1]) else cls <- attr(tm,"dataClasses")
 #  yname <- names(cls)[1]
   yname <- as.character(attr(terms(model), "variables"))[[2]]
 
-  if (class(model)[1]=="lme") {
+  if (inherits(model, "lme")) {
     rand.str <- nlme::ranef(model)
     if (!is.data.frame(rand.str)) {
       if (slope) {
@@ -30,7 +30,7 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask
     obsv <- eval(parse(text=yname), mf)
     if (length(obsv)!=length(fittedv)) obsv <- na.omit(obsv)
   }else{
-    if (class(model)[1]%in%c("lmerMod", "merModLmerTest", "glmerMod")){
+    if (inherits(model, "lmerMod") || inherits(model, "merModLmerTest") || inherits(model, "glmerMod")){
       if (slope) {
         qqy <- as.data.frame(lme4::ranef(model)[[level]])[,2]
         mtitle <- "Normal Plot for Random Slope"
@@ -50,7 +50,7 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask
   qqnorm(qqy, col="blue", main = mtitle)
   qqline(qqy)
   
-  if(class(model)[1]=="glmerMod") {
+  if(inherits(model, "glmerMod")) {
   ##plot random effects against the predicted values and check for no trend:
     mu <- model.matrix(model)%*%lme4::fixef(model)
     RandomEffects <- t(as.matrix(model@pp$Zt)) %*% unlist(lme4::ranef(model))
@@ -85,7 +85,7 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask
   abline(0,0)
   if (id) identify(fittedv, residv, labels = rownames(mf))
  
-if(class(model)[1]=="glmerMod" && length(unique(model@resp$y))==2) {
+if(inherits(model, "glmerMod") && length(unique(model@resp$y))==2) {
 ## plot logistic curve, mean change, T/F 
     observed <- model@resp$y
     sf <- sort(fittedv, index=T)   # sort the fitted values

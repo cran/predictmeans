@@ -1,6 +1,5 @@
 \name{PMplot}
 \alias{PMplot}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Level Plot of a Matrix of p-values.
 }
@@ -55,7 +54,4 @@ Dongwen Luo, Siva Ganesh and John Koolaard
   PMplot(predictout$p_valueMatrix)
   
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+

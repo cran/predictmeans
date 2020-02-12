@@ -2,17 +2,17 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
                           level=0.05, covariate=NULL, letterdecr=TRUE, trans = NULL, transOff=0, responsen=NULL, count=FALSE, 
                           plotord=NULL, plottitle=NULL, plotxlab=NULL, plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, 
                           bkplot=TRUE, plot=TRUE, jitterv=0, basesz=12, prtnum=TRUE, newwd=TRUE, 
-                          permlist=NULL)
+                          permlist=NULL, ndecimal=4) 
 {  
   options(scipen=6)
   slevel <- level
   predictmeansPlot <- predictmeansBarPlot <- NULL
-  if (class(model)[1]=="aovlist") stop("Plese use model 'lme' instead of 'aov'!")
-  if (class(model)[1]=="glm") {
+  if (inherits(model, "aovlist")) stop("Plese use model 'lme' instead of 'aov'!")
+  if (inherits(model, "glm")) {
     trans <- model$family$linkinv  # identical(trans, make.link("log")$linkinv)
     if (model$family$family %in% c("poisson", "quasipoisson")) count=TRUE
   }
-  if (class(model)[1] == "glmerMod") {
+  if (inherits(model, "glmerMod")) {
     trans <- slot(model, "resp")$family$linkinv
     #    if (slot(model, "resp")$family$family %in% c("poisson", "quasipoisson", "binomial", "quasibinomial")) count=TRUE
   }
@@ -27,7 +27,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
   if (adj != "none") pairwise <- TRUE
   if (!is.null(plotord) && !plotord%in%c("NULL", "")) plot <- mplot <- TRUE
    
-  ctr.matrix <- Kmatrix(model, modelterm, covariate, prtnum=prtnum)
+  ctr.matrix <- Kmatrix(model, modelterm, covariate, prtnum=prtnum) 
   KK <- ctr.matrix$K
   label <- ctr.matrix$fctnames
   rownames(label) <- rownames(KK)
@@ -53,8 +53,8 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
   # names(mt)[-1:-2] <- vars
   # print(mt)
   bkmt <- mt  # for back transformed
-  mean.table <- round(xtabs(pm ~ ., mt[, c("pm", vars)], drop.unused.levels = TRUE), 4)
-  se.table <- round(xtabs(ses ~ ., mt[, c("ses", vars)], drop.unused.levels = TRUE), 5)
+  mean.table <- round(xtabs(pm ~ ., mt[, c("pm", vars)], drop.unused.levels = TRUE), ndecimal)
+  se.table <- round(xtabs(ses ~ ., mt[, c("ses", vars)], drop.unused.levels = TRUE), ndecimal+1)
   mean.table[!(n.table)] <- NA
   se.table[!(n.table)] <- NA
   if (length(vars) > 1) {
@@ -128,7 +128,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
     
     if (is.null(permlist) || permlist%in%c("NULL", "")) {
       if (length(Df) == 0) {
-        if (class(model)[1] == "lme") {
+        if (inherits(model, "lme")) {
           Df <- terms(model$fixDF)[modelterm]
         }else if (inherits(model, "merMod")) {
 		  Df <- pbkrtest::getKR(calcKRDDF(model, modelterm), "ddf")
@@ -136,7 +136,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
         
         if (Df==0) stop("You need provide Df for this model!")
       }
-      LSD <- round(qt(1 - level/2, df = Df) * SED.out, 5)
+      LSD <- round(qt(1 - level/2, df = Df) * SED.out, ndecimal+1)
       names(LSD) <- c("Max.LSD", "Min.LSD", "Aveg.LSD")
       attr(LSD, "For the Same Level of Factor") <- NULL
       #    if (length(vars) > 1) {
@@ -146,7 +146,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
       attr(LSD, "Significant level") <- slevel
       attr(LSD, "Degree of freedom") <- round(Df, 2)
     }else{
-      LSD <- round(2 * SED.out[1:3], 5)
+      LSD <- round(2 * SED.out[1:3], ndecimal+1)
       names(LSD) <- c("Max.LSD", "Min.LSD", "Aveg.LSD")
       attr(LSD, "Note") <- "This is a approximate LSD which is 2*SED."          
     }
@@ -465,7 +465,8 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
     # }
 	
 	bkmt$Mean <- trans(bkmt$pm)-transOff
-	if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) bkmt$Mean <- exp(bkmt$pm+bkmt$ses/2)-transOff
+	# if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) bkmt$Mean <- exp(bkmt$pm+bkmt$ses/2)-transOff
+	if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) bkmt$Mean <- exp(bkmt$pm)-transOff
     if (is.null(permlist) || permlist%in%c("NULL", "")) {    
       bkmt$LL <- trans(bkmt$pm - qt(1 - slevel/2, df = Df) * bkmt$ses)-transOff
       bkmt$UL <- trans(bkmt$pm + qt(1 - slevel/2, df = Df) * bkmt$ses)-transOff
@@ -478,7 +479,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
     nc <- ncol(bkmt)
     names(bkmt)[c(nc - 1, nc)] <- c(paste("LL of ", (1 - slevel) * 100, "% CI", sep = ""),
                                     paste("UL of ", (1 - slevel) * 100, "% CI", sep = ""))
-    bkmt[, (nc - 2):nc] <- round(bkmt[, (nc - 2):nc], 4)
+    bkmt[, (nc - 2):nc] <- round(bkmt[, (nc - 2):nc], ndecimal)
     if (count) {
 	  bkmt[, (nc - 2):nc] <- round(bkmt[, (nc - 2):nc], 0)
 	  bkmt[, (nc - 2):nc][bkmt[, (nc - 2):nc] < 0] <- 0
@@ -486,10 +487,10 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 	
     if (plot && bkplot) {
       if (response %in% names(mdf)) {    ## Transformed y before modelling
-        if (class(mdf[, response])=="factor"){
+        if (inherits(mdf[, response], "factor")){
           bky <- as.numeric(mdf[, response])-1
         }else{
-          if (class(model)[1]=="glm" | class(model)[1]=="glmerMod") {
+          if (inherits(model, "glm") || inherits(model, "glmerMod")) {
             bky <- mdf[, response]
             if (!is.null(dim(mdf[, response]))) bky <- mdf[, response][,1]/rowSums(mdf[, response])
           }else{
@@ -533,7 +534,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
       if (is.null(atvar) || atvar%in%c("NULL", "")) {
         if (all(is.null(permlist) || permlist%in%c("NULL", ""), adj %in% c("none", "bonferroni"))) {
           outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                      "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm,5),
+                      "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm, ndecimal+1),
                       "Pairwise p-values" = round(t.p.valuem,4), "Back Transformed Means" = bkmt, 
 					  predictmeansPlot=predictmeansPlot, predictmeansBKPlot=predictmeansBKPlot, 
 					  predictmeansBarPlot=predictmeansBarPlot, p_valueMatrix=p_valueMatrix)
@@ -571,7 +572,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
                                    "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
                                                               paste(sQuote(resvar),collapse =" and "), "at level <", atvar.levels, "> of", paste(sQuote(atvar), collapse =" and ")), 
 															  "Back Transformed Means with an Approximated 95% CIs (Mean +/- 2*SE)", "predictmeansPlot", "predictmeansBKPlot", 
-															  "predictmeansBarPlot", "p_valueMatrix")                            
+															  "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]                            
         }          
 		  class(outputlist) = "pdmlist"
           return(outputlist)	        
@@ -589,7 +590,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
       if (is.null(atvar) || atvar%in%c("NULL", "")) {
         if (all(is.null(permlist) || permlist%in%c("NULL", ""), adj %in% c("none", "bonferroni"))) {
           outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                      "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm,5), 
+                      "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm,ndecimal+1), 
 					  "Pairwise p-value" = round(t.p.valuem, 4), predictmeansPlot=predictmeansPlot,
 					  predictmeansBarPlot=predictmeansBarPlot, p_valueMatrix=p_valueMatrix)
 		  class(outputlist) = "pdmlist"
@@ -621,7 +622,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
           names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
                                    "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
 								   paste(sQuote(resvar), collapse =" and "), "at level <", atvar.levels, "> of", paste(sQuote(atvar), collapse =" and ")), 
-								   "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")                   
+								   "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]                     
         }
 	  class(outputlist) <- "pdmlist"
       return(outputlist)      

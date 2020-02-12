@@ -1,12 +1,12 @@
-covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE) {
+covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE) {
   
-  if (is.null(modelterm) || modelterm%in%c("NULL", "")) {
+  if (is.null(modelterm) || modelterm%in%c("NULL", "")) {  
     modelterm <- covariate
     trellis=FALSE
   }
   
   vars <- unlist(strsplit(modelterm, "\\:"))
-  ctr.matrix <- Kmatrix(model, modelterm, covariate, as.is)
+  ctr.matrix <- Kmatrix(model, modelterm, covariate, as.is, covariateV)
   KK <- ctr.matrix$K
   pltdf <- ctr.matrix$fctnames
   response <- ctr.matrix$response
@@ -20,7 +20,7 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, level
   pltdf$ses <- sqrt(base::diag(KK %*% tcrossprod(mp$vcov, KK)))
   
   if (is.null(Df) || Df%in%c("NULL", "")) {
-    if (class(model)[1] == "lme") {
+    if (inherits(model, "lme")) {
       Df <- terms(model$fixDF)[modelterm]
     }else if (inherits(model, "merMod")) {
 		  Df <- pbkrtest::getKR(calcKRDDF(model, modelterm), "ddf")
@@ -28,8 +28,8 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, level
     if (Df==0) stop("You need provide Df for this model!")
   }
   
-  if (class(model)[1]=="glm" && is.null(trans)) trans <- model$family$linkinv
-  if (class(model)[1] == "glmerMod" && is.null(trans)) trans <- slot(model, "resp")$family$linkinv
+  if (inherits(model, "glm") && is.null(trans)) trans <- model$family$linkinv
+  if (inherits(model, "glmerMod") && is.null(trans)) trans <- slot(model, "resp")$family$linkinv
   
   Mean <- LL <- UL <- xvar <- factors <- bky <- NULL
   if (is.null(trans)) {
@@ -72,8 +72,8 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, level
     mdf$bky <- mdf[, response]
   }else{
     if (response %in% names(mdf)) {    ## Transformed y before modelling
-      if (class(model)[1]%in%c("glm", "glmerMod")) {
-        if (class(mdf[, response])=="factor") {
+      if (inherits(model, "glm") || inherits(model, "glmerMod")) {
+        if (inherits(mdf[, response], "factor")) {
           mdf$bky <- as.numeric(mdf[, response])-1
         }else if (!is.null(dim(mdf[, response]))) {
           mdf$bky <- mdf[, response][,1]/rowSums(mdf[, response])
@@ -81,8 +81,8 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, level
           response <- "Probability"
         }else mdf$bky <- mdf[, response]
         if (isTRUE(all.equal(trans,function(x) x))) {
-          if (class(model)[1]=="glm") mdf$bky <- model$family$linkfun(mdf$bky)
-          if (class(model)[1] == "glmerMod") mdf$bky <- slot(model, "resp")$family$linkfun(mdf$bky)
+          if (inherits(model, "glm")) mdf$bky <- model$family$linkfun(mdf$bky)
+          if (inherits(model, "glmerMod")) mdf$bky <- slot(model, "resp")$family$linkfun(mdf$bky)
           # f (is.null(responsen) || responsen%in%c("NULL", "")) stop("Please provide suitable name for response variable using option 'responsen'!")
           response <- "Response"
         }

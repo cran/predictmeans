@@ -7,13 +7,13 @@ Permutation ANOVA for \code{lmer} Model
 This function provides permutation ANOVA for \code{lmer} model.
 }
 \usage{
-permanova.lmer(model, perms = 999, ncore=3, drop=TRUE) 
+permanova.lmer(model, nperm = 999, ncore=3, drop=TRUE, ...) 
 }
 \arguments{
   \item{model}{
 Model object returned by \code{lmer}. 
 }
-  \item{perms}{
+  \item{nperm}{
 Number of permutation, the default value is 999.
 }
   \item{ncore}{
@@ -21,6 +21,9 @@ Number of core for parallel computing, the default value is 3.
 }
   \item{drop}{
 Drop or add model term sequentially, the default value is TRUE.
+}
+  \item{...}{
+Use to setup option: seed -- Specify a random number generator seed, for reproducible results.
 }
 }
 \value{

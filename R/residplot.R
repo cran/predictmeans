@@ -1,13 +1,13 @@
-residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd=TRUE, ask=FALSE) {
+residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd=TRUE, ask=FALSE) { 
 
-  if (class(model)[1]=="aovlist") stop("Plese use model 'lme' instead of 'aov'!")
+  if (inherits(model, "aovlist")) stop("Plese use model 'lme' instead of 'aov'!")
   if (newwd) dev.new()
-  if (class(model)[1]%in%c("lm", "aov")){
+  if (inherits(model, "lm") || inherits(model, "aov")){
     op <- par(mfrow=c(2, 2), cex=0.7, mar=c(5, 5, 4, 2), mex=0.8, ask=ask)
     plot(model, cex.caption=0.8, which=1:4, col="blue")
     par(op)
   }
-  if (class(model)[1]=="glm"){  # the code below is from function 'glm.diag.plots' in package 'boot'
+  if (inherits(model, "glm")){  # the code below is from function 'glm.diag.plots' in package 'boot'
     glm.diag <- function (glmfit) {
       w <- if (is.null(glmfit$prior.weights)) 
           rep(1, length(glmfit$residuals))
@@ -77,6 +77,6 @@ residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd
 	  }
 	  par(mfrow = c(1, 1))
   }
-  if (class(model)[1]=="gls")  rsplot.gls(model, group, id, ask)
-  if (class(model)[1]%in%c("lme", "lmerMod", "merModLmerTest", "glmerMod"))  rsplot.lme(model, group, level, slope, id, ask)
+  if (inherits(model, "gls"))  rsplot.gls(model, group, id, ask)
+  if (inherits(model, "lme") || inherits(model, "lmerMod") || inherits(model, "merModLmerTest") || inherits(model, "glmerMod"))  rsplot.lme(model, group, level, slope, id, ask)
 }

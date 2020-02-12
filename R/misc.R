@@ -57,7 +57,7 @@ multcompLetters <- function (x, compare = "<", threshold = 0.05,   # function fr
   Letters = c(letters, LETTERS, "."), reversed = FALSE) 
 {
   x.is <- deparse(substitute(x))
-  if (class(x) == "dist") 
+  if (inherits(x, "dist")) 
     x <- as.matrix(x)
   if (!is.logical(x)) 
     x <- do.call(compare, list(x, threshold))
@@ -87,8 +87,7 @@ multcompLetters <- function (x, compare = "<", threshold = 0.05,   # function fr
     }
   }
   n <- length(Lvls)
-  LetMat <- array(TRUE, dim = c(n, 1), dimnames = list(Lvls, 
-                                                       NULL))
+  LetMat <- array(TRUE, dim = c(n, 1), dimnames = list(Lvls, NULL))
   k2 <- sum(x)
   if (k2 == 0) {
     Ltrs <- rep(Letters[1], n)
@@ -320,22 +319,22 @@ doolittle <- function(x, eps = 1e-6) {
 
 #######################
 
-# waldVar2 <- function(object) {
-  # ## test for/warn if ML fit?
-  # dd <- lme4:::devfun2(object,useSc=TRUE,signames=FALSE)
-  # nvp <- length(attr(dd,"thopt"))+1 ## variance parameters (+1 for sigma)
-  # pars <- attr(dd,"optimum")[seq(nvp)] ## var params come first
-  # hh <- numDeriv::hessian(dd,pars)
-  # ## factor of 2: deviance -> negative log-likelihood
-  # vv <- 2*solve(hh)
-  # nn <- tn(object)
-  # dimnames(vv) <- list(nn,nn)
-  # return(vv)
-# }
+waldVar2 <- function(object) {
+  ## test for/warn if ML fit?
+  dd <- lme4::devfun2(object,useSc=TRUE,signames=FALSE)
+  nvp <- length(attr(dd,"thopt"))+1 ## variance parameters (+1 for sigma)
+  pars <- attr(dd,"optimum")[seq(nvp)] ## var params come first
+  hh <- numDeriv::hessian(dd,pars)
+  ## factor of 2: deviance -> negative log-likelihood
+  vv <- 2*solve(hh)
+  nn <- tn(object)
+  dimnames(vv) <- list(nn,nn)
+  return(vv)
+}
 
-# tn <- function(object) {
-  # c(names(getME(object,"theta")),"sigma")
-# }
+tn <- function(object) {
+  c(names(getME(object,"theta")),"sigma")
+}
 
 confintlmer <- function (object, parm, level = 0.95, ...) 
 {

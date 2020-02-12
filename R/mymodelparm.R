@@ -1,7 +1,7 @@
 mymodelparm <- function(model, coef., vcov., df, ...) 
 UseMethod("mymodelparm")
 
-mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ...) 
+mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ...)
 {
 
     ### extract coefficients and their covariance matrix
@@ -24,11 +24,11 @@ mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ..
     if (is.null(df)) {
         df <- 0
         ### check if a linear model was supplied
-        if (class(model)[1] %in% c("aov", "lm", "glm")) {
+        if (inherits(model, "aov") || inherits(model, "lm") || inherits(model, "glm")) {
             class(model) <- "lm"
             df <- summary(model)$df[2]
         }
-		if (class(model)[1] == "gls") {
+		if (inherits(model, "gls")) {
 			dd <- model$dims
 			df <- dd[["N"]] - dd[["p"]]
 		}

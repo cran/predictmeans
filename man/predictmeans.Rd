@@ -10,11 +10,11 @@ Predicted Means of a Linear Model
   and permutation tests.
 }
 \usage{
-predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
+predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,  
   level=0.05, covariate=NULL, letterdecr=TRUE, trans = NULL, transOff = 0, 
   responsen=NULL, count=FALSE, plotord=NULL, plottitle=NULL, plotxlab=NULL, 
   plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE, 
-  jitterv=0, basesz=12, prtnum=TRUE, newwd=TRUE, permlist=NULL)
+  jitterv=0, basesz=12, prtnum=TRUE, newwd=TRUE, permlist=NULL, ndecimal=4)
 }
 \arguments{
   \item{model}{
@@ -107,7 +107,12 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
   A model parameter list produced by the function \code{permmodels}. When \code{permlist != NULL}, 
   the option \code{Df} will be non-functional. This is a key option for pairwise comparisons via 
   permutation tests.
+}  
+  \item{ndecimal}{
+  An option for specifying number of decimal point to be print at predicted means table. The default is 4.
 }
+
+
 }
 \value{
  \item{Predicted Means}{A table of predicted means.}

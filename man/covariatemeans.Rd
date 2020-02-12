@@ -7,9 +7,9 @@
   This function obtains predicted means with graph for a new set of covariate values.
 }
 \usage{
-  covariatemeans(model, modelterm=NULL, covariate, as.is=FALSE, level=0.05, Df=NULL,
-    trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, 
-	ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE)
+  covariatemeans(model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, 
+  level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, 
+  plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE)
 }
 \arguments{
   \item{model}{
@@ -20,10 +20,13 @@
   The \code{modelterm} must be given exactly as it appears in the printed model, e.g. "A" or "A:B". 
 }
   \item{covariate}{
-  Name(s) (in "quotes") of the covariate variable(s) in the \code{model}.
+  Name (in "quotes") of one the covariate variables in the \code{model}.
 }
   \item{as.is}{
 A logic value to specify wheather or not using original covariate values, the default is FALSE.
+}
+  \item{covariateV}{
+  A numeric vector when as.is is FALSE, then covariatemeans will produce the result for \code{covariate} at value of \code{covariateV}.
 }
   \item{level}{
   A significant level for calculating confident interval. The default value is 0.05.
@@ -81,4 +84,6 @@ Dongwen Luo, Siva Ganesh and John Koolaard
 # library(lme4)
 # fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
   covariatemeans(fm, "Variety", covariate="nitro")
+  covariatemeans(fm, "Variety", covariate="nitro", as.is=TRUE)$data
+  covariatemeans(fm, "Variety", covariate="nitro", covariateV=seq(0, 0.6, 0.1))$data
 }

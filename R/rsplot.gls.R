@@ -1,6 +1,6 @@
-rsplot.gls <- function (model, group="none", id=FALSE, ask=FALSE){  
+rsplot.gls <- function (model, group="none", id=FALSE, ask=FALSE){
 
-    mf <- model.frame(model)
+    mf <- as.data.frame(model.frame(model)) # in case tible
     yname <- names(attr(terms(model),"dataClasses"))[1]
     fittedv <- fitted(model)
     residv <- resid(model, type="pearson")

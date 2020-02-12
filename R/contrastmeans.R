@@ -1,4 +1,4 @@
-contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none", Df, permlist) {
+contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none", Df, permlist) { 
   options(scipen=6)
   
   if (is.null(ctrnames) || ctrnames%in%c("NULL", "")) ctrnames <- NULL
@@ -32,7 +32,7 @@ contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none"
 	  if (mp$df!=0) {
 		Df <- mp$df
 	  }else{   
-		  if (class(model)[1]=="lme") {
+		  if (inherits(model, "lme")) { 
 			vars <- c(unlist(strsplit(modelterm, "\\:")), modelterm)
 			Df <- min(terms(model$fixDF)[vars], na.rm=TRUE)
 			mDf <- max(terms(model$fixDF)[vars], na.rm=TRUE)
