@@ -1,6 +1,7 @@
 anovalmer <- function(model, DDf=NULL)  { 
   if (!inherits(model, "merMod")) stop("The model must be a lmer object!")
-  aTable <- anova(model, ddf="Kenward-Roger", type=1)
+  aTable <- anova(model)
+  # aTable <- anova(model, ddf="Kenward-Roger", type=1)
   if (is.null(DDf) || DDf%in%c("NULL", "")){
   DDf <- p.value <- numeric(nrow(aTable))
   termlabel <- row.names(aTable)

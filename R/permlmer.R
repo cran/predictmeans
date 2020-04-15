@@ -36,16 +36,24 @@ permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
   wterrors <- wt%*%errors
   
   # permute weighted resid, then unweighted it for 999 times
-  permResid <- matrix(0, length(wterrors), nperm)
-  for (i in 1:nperm) {
-    if(!missing(seed)) set.seed(seed+i)
-	permResid[, i] <- as.vector(Ut%*%sample(wterrors)) 
+  # permResid <- matrix(0, length(wterrors), nperm)
+  # for (i in 1:nperm) {
+  # if(!missing(seed)) set.seed(seed+i)
+  # permResid[, i] <- as.vector(Ut%*%sample(wterrors)) 
+  # }
+  # permy <- as.data.frame(xbeta+permResid)
+  if (ref) {
+    if(!missing(seed)) set.seed(seed)
+    permy <- as.data.frame(xbeta+replicate(nperm, as.vector(Ut%*%sample(wterrors))))
+  }else{   
+    if(!missing(seed)) set.seed(seed)  
+    permy <- replicate(nperm, {
+      rowindex <- sample(1:length(errors))
+      as.data.frame(xbeta[rowindex]+as.vector(Ut%*%wterrors[rowindex]))
+    })
   }
-  permy <- as.data.frame(xbeta+permResid)
-  # permy <- as.data.frame(xbeta+replicate(nperm, as.vector(Ut%*%sample(wterrors, replace=FALSE))))
   
-  # Calculating the likelihood ratio test statistic for each permutation.  
-  
+  # Calculating the likelihood ratio test statistic for each permutation.    
   lrtest1 <- 2*(logLik(lmer1, REML=ref)-logLik(lmer0, REML=ref))
   lrtest1 <- ifelse(lrtest1 < 0, 0, lrtest1)
   
@@ -57,8 +65,7 @@ permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
   })
   stopCluster(cl)
   
-  #Calculating the p-values.
-  
+  #Calculating the p-values.  
   lrtest <- na.omit(unlist(lrtest2))
   lrtest <- ifelse(lrtest < 0, 0, lrtest)
   perm_p <- (sum(lrtest >= lrtest1) +1)/(length(lrtest) + 1)
@@ -66,9 +73,9 @@ permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
   aod$'Perm-p' <- c(NA, perm_p)
   
   if (plot) {
-  dev.new()
-  plot (density(c(lrtest1, lrtest), kernel = "epanechnikov"), col="blue", lwd=2, xlab = "", main = "LR Test's density kernels")
-  abline(v=lrtest1, col="red")
+    dev.new()
+    plot (density(c(lrtest1, lrtest), kernel = "epanechnikov"), col="blue", lwd=2, xlab = "", main = "LR Test's density kernels")
+    abline(v=lrtest1, col="red")
   }
   return(aod)
 }

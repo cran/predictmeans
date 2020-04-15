@@ -7,7 +7,7 @@ Permutation Index
 This function obtains permutation index for a dataset.
 }
 \usage{
-permindex(data, block=NULL, group=NULL, nsim=4999)
+permindex(data, block=NULL, group=NULL, nsim=4999, seed)
 }
 \arguments{
   \item{data}{
@@ -21,6 +21,9 @@ Name (in "quotes") for the group factor in the \code{data}.
 }
   \item{nsim}{
 The number of permutations. The default is 4999.  
+}
+  \item{seed}{
+Specify a random number generator seed, for reproducible results.
 }
 }
 \value{

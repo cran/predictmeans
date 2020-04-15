@@ -5,6 +5,8 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
                           permlist=NULL, ndecimal=4) 
 {  
   options(scipen=6)
+  if(any(missing(model), missing(modelterm))) stop("The arguments 'model', and 'modelterm' must be provided!")
+  if (!(modelterm %in% attr(terms(model), "term.labels"))) stop(paste("The", modelterm, "must be exactly a term in the model (especially check the order of interaction)."))
   slevel <- level
   predictmeansPlot <- predictmeansBarPlot <- NULL
   if (inherits(model, "aovlist")) stop("Plese use model 'lme' instead of 'aov'!")
@@ -282,8 +284,24 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 		  p_valueMatrix <- pmlist
         }    
       } # if (is.null(atvar))
-    }# end of if(pairwise)
-    
+    }# end of if(pairwise)    
+
+	meanTable <- mt
+	meanTable$Df <- Df
+	    if (is.null(permlist) || permlist%in%c("NULL", "")) {    
+      meanTable$LL <- meanTable$pm - qt(1 - slevel/2, df = Df) * meanTable$ses
+      meanTable$UL <- meanTable$pm + qt(1 - slevel/2, df = Df) * meanTable$ses
+    }else{
+      meanTable$LL <- meanTable$pm - 2 * meanTable$ses
+      meanTable$UL <- meanTable$pm + 2 * meanTable$ses
+	  slevel <- 0.05
+	  meanTable$Df <- NA
+    }
+	
+	rownames(meanTable) <- NULL
+	meanTable <- meanTable[c(vars, "pm", "ses", "Df", "LL", "UL")]	
+	names(meanTable) <- c(vars, "Predicted means", "Standard error", "Df", paste("LL of ", (1 - slevel) * 100, "% CI", sep = ""),
+                                    paste("UL of ", (1 - slevel) * 100, "% CI", sep = ""))
 	
     if (plot) {
       if (length(vars) > 3)
@@ -518,7 +536,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
       if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Back Transformed Means with ", (1 - slevel) * 100, "% CIs\n for '",
                                                                             modelterm, "'", "\n", sep = "")
       if (newwd) dev.new()
-      limits <- aes(xmax = bkmt$"UL of 95% CI", xmin=bkmt$"LL of 95% CI")
+      limits <- aes(xmax = bkmt$`UL of 95% CI`, xmin=bkmt$`LL of 95% CI`)
       xlimv <- c(xMin - xoffSet, xMax + xoffSet)
       p <- qplot(Mean, Trt, main = mtitle, ylab = "", xlab = "", xlim = xlimv, data=bkmt)+
         geom_point(colour="red") + geom_errorbarh(limits, height=0.2, size=0.8, colour="red") +
@@ -530,75 +548,82 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
     }
     rownames(bkmt) <- NULL
     bkmt$Trt <- NULL
-    if (pairwise) {
-      if (is.null(atvar) || atvar%in%c("NULL", "")) {
-        if (all(is.null(permlist) || permlist%in%c("NULL", ""), adj %in% c("none", "bonferroni"))) {
-          outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                      "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm, ndecimal+1),
-                      "Pairwise p-values" = round(t.p.valuem,4), "Back Transformed Means" = bkmt, 
-					  predictmeansPlot=predictmeansPlot, predictmeansBKPlot=predictmeansBKPlot, 
-					  predictmeansBarPlot=predictmeansBarPlot, p_valueMatrix=p_valueMatrix)
-					  		  class(outputlist) = "pdmlist"
-          return(outputlist)	
-        }else{
-          outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                      "Standard Error of Differences" = SED.out, LSD = LSD,
-                      "Pairwise p-values" = round(t.p.valuem,4), "Back Transformed Means" = bkmt, 
-					  predictmeansPlot=predictmeansPlot, predictmeansBKPlot=predictmeansBKPlot, 
-					  predictmeansBarPlot=predictmeansBarPlot, p_valueMatrix=p_valueMatrix)
-					  		  class(outputlist) = "pdmlist"
-          return(outputlist)	
-        }
-      }else{
-        outputlist <- vector("list", listlength+10)
-        outputlist[[1]] <- mean.table
-        outputlist[[2]] <- se.table
-        outputlist[[3]] <- SED.out
-        outputlist[[4]] <- LSD		
-		outputlist[[5]] <- paste("For variable", paste(sQuote(resvar), collapse =" and "), "at each level of", paste(sQuote(atvar), collapse =" and "))                   
-		for (i in 6: (listlength+5))  outputlist[[i]] <- pmlistTab[[i-5]]
-        outputlist[[listlength+6]] <- bkmt
-		outputlist[[listlength+7]] <- predictmeansPlot
-		outputlist[[listlength+8]] <- predictmeansBKPlot
-		outputlist[[listlength+9]] <- predictmeansBarPlot
-		outputlist[[listlength+10]] <- p_valueMatrix
-        if (is.null(permlist) || permlist%in%c("NULL", "")) {
-          names(outputlist) <- c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
-                                   "LSD", paste("Pairwise comparison p-value (adjusted by", sQuote(adj), "method)"), 
-								   atvar.levels, "Back Transformed Means", "predictmeansPlot", "predictmeansBKPlot", 
-								   "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]												 
-        }else{
-          names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
-                                   "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
-                                                              paste(sQuote(resvar),collapse =" and "), "at level <", atvar.levels, "> of", paste(sQuote(atvar), collapse =" and ")), 
-															  "Back Transformed Means with an Approximated 95% CIs (Mean +/- 2*SE)", "predictmeansPlot", "predictmeansBKPlot", 
-															  "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]                            
-        }          
-		  class(outputlist) = "pdmlist"
-          return(outputlist)	        
-      }
-    }else {
-      outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                  "Standard Error of Differences" = SED.out, LSD = LSD,
-                  "Back Transformed Means" = bkmt, predictmeansPlot=predictmeansPlot, 
-				  predictmeansBKPlot=predictmeansBKPlot, predictmeansBarPlot=predictmeansBarPlot)
-	class(outputlist) = "pdmlist"
-          return(outputlist)	
-    }
-  }else {
+	
+	meanTable <- cbind(meanTable, bkmt[, (ncol(bkmt)-2):ncol(bkmt)])
+	colnames(meanTable)[(ncol(meanTable)-2):ncol(meanTable)] <-  c("BK mean", paste("LL of ", (1 - slevel) * 100, "% BK CI", sep = ""),
+                                    paste("UL of ", (1 - slevel) * 100, "% BK CI", sep = ""))
+	
+	predictmeansPlot <- list(predictmeansPlot, predictmeansBKPlot)
+    # if (pairwise) {
+      # if (is.null(atvar) || atvar%in%c("NULL", "")) {
+        # if (all(is.null(permlist) || permlist%in%c("NULL", ""), adj %in% c("none", "bonferroni"))) {
+          # outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
+                      # "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm, ndecimal+1),
+                      # "Pairwise p-values" = round(t.p.valuem,4), "Back Transformed Means" = bkmt, 
+					  # predictmeansPlot=predictmeansPlot, predictmeansBKPlot=predictmeansBKPlot, 
+					  # predictmeansBarPlot=predictmeansBarPlot, p_valueMatrix=p_valueMatrix, mean_table=meanTable)
+					  		  # class(outputlist) = "pdmlist"
+          # return(outputlist)	
+        # }else{
+          # outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
+                      # "Standard Error of Differences" = SED.out, LSD = LSD,
+                      # "Pairwise p-values" = round(t.p.valuem,4), "Back Transformed Means" = bkmt, 
+					  # predictmeansPlot=predictmeansPlot, predictmeansBKPlot=predictmeansBKPlot, 
+					  # predictmeansBarPlot=predictmeansBarPlot, p_valueMatrix=p_valueMatrix, mean_table=meanTable)
+					  		  # class(outputlist) = "pdmlist"
+          # return(outputlist)	
+        # }
+      # }else{
+        # outputlist <- vector("list", listlength+10)
+        # outputlist[[1]] <- mean.table
+        # outputlist[[2]] <- se.table
+        # outputlist[[3]] <- SED.out
+        # outputlist[[4]] <- LSD		
+		# outputlist[[5]] <- paste("For variable", paste(sQuote(resvar), collapse =" and "), "at each level of", paste(sQuote(atvar), collapse =" and "))                   
+		# for (i in 6: (listlength+5))  outputlist[[i]] <- pmlistTab[[i-5]]
+        # outputlist[[listlength+6]] <- bkmt
+		# outputlist[[listlength+7]] <- predictmeansPlot
+		# outputlist[[listlength+8]] <- predictmeansBKPlot
+		# outputlist[[listlength+9]] <- predictmeansBarPlot
+		# outputlist[[listlength+10]] <- p_valueMatrix
+		# outputlist[[listlength+11]] <- meanTable
+        # if (is.null(permlist) || permlist%in%c("NULL", "")) {
+          # names(outputlist) <- c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
+                                   # "LSD", paste("Pairwise comparison p-value (adjusted by", sQuote(adj), "method)"), 
+								   # atvar.levels, "Back Transformed Means", "predictmeansPlot", "predictmeansBKPlot", 
+								   # "predictmeansBarPlot", "p_valueMatrix", "mean_table")[1:length(outputlist)]												 
+        # }else{
+          # names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
+                                   # "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
+                                                              # paste(sQuote(resvar),collapse =" and "), "at level <", atvar.levels, "> of", paste(sQuote(atvar), collapse =" and ")), 
+															  # "Back Transformed Means with an Approximated 95% CIs (Mean +/- 2*SE)", "predictmeansPlot", "predictmeansBKPlot", 
+															  # "predictmeansBarPlot", "p_valueMatrix", "mean_table")[1:length(outputlist)]                            
+        # }          
+		  # class(outputlist) = "pdmlist"
+          # return(outputlist)	        
+      # }
+    # }else {
+      # outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
+                  # "Standard Error of Differences" = SED.out, LSD = LSD,
+                  # "Back Transformed Means" = bkmt, predictmeansPlot=predictmeansPlot, 
+				  # predictmeansBKPlot=predictmeansBKPlot, predictmeansBarPlot=predictmeansBarPlot, mean_table=meanTable)
+	# class(outputlist) = "pdmlist"
+          # return(outputlist)	
+    # }
+  } # else {
     if (pairwise) {
       if (is.null(atvar) || atvar%in%c("NULL", "")) {
         if (all(is.null(permlist) || permlist%in%c("NULL", ""), adj %in% c("none", "bonferroni"))) {
           outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
                       "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm,ndecimal+1), 
 					  "Pairwise p-value" = round(t.p.valuem, 4), predictmeansPlot=predictmeansPlot,
-					  predictmeansBarPlot=predictmeansBarPlot, p_valueMatrix=p_valueMatrix)
+					  predictmeansBarPlot=predictmeansBarPlot, mean_table=meanTable, p_valueMatrix=p_valueMatrix)
 		  class(outputlist) = "pdmlist"
           return(outputlist)			  
         }else{
           outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
                       "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise p-value" = round(t.p.valuem, 4), 
-					  predictmeansPlot=predictmeansPlot, predictmeansBarPlot=predictmeansBarPlot,
+					  predictmeansPlot=predictmeansPlot, predictmeansBarPlot=predictmeansBarPlot, mean_table=meanTable,
 					  p_valueMatrix=p_valueMatrix)
 	      class(outputlist) = "pdmlist"
           return(outputlist)
@@ -611,17 +636,24 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
         outputlist[[4]] <- LSD
 		outputlist[[5]] <- paste("For variable", paste(sQuote(resvar), collapse =" and "), "at each level of", paste(sQuote(atvar), collapse =" and "))                   
 		for (i in 6: (listlength+5))  outputlist[[i]] <- pmlistTab[[i-5]]
-		outputlist[[listlength+6]] <- predictmeansPlot
-		outputlist[[listlength+7]] <- predictmeansBarPlot
-		outputlist[[listlength+8]] <- p_valueMatrix
+		outputlist[[listlength+6]] <- meanTable
+		outputlist[[listlength+7]] <- predictmeansPlot
+		outputlist[[listlength+8]] <- predictmeansBarPlot
+		outputlist[[listlength+9]] <- p_valueMatrix		
+		
+		# print(outputlist)
         if (is.null(permlist) || permlist%in%c("NULL", "")) {
           names(outputlist)<- c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
                                    "LSD", paste("Pairwise comparison p-value (adjusted by", sQuote(adj), "method)"), 
-								   atvar.levels, "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]								   
+								   atvar.levels, "mean_table", "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]								   
         }else{
           names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
-                                   "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
-								   paste(sQuote(resvar), collapse =" and "), "at level <", atvar.levels, "> of", paste(sQuote(atvar), collapse =" and ")), 
+                                   "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)"), 
+								    atvar.levels,								   
+								   
+								   #paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
+								  # paste(sQuote(resvar), collapse =" and "), "at level <", atvar.levels, "> of", paste(sQuote(atvar), collapse =" and ")), 
+								   "mean_table", 
 								   "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]                     
         }
 	  class(outputlist) <- "pdmlist"
@@ -630,9 +662,9 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
     }else {
       outputlist=list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
                   "Standard Error of Differences" = SED.out, LSD = LSD, predictmeansPlot=predictmeansPlot,
-				  predictmeansBarPlot=predictmeansBarPlot)
+				  predictmeansBarPlot=predictmeansBarPlot, mean_table=meanTable)
 	  class(outputlist) <- "pdmlist"
       return(outputlist)
     }
-  }
+#  }
 }

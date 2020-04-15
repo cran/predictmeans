@@ -9,7 +9,7 @@ for the terms in a linear model such as \code{aov}, \code{lm}, \code{glm}, \code
 }
 \usage{
 permmodels(model, data, block=NULL, group=NULL, covariate=NULL, nsim=4999, check=FALSE, 
-  exact=FALSE, fo=NULL, prt=TRUE)
+  exact=FALSE, fo=NULL, prt=TRUE, seed)
 }
 \arguments{
   \item{model}{
@@ -40,6 +40,9 @@ A logical variable to indicate whether or not exact no. of permutations will be 
 A model formula used in the \code{model}; \code{fo!=NULL} when the formula is specified by function \code{formula}.}
   \item{prt}{
 A logical variable to indicate whether or not to print output on the screen. The default is TRUE.}
+  \item{seed}{
+Specify a random number generator seed, for reproducible results.
+}
 }
 \value{
 The function produces permutation t-test table for coefficients of (fixed) effects, permutation ANOVA table for model terms and a model parameter list \code{permlist}, a list containing \code{nsim=4999} times permutation refitted \code{model} parameters which are used in functions \code{predictmeans} and \code{contrastmeans}. 
