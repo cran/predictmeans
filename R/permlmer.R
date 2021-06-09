@@ -56,14 +56,22 @@ permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
   # Calculating the likelihood ratio test statistic for each permutation.    
   lrtest1 <- 2*(logLik(lmer1, REML=ref)-logLik(lmer0, REML=ref))
   lrtest1 <- ifelse(lrtest1 < 0, 0, lrtest1)
-  
-  cl <- makeCluster(ncore)
-  clusterExport(cl, c(getNamespaceExports("lme4"), "lmer0", "lmer1", "ref"), envir = environment())
-  lrtest2 <- parLapply(cl, permy, function(x) {
-    LRT <- try(2*(logLik(refit(lmer1, x), REML=ref) - logLik(refit(lmer0, x), REML=ref)), TRUE)
-    LRT <- ifelse(is.numeric(LRT), LRT, NA)
-  })
-  stopCluster(cl)
+	  
+  if (.Platform$OS.type=="windows") {
+	  cl <- makeCluster(ncore)	  
+	  clusterEvalQ(cl, library(lme4))
+	  clusterExport(cl, c("lmer0", "lmer1", "ref"), envir = environment()) 
+	  lrtest2 <- parLapplyLB(cl, permy, function(x) {
+		LRT <- try(2*(logLik(refit(lmer1, x), REML=ref) - logLik(refit(lmer0, x), REML=ref)), TRUE)
+		LRT <- ifelse(is.numeric(LRT), LRT, NA)
+	  })
+	  stopCluster(cl)
+  }else{  
+	  lrtest2 <- mclapply(permy, function(x) {
+		LRT <- try(2*(logLik(suppressMessages(refit(lmer1, x)), REML=ref) - logLik(suppressMessages(refit(lmer0, x)), REML=ref)), TRUE)
+		LRT <- ifelse(is.numeric(LRT), LRT, NA)
+	  }, mc.cores=ncore)
+  }
   
   #Calculating the p-values.  
   lrtest <- na.omit(unlist(lrtest2))

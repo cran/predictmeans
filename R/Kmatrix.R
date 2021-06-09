@@ -1,4 +1,4 @@
-Kmatrix <- function(model, modelterm, covariate=NULL, as.is=FALSE, covariateV=NULL, prtnum=FALSE)
+Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, prtnum=FALSE)
 {
   if (inherits(model, "mer") || inherits(model, "merMod")) { 
     if(!lme4::isLMM(model) && !lme4::isGLMM(model))
@@ -16,9 +16,8 @@ Kmatrix <- function(model, modelterm, covariate=NULL, as.is=FALSE, covariateV=NU
     contrasts <- attr(model.matrix(model), "contrasts")
   }else stop(paste("Can't handle an model of class", class(model)[1]))
   
-  cov.reduce <- function(x, name) mean(x)
-  
-  fac.reduce <- function(coefs, lev) apply(coefs, 2, mean) 
+  cov.reduce <- function(x, name) mean(x, na.rm=TRUE)  
+  fac.reduce <- function(coefs, lev) apply(coefs, 2, mean, na.rm=TRUE) 
   
   # Get model formula and index of response
   Terms <- terms(model)
@@ -41,7 +40,9 @@ Kmatrix <- function(model, modelterm, covariate=NULL, as.is=FALSE, covariateV=NU
   envir <- attr(Terms, ".Environment")
   #eval(thecall$data, envir=envir)
   
-  X <- model.frame(form, model.frame(model), 
+  if (inherits(model, "mer") || inherits(model, "merMod") || inherits(model, "lme") || inherits(model, "gls")) model_data <- get_all_vars(formrhs, getData(model))
+    else model_data <- model.frame(model)
+  X <- model.frame(form, model_data, 
                    subset = eval(thecall$subset, enclos=envir),
                    na.action = na.omit, drop.unused.levels = TRUE)			  
   preddf <- X
@@ -53,32 +54,32 @@ Kmatrix <- function(model, modelterm, covariate=NULL, as.is=FALSE, covariateV=NU
     if (is.factor(obj)) {            
       xlev[[xname]] <- levels(obj)
       baselevs[[xname]] <- levels(obj)
-    }
-    else if (is.matrix(obj)) {
+    }else if (is.matrix(obj)) {
       # Matrices -- reduce columns thereof, but don't add to baselevs
       matdat[[xname]] <- apply(obj, 2, cov.reduce, xname)
-    }
-    else {
+    }else {
       # single numeric pred but coerced to a factor - use unique values
-      if (length(grep(xname, coerced)) > 0)             
-        baselevs[[xname]] <- sort(unique(obj))
-      
+      if (length(grep(xname, coerced)) > 0) {
+	    baselevs[[xname]] <- sort(unique(obj))
       # Ordinary covariates - summarize if not in 'at' arg
-      else baselevs[[xname]] <- cov.reduce(obj, xname)       
+      }else baselevs[[xname]] <- cov.reduce(obj, xname)       
     }
   }
   
-  covlevname <- setdiff(names(baselevs), c(names(xlev), coerced))
+  factor_names <- c(names(xlev), coerced)
+  covlevname <- setdiff(names(baselevs), factor_names)
+  n.table <- table(preddf[, factor_names, drop = FALSE])
+  ndf <- data.frame(n.table)
   
   if ((!is.null(covariate) && !unique(covariate%in%c("NULL", ""))) && is.numeric(covariate)) baselevs[covlevname] <- as.list(covariate)
   if ((!is.null(covariate) && !unique(covariate%in%c("NULL", ""))) && is.character(covariate) && covariate%in%covlevname && length(covariate)==1)  {
-    if (as.is) {
-      baselevs[[covariate]] <- sort(unique(X[[covariate]]))
-    }else{ 
+    # if (as.is) {
+      # baselevs[[covariate]] <- sort(unique(X[[covariate]]))
+    # }else{ 
       if ((!is.null(covariateV) && !unique(covariateV%in%c("NULL", ""))) && is.vector(covariateV)){
         baselevs[[covariate]] <- covariateV
-      }else baselevs[[covariate]] <- seq(min(X[[covariate]]), max(X[[covariate]]),length=50)
-    }
+      }else baselevs[[covariate]] <- sort(unique(c(seq(min(X[[covariate]]), max(X[[covariate]]),length=500), X[[covariate]])))
+   # }
   }
   if (all(length(covlevname)!=0, prtnum)) {
     cat("\n", "The predicted means are estimated at \n\n")
@@ -90,14 +91,19 @@ Kmatrix <- function(model, modelterm, covariate=NULL, as.is=FALSE, covariateV=NU
   grid <- do.call("expand.grid", baselevs)
   
   # add any matrices
-  for (nm in names(matdat))
-    grid[[nm]] <- matrix(rep(matdat[[nm]], each=nrow(grid)), nrow=nrow(grid))
+  for (nm in names(matdat)) grid[[nm]] <- matrix(rep(matdat[[nm]], each=nrow(grid)), nrow=nrow(grid))
   
   # Now make a new dataset with just the factor combs and covariate values we want for prediction
   # WARNING -- This will overwrite X, so get anything you need from X BEFORE we get here
+  ndf <- merge( grid, ndf, sort=FALSE)
   
   m <- model.frame(Terms, grid, na.action = na.pass, xlev = xlev)
   X <- model.matrix(Terms, m, contrasts.arg = contrasts)
+  
+  if (any(ndf$Freq==0)) {
+    warning("Missing treatments' combination appeared, predicted means maybe misleading!")
+    X[ndf$Freq==0, ] <- NA
+  }
   
   # All factors (excluding covariates)
   allFacs <- all.var.names

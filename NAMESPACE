@@ -1,19 +1,13 @@
 S3method(print, pdmlist)
 
-if (requireNamespace("lme4", quietly = TRUE)) {
-    import(lme4)
-}
-
-if (requireNamespace("nlme", quietly = TRUE)) {
-    importFrom(nlme, getData, ACF)
-}
-
 if (requireNamespace("ggplot2", quietly = TRUE)) {
     import(ggplot2)
 }
 
 if (requireNamespace("Matrix", quietly = TRUE)) {
-    importFrom(Matrix, tcrossprod)
+importMethodsFrom("Matrix", 
+                  "*", "solve", "t", "which", "diag", "crossprod", "tcrossprod", 
+                  "chol")
 }
 
 if (requireNamespace("pbkrtest", quietly = TRUE)) {
@@ -23,27 +17,26 @@ if (requireNamespace("pbkrtest", quietly = TRUE)) {
 if (requireNamespace("plyr", quietly = TRUE)) {
     importFrom(plyr, alply)
 }
-
-if (requireNamespace("numDeriv", quietly = TRUE)) {
-    importFrom(numDeriv, hessian)
-}
-
-if (requireNamespace("parallel", quietly = TRUE)) {
-    import(parallel)
-}
-
+ # import(lme4)
+ # import(nlme)
+  import(parallel)
+  import(lmeInfo)
+  
+  importFrom("nlme", "getData", "intervals")
+  importFrom("lme4", "fixef", "getME", "refit", "VarCorr")
   importFrom("grDevices", "dev.new")
+  importFrom("Matrix", "Diagonal", "forceSymmetric")
   importFrom("graphics", "abline", "axis", "box", "identify", "image",
              "legend", "lines", "par", "plot", "points", "text", "title")
-  importFrom("methods", "slot")
-  importFrom("stats", "anova", "as.formula", "coef", "delete.response",
+  importFrom("methods", "is", "slot")
+  importFrom("stats", "anova", "as.formula", "coef", "confint", "delete.response",
              "density", "family", "fitted", "formula", "ftable",
              "lm.influence", "loess.smooth", "logLik", "make.link",
              "model.frame", "model.matrix", "na.omit", "na.pass",
              "p.adjust", "pf", "ppoints", "predict", "pt", "ptukey",
              "qnorm", "qqline", "qqnorm", "qt", "resid", "residuals",
-             "setNames", "sigma", "terms", "update", "vcov", "xtabs")
-  importFrom("utils", "edit")
+             "setNames", "sigma", "terms", "update", "vcov", "xtabs",
+			 "aggregate", "get_all_vars")
+  importFrom("utils", "combn", "edit")
 
-export(anovalmer, contrastmeans, CookD, covariatemeans, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, residplot, varcomp.lmer)
-
+export(anovalmer, contrastmeans, CookD, covariatemeans, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, residplot, varcomp)

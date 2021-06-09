@@ -8,7 +8,7 @@ Matrix of Coefficients in a Linear Model
   \code{glm}, \code{gls}, \code{lme}, and \code{lmer}.
 }
 \usage{
-Kmatrix(model, modelterm, covariate=NULL, as.is=FALSE, covariateV=NULL, prtnum=FALSE)
+Kmatrix(model, modelterm, covariate=NULL, covariateV=NULL, prtnum=FALSE)
 }
 \arguments{
   \item{model}{
@@ -21,9 +21,6 @@ Model object returned by \code{aov}, \code{lm}, \code{glm}, \code{gls}, \code{lm
   \item{covariate}{
 A numerical vector to specify values of covariates for calculating predicted means, 
 default values are the means of the associated covariates. It also can be the name of one covariate in the model.
-}
-  \item{as.is}{
-A logic value to specify wheather or not using original covariate values, the default is FALSE.
 }
   \item{covariateV}{
   A numeric vector when \code{as.is} is FALSE and \code{covariate} is name of one covariate in the model, then 
@@ -54,8 +51,7 @@ This function heavily depends on the codes from package "lsmeans".
   fm <- lme(yield ~ nitro*Variety, random=~1|Block/Variety, data=Oats)
   Kmatrix(fm, "Variety", prtnum=TRUE)$K
   Kmatrix(fm, "Variety", 0.5, prtnum=TRUE)$K
-  Kmatrix(fm, "Variety", "nitro")$K
-  Kmatrix(fm, "Variety", "nitro", as.is=TRUE)$K
+ # Kmatrix(fm, "Variety", "nitro")$K
   Kmatrix(fm, "Variety", "nitro", covariateV=seq(0, 0.6, 0.1))$K
 }
 

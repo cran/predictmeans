@@ -23,7 +23,7 @@
   Name (in "quotes") of one the covariate variables in the \code{model}.
 }
   \item{as.is}{
-A logic value to specify wheather or not using original covariate values, the default is FALSE.
+A logic value to specify wheather or not using original covariate values' rage for graph, the default is FALSE.
 }
   \item{covariateV}{
   A numeric vector when as.is is FALSE, then covariatemeans will produce the result for \code{covariate} at value of \code{covariateV}.
@@ -84,6 +84,5 @@ Dongwen Luo, Siva Ganesh and John Koolaard
 # library(lme4)
 # fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
   covariatemeans(fm, "Variety", covariate="nitro")
-  covariatemeans(fm, "Variety", covariate="nitro", as.is=TRUE)$data
   covariatemeans(fm, "Variety", covariate="nitro", covariateV=seq(0, 0.6, 0.1))$data
 }

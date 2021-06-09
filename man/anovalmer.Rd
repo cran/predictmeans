@@ -1,7 +1,7 @@
 \name{anovalmer}
 \alias{anovalmer}
 \title{
-ANOVA of a Linear Mixed Effects Model produced by l\code{lmer} function
+ANOVA of a Linear Mixed Effects Model produced by \code{lmer} function
 }
 \description{
 This function provides ANOVA of a linear mixed effects model for \code{lmer} object with model terms' denominate degree of freedom estimated by Kenward-Roger method.

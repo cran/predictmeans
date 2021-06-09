@@ -6,13 +6,26 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
   }
   
   vars <- unlist(strsplit(modelterm, "\\:"))
-  ctr.matrix <- Kmatrix(model, modelterm, covariate, as.is, covariateV)
+  ctr.matrix <- Kmatrix(model, modelterm, covariate, covariateV)
   KK <- ctr.matrix$K
   pltdf <- ctr.matrix$fctnames
   response <- ctr.matrix$response
   preddf <- ctr.matrix$preddf
   mp <- mymodelparm(model)
-  bhat <- mp$coef
+  bhat <- mp$coef 
+  
+  
+  if (modelterm!=covariate & as.is) {  
+  agg_formula <- formula(paste(covariate, "~", paste(vars, collapse="+")))
+min_df <- aggregate(agg_formula, preddf, min, na.rm=TRUE)
+names(min_df)[ncol(min_df)] <- "min_value"
+max_df <- aggregate(agg_formula, preddf, max, na.rm=TRUE)
+names(max_df)[ncol(max_df)] <- "max_value"
+pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=FALSE)
+  pltdf <- pltdf[pltdf[[covariate]] >= pltdf[["min_value"]] & pltdf[[covariate]] <= pltdf[["max_value"]], ]
+  KK <- KK[as.numeric(rownames(pltdf)),] 
+  }
+   
   
   # We'll work only with the non-NA elements of bhat
   KK <- KK[, mp$estimable, drop=FALSE]   
@@ -23,7 +36,8 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
     if (inherits(model, "lme")) {
       Df <- terms(model$fixDF)[modelterm]
     }else if (inherits(model, "merMod")) {
-		  Df <- pbkrtest::getKR(calcKRDDF(model, modelterm), "ddf")
+		  Df <- try(pbkrtest::getKR(calcKRDDF(model, modelterm), "ddf"))
+		  if(inherits(Df, "try-error")) stop("You need provide Df for this model!") 		  
         }else Df <- mp$df
     if (Df==0) stop("You need provide Df for this model!")
   }
@@ -50,7 +64,10 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
     pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff
 	#}
   }
-  pltdf$yhat <- pltdf$ses <- NULL 
+  
+ # pltdf$yhat <- pltdf$ses <- NULL 
+  pltdf$yhat <- NULL 
+  
   if (modelterm==covariate) pltdf$factors <- factor(1) else pltdf$factors <- factor(do.call("paste", c(pltdf[, vars, drop=FALSE], sep=":")))
   colnames(pltdf)[colnames(pltdf)==covariate] <- "xvar"
   

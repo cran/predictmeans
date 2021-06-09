@@ -14,6 +14,7 @@ anovalmer <- function(model, DDf=NULL)  {
       p.value[vars] <- getKR(KRout, "p.value")
     }else DDf[vars] <- p.value[vars] <- NA    
   }
+  
   if(all(!is.na(DDf))){
     aTable$DDf <- DDf
     aTable$p.value <- round(p.value, 5)
@@ -23,7 +24,7 @@ anovalmer <- function(model, DDf=NULL)  {
   }else{
     if (length(DDf)!=nrow(aTable)) stop("Please provide suitable DenDF!")
 	aTable$DDf <- DDf
-	p.value <- 1- pf(aTable[, "F value"], aTable[, "Df"], DDf)
+	p.value <- 1- pf(aTable[, "F value"], aTable[, "npar"], DDf)
     aTable$p.value <- round(p.value, 5)
 	return(aTable)
   }

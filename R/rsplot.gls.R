@@ -1,6 +1,6 @@
 rsplot.gls <- function (model, group="none", id=FALSE, ask=FALSE){
 
-    mf <- as.data.frame(model.frame(model)) # in case tible
+    mf <- as.data.frame(model.frame(model, na.action = na.pass)) # in case tible
     yname <- names(attr(terms(model),"dataClasses"))[1]
     fittedv <- fitted(model)
     residv <- resid(model, type="pearson")
@@ -11,10 +11,18 @@ rsplot.gls <- function (model, group="none", id=FALSE, ask=FALSE){
     
    	form <- attr(model$modelStruct$corStruct, "formula")
     if (is.null(form)) form <- ~1
+	
+	  ACFdf <- nlme::ACF(model, form=form)
+  if (anyNA(ACFdf$ACF)) plot(0,type='n',axes=FALSE) else{
     plot(ACF ~ lag, type="h", col="blue", data=nlme::ACF(model, form=form))
     abline(h=0)
     abline(h=0.1, col="blue", lty=2)
     abline(h=-0.1, col="blue", lty=2)
+  }
+    # plot(ACF ~ lag, type="h", col="blue", data=nlme::ACF(model, form=form))
+    # abline(h=0)
+    # abline(h=0.1, col="blue", lty=2)
+    # abline(h=-0.1, col="blue", lty=2)
     
     tmp <- qqnorm(residv, col="blue", main = "Normal Plot for Residuals", 
       xlab="Standardized residuals",  ylab="Quantiles of Standard Normal")	

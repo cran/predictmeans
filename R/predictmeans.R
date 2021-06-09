@@ -2,8 +2,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
                           level=0.05, covariate=NULL, letterdecr=TRUE, trans = NULL, transOff=0, responsen=NULL, count=FALSE, 
                           plotord=NULL, plottitle=NULL, plotxlab=NULL, plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, 
                           bkplot=TRUE, plot=TRUE, jitterv=0, basesz=12, prtnum=TRUE, newwd=TRUE, 
-                          permlist=NULL, ndecimal=4) 
-{  
+                          permlist=NULL, ndecimal=4) {
   options(scipen=6)
   if(any(missing(model), missing(modelterm))) stop("The arguments 'model', and 'modelterm' must be provided!")
   if (!(modelterm %in% attr(terms(model), "term.labels"))) stop(paste("The", modelterm, "must be exactly a term in the model (especially check the order of interaction)."))
@@ -21,7 +20,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
   vars <- unlist(strsplit(modelterm, "\\:"))
   mdf <- model.frame(model)
   if(any(!is.element(vars, names(mdf)[sapply(mdf,is.factor)])))
-    stop(sQuote(vars), "all must be factor(s)!")
+    stop(paste(vars, "all must be factor(s)!"))
   
   if (length(vars)==1) atvar <- NULL
   if (!is.null(permlist) && !permlist%in%c("NULL", "")) {pairwise <- TRUE; if (adj=="tukey") stop("The p-value can't be adjusted by Tukey methd!")}                        # option checking
@@ -39,7 +38,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
   ndf <- data.frame(n.table)       ## To obtain info from model
   
   K <- KK[, mp$estimable, drop = FALSE]          # To match coef names
-  if (any(ndf$Freq==0)) {
+  if (any(ndf$Freq==0)) {    
     rnTrt <- do.call("paste", c(ndf[, vars, drop=FALSE], sep=":"))
     rnTrt <- rnTrt[ndf$Freq!=0]      # To delete any missing level in factor
     K <- K[rownames(K)%in%rnTrt,]
@@ -50,6 +49,7 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
   # ses <- sqrt(diag(K %*% tcrossprod(vcovm, K)))
   ses <- as.numeric(apply(K, 1, function(x) {y <- matrix(x, nrow=1);sqrt(y %*% tcrossprod(mp$vcov, y))}))
   mt <- data.frame(pm, ses, label)
+  LL <- UL <- NULL
   
   # print(mt)
   # names(mt)[-1:-2] <- vars
@@ -141,10 +141,10 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
       LSD <- round(qt(1 - level/2, df = Df) * SED.out, ndecimal+1)
       names(LSD) <- c("Max.LSD", "Min.LSD", "Aveg.LSD")
       attr(LSD, "For the Same Level of Factor") <- NULL
-      #    if (length(vars) > 1) {
-      #      rownames(dses.m) <- c("Aveg.LSD", "Min.LSD", "Max.LSD")
-      #      attr(LSD, "For the Same Level of Factor") <- qt(1 - level/2, df = Df) * dses.m
-      #    } # end of if LSD
+         if (length(vars) > 1) {
+           rownames(dses.m) <- c("Aveg.LSD", "Min.LSD", "Max.LSD")
+           attr(LSD, "For the Same Level of Factor") <- round(qt(1 - level/2, df = Df) * dses.m, ndecimal+1)
+         } # end of if LSD
       attr(LSD, "Significant level") <- slevel
       attr(LSD, "Degree of freedom") <- round(Df, 2)
     }else{
@@ -186,8 +186,8 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
         names(t.p.valuem) <- NULL
         if (is.null(permlist) || permlist%in%c("NULL", "")) {
           attr(t.p.valuem, "Degree of freedom") <- Df
-          attr(t.p.valuem, "Note") <- paste("The matrix has t-value above the diagonal, p-value (adjusted by",
-                                            sQuote(adj), "method) below the diagonal")
+          attr(t.p.valuem, "Note") <- paste("The matrix has t-value above the diagonal, p-value (adjusted by '",
+                                            adj, "' method) below the diagonal", sep="")
           LSDm.up <- qt(1-level/2, df = Df)*dses
           LSDm[upper.tri(LSDm)] <- LSDm.up
           Diffm[upper.tri(Diffm)] <- cm
@@ -195,11 +195,11 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
           names(LSDm) <- NULL
           attr(LSDm,"Significant level") <- slevel
           attr(LSDm,"Degree of freedom") <- Df
-          attr(LSDm,"Note") <- paste("LSDs matrix has mean differences (row-col) above the diagonal, LSDs (adjusted by",
-                                     sQuote(adj), "method) below the diagonal")
+          attr(LSDm,"Note") <- paste("LSDs matrix has mean differences (row-col) above the diagonal, LSDs (adjusted by '",
+                                     adj, "' method) below the diagonal", sep="")
         }else{
-          attr(t.p.valuem, "Note") <- paste("The matrix has t-value above the diagonal, and", sQuote(nsim), "times permutation p-value (adjusted by",
-                                            sQuote(adj), "method) below the diagonal")       
+          attr(t.p.valuem, "Note") <- paste("The matrix has t-value above the diagonal, and", nsim, "times permutation p-value (adjusted by '",
+                                            adj, "' method) below the diagonal", sep="")       
         } # end of if (is.null(permlist)) 
 		
 		groupRn <- rnK[order(mt$pm, decreasing = letterdecr)]
@@ -207,15 +207,15 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 		t.p.valuemGrp[upper.tri(t.p.valuemGrp)] <- t(t.p.valuemGrp)[upper.tri(t.p.valuemGrp)]
 		t.p.valuemGrp <- t.p.valuemGrp[groupRn, groupRn]
         # multGrp <- data.frame(multcompLetters(t.p.valuem, Letters=LETTERS, threshold=slevel))
-		multGrp <- data.frame(multcompLetters(t.p.valuemGrp, Letters=LETTERS, threshold=slevel)[rnK])
-		names(multGrp) <- "Group"
+		# multGrp <- data.frame(multcompLetters(t.p.valuemGrp, Letters=LETTERS, threshold=slevel)[rnK])
+		# names(multGrp) <- "Group"
 		multGrp <- data.frame(Treatment=groupRn, Mean=mt$pm[order(mt$pm, decreasing = letterdecr)], Group=multcompLetters(t.p.valuemGrp, Letters=LETTERS, threshold=slevel)) 
 		rownames(multGrp) <- NULL
          
-        attr(t.p.valuem, paste("Letter-based representation of pairwise comparisons at significant level", sQuote(slevel))) <- multGrp
+        attr(t.p.valuem, paste("Letter-based representation of pairwise comparisons at significant level '", slevel, "'", sep="")) <- multGrp
         if (all(nrow(t.p.valuep) > 3, pplot, plot)) {
           mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Level Plot of p-value (adjusted by", sQuote(adj), "method)\n for Pairwise Comparison")		
+          if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Level Plot of p-value (adjusted by '", adj, "' method)\n for Pairwise Comparison", sep="")		
           PMplot(t(t.p.valuep), level=slevel, legendx=0.69, mtitle=mtitle, newwd=newwd)
 		  p_valueMatrix <- t(t.p.valuep)
         } # end of if (all(nrow(t.p.valuep) > 3, pplot, plot)) 
@@ -278,8 +278,8 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 		
         if (all(nrow.pm > 2, pplot, plot)) { 
           mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", ""))  mtitle <- paste("Adjusted p-value (by", sQuote(adj), 
-                                                                                 "method)\n for Pairwise Comparison at Each Level of",paste(sQuote(atvar), collapse =" and "))
+          if (is.null(plottitle) || plottitle%in%c("NULL", ""))  mtitle <- paste("Adjusted p-value (by '", adj, 
+                                                                                 "' method)\n for Pairwise Comparison at Each Level of '",paste(atvar, collapse =" and "), "'", sep="")
           PMplot(pmlist, level=slevel, xylabel=rcnplotm, legendx=0.69, mtitle=mtitle, newwd=newwd)
 		  p_valueMatrix <- pmlist
         }    
@@ -302,6 +302,12 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 	meanTable <- meanTable[c(vars, "pm", "ses", "Df", "LL", "UL")]	
 	names(meanTable) <- c(vars, "Predicted means", "Standard error", "Df", paste("LL of ", (1 - slevel) * 100, "% CI", sep = ""),
                                     paste("UL of ", (1 - slevel) * 100, "% CI", sep = ""))
+	# add group letter to the mean table								
+	if (pairwise && (is.null(atvar) || atvar%in%c("NULL", "")))	{		
+	  t.p.valuemGrpMT <- t.p.valuem
+	  t.p.valuemGrpMT[upper.tri(t.p.valuemGrpMT)] <- t(t.p.valuemGrpMT)[upper.tri(t.p.valuemGrpMT)]
+	  meanTable$LetterGrp <- multcompLetters(t.p.valuemGrpMT, Letters=LETTERS, threshold=slevel)	
+    }	  
 	
     if (plot) {
       if (length(vars) > 3)
@@ -495,8 +501,9 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 	
     bkmt$pm <- bkmt$ses <- NULL
     nc <- ncol(bkmt)
-    names(bkmt)[c(nc - 1, nc)] <- c(paste("LL of ", (1 - slevel) * 100, "% CI", sep = ""),
-                                    paste("UL of ", (1 - slevel) * 100, "% CI", sep = ""))
+    # names(bkmt)[c(nc - 1, nc)] <- c(paste("LL of ", (1 - slevel) * 100, "% CI", sep = ""),
+                                    # paste("UL of ", (1 - slevel) * 100, "% CI", sep = ""))
+									
     bkmt[, (nc - 2):nc] <- round(bkmt[, (nc - 2):nc], ndecimal)
     if (count) {
 	  bkmt[, (nc - 2):nc] <- round(bkmt[, (nc - 2):nc], 0)
@@ -536,10 +543,11 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
       if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Back Transformed Means with ", (1 - slevel) * 100, "% CIs\n for '",
                                                                             modelterm, "'", "\n", sep = "")
       if (newwd) dev.new()
-      limits <- aes(xmax = bkmt$`UL of 95% CI`, xmin=bkmt$`LL of 95% CI`)
+      # limits <- aes(xmax = bkmt$`UL of 95% CI`, xmin=bkmt$`LL of 95% CI`)
       xlimv <- c(xMin - xoffSet, xMax + xoffSet)
       p <- qplot(Mean, Trt, main = mtitle, ylab = "", xlab = "", xlim = xlimv, data=bkmt)+
-        geom_point(colour="red") + geom_errorbarh(limits, height=0.2, size=0.8, colour="red") +
+        # geom_point(colour="red") + geom_errorbarh(aes(xmax = `UL of 95% CI`, xmin=`LL of 95% CI`), height=0.2, size=0.8, colour="red") +
+		geom_point(colour="red") + geom_errorbarh(aes(xmax = UL, xmin=LL ), height=0.2, size=0.8, colour="red") +
         scale_y_discrete(limits = rev(unique(bkmt$Trt)))+
         geom_point(aes(x=bky, y=Trtn), shape=1, position = position_jitter(width = jitterv, height = jitterv), colour="blue", alpha=0.6, data=newdata2)+
         theme_bw(basesz)
@@ -629,12 +637,19 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
           return(outputlist)
 		 }        
       }else{
+
+		all_var_names <- colnames(meanTable)
+		meanTable <- meanTable[c(atvar, resvar, setdiff(all_var_names, vars))]
+        meanTable <- with(meanTable, meanTable[order(eval(parse(text=c(atvar, resvar)[length(vars):1]))),])
+
+
+		
         outputlist <- vector("list", listlength+8)
         outputlist[[1]] <- mean.table
         outputlist[[2]] <- se.table
         outputlist[[3]] <- SED.out
         outputlist[[4]] <- LSD
-		outputlist[[5]] <- paste("For variable", paste(sQuote(resvar), collapse =" and "), "at each level of", paste(sQuote(atvar), collapse =" and "))                   
+		outputlist[[5]] <- paste("For variable '", paste(resvar, collapse =" and "), "' at each level of '", paste(atvar, collapse =" and "), "'", sep="")                   
 		for (i in 6: (listlength+5))  outputlist[[i]] <- pmlistTab[[i-5]]
 		outputlist[[listlength+6]] <- meanTable
 		outputlist[[listlength+7]] <- predictmeansPlot
@@ -644,11 +659,11 @@ predictmeans <- function (model, modelterm, pairwise=FALSE, atvar=NULL, adj="non
 		# print(outputlist)
         if (is.null(permlist) || permlist%in%c("NULL", "")) {
           names(outputlist)<- c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
-                                   "LSD", paste("Pairwise comparison p-value (adjusted by", sQuote(adj), "method)"), 
+                                   "LSD", paste("Pairwise comparison p-value (adjusted by '", adj, "' method)", sep=""), 
 								   atvar.levels, "mean_table", "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]								   
         }else{
           names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
-                                   "Approximated LSD"), paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)"), 
+                                   "Approximated LSD"), paste("Pairwise '", nsim, "' times permuted p-value (adjusted by '", adj, "' method)", sep=""), 
 								    atvar.levels,								   
 								   
 								   #paste("Pairwise", sQuote(nsim), "times permuted p-value (adjusted by", sQuote(adj), "method)","\n", "for variable", 
