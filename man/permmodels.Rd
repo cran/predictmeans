@@ -8,38 +8,36 @@ This function provides permutation t-tests for coefficients of (fixed) effects a
 for the terms in a linear model such as \code{aov}, \code{lm}, \code{glm}, \code{gls}, \code{lme}, and \code{lmer}.
 }
 \usage{
-permmodels(model, data, block=NULL, group=NULL, covariate=NULL, nsim=4999, check=FALSE, 
-  exact=FALSE, fo=NULL, prt=TRUE, seed)
+permmodels(model, nperm=4999, type=c("I", "II", "III", 1, 2, 3), 
+  test.statistic=c("Chisq", "F", "LR", "Wald"), exact=FALSE, data=NULL, 
+  fo=NULL, prt=TRUE, ncore=3, seed)
 }
 \arguments{
   \item{model}{
 Model object returned by \code{aov}, \code{lm}, \code{glm}, \code{gls}, \code{lme}, and \code{lmer}. 
 }
-  \item{data}{
-Data object used in the \code{model} fitting.
-}
-  \item{block}{
-Name (in "quotes") for the blocking factor in the \code{data}.
-}
-  \item{group}{
-Name (in "quotes") for the group factor in the \code{data}.
-}
-  \item{covariate}{
-Name(s) (in "quotes") for the covariate variable(s) in the \code{model}.
-}
-  \item{nsim}{
+  \item{nperm}{
 The number of permutations. The default is 4999.  
 }
-  \item{check}{
-a logical variable to indicate whether or not you want to check permutation results, the default is \code{FALSE}.
+  \item{type}{
+type of ANOVA test, "I", "II", "III", 1, 2, or 3. Roman numerals are equivalent to the corresponding Arabic numerals.
+}
+  \item{test.statistic}{
+  For type I ANOVA, F test is applied to all models, while for type II and III ANOVA, F test is performed for \code{lm}, 
+  Chisq test for \code{lme} and \code{gls} model, Chisq or F tests for \code{lmer} model and Likelihood ratio, Wald or F tests for \code{glm} model.
 }
   \item{exact}{
 A logical variable to indicate whether or not exact no. of permutations will be used (applicable only to free the permutation case). The default is FALSE.
 }
+  \item{data}{
+In some cases, you need to provide the data set used in model fitting, especially when you have applied some variable trnasformation in the model.}
   \item{fo}{
 A model formula used in the \code{model}; \code{fo!=NULL} when the formula is specified by function \code{formula}.}
   \item{prt}{
 A logical variable to indicate whether or not to print output on the screen. The default is TRUE.}
+  \item{ncore}{
+Number of core for parallel computing, the default value is 3.
+}
   \item{seed}{
 Specify a random number generator seed, for reproducible results.
 }
@@ -61,7 +59,7 @@ Dongwen Luo, Siva Ganesh and John Koolaard
 #
 ## Permutation Test for model terms
 #system.time(
-#  permlme <- permmodels(model=fm, data=Oats, block="Block", group="Variety", nsim=999)
+#  permlme <- permmodels(model=fm, nperm=999)
 #)  
 #
 ## Permutation Test for multiple comparisons

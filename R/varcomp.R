@@ -4,7 +4,7 @@ varcomp <- function(model, ci=TRUE, level=0.95) {
     vcov_index <- -1:-length(fixef(model))
     random_vcov <- as.matrix(vcov_lmerMod(model, full = TRUE, ranpar = "var")[vcov_index, vcov_index])
     random_terms <- gsub("cov_", "", colnames(random_vcov))
-    varcomp$Std.error <- sqrt(diag(random_vcov))
+    varcomp$SE <- sqrt(diag(random_vcov))
 	if (ci){
     varcomp <- cbind(varcomp, confint(model, level=level)[1:length(random_terms), ])
     kk <- abs(varcomp$sdcor^2 - varcomp$vcov) > 0.0000000000001
@@ -19,7 +19,7 @@ varcomp <- function(model, ci=TRUE, level=0.95) {
   }else if(inherits(model, "lme")){
     
     vcov=unlist(extract_varcomp(model))
-    Std.error=sqrt(diag(varcomp_vcov(model)))
+    SE=sqrt(diag(varcomp_vcov(model)))
     
     # cbind(Std.error, vcov)
     confint_list <- try(intervals(model, which="var-cov", level=level), silent = TRUE)
@@ -48,11 +48,11 @@ varcomp <- function(model, ci=TRUE, level=0.95) {
       }
       rownames(confint_matrixN) <- as.character(round(confint_matrixN[,"est."], 4))
       confint_matrixN <- confint_matrixN[as.character(round(vcov, 4)),]
-      varcomp <- cbind(vcov, Std.error, confint_matrixN)
+      varcomp <- cbind(vcov, SE, confint_matrixN)
 	  varcomp <- subset(varcomp, select=-c(est.))
 	  rownames(varcomp) <- sub("^Tau.", "", rownames(varcomp))
     }else{
-      varcomp <- cbind(vcov, Std.error)      
+      varcomp <- cbind(vcov, SE)      
     }
   }else{
     stop("The model must be a lme or lmer object!")

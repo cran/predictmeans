@@ -8,7 +8,7 @@ Matrix of Coefficients in a Linear Model
   \code{glm}, \code{gls}, \code{lme}, and \code{lmer}.
 }
 \usage{
-Kmatrix(model, modelterm, covariate=NULL, covariateV=NULL, prtnum=FALSE)
+Kmatrix(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL, prtnum=FALSE)
 }
 \arguments{
   \item{model}{
@@ -26,6 +26,8 @@ default values are the means of the associated covariates. It also can be the na
   A numeric vector when \code{as.is} is FALSE and \code{covariate} is name of one covariate in the model, then 
   covariatemeans will produce the result for \code{covariate} at value of \code{covariateV}.
 }
+  \item{data}{
+In some cases, you need to provide the data set used in model fitting, especially when you have applied some variable trnasformation in the model.}
   \item{prtnum}{
 An option for printing covariate info on the screen or not. The default is FALSE.
 }

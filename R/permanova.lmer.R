@@ -1,6 +1,6 @@
 permanova.lmer <- function(model, nperm = 999, ncore=3, drop=TRUE, ...)  { # perms
   if (!inherits(model, "merMod")) stop("The model must be a lmer object!")
-  aTable <- anovalmer(model)
+  aTable <- anova(model, type=1)
   Perm.p <- numeric(nrow(aTable))
   termlabel1 <- termlabel2 <- row.names(aTable)
   names(Perm.p) <- termlabel1

@@ -1,12 +1,12 @@
-covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE) {
+covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, data=NULL, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE) {
   
-  if (is.null(modelterm) || modelterm%in%c("NULL", "")) {  
+  if (is.null(modelterm) || all(modelterm%in%c("NULL", ""))) {
     modelterm <- covariate
     trellis=FALSE
   }
   
   vars <- unlist(strsplit(modelterm, "\\:"))
-  ctr.matrix <- Kmatrix(model, modelterm, covariate, covariateV)
+  ctr.matrix <- Kmatrix(model, modelterm, covariate, covariateV, data)
   KK <- ctr.matrix$K
   pltdf <- ctr.matrix$fctnames
   response <- ctr.matrix$response
@@ -14,31 +14,29 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
   mp <- mymodelparm(model)
   bhat <- mp$coef 
   
-  
-  if (modelterm!=covariate & as.is) {  
-  agg_formula <- formula(paste(covariate, "~", paste(vars, collapse="+")))
-min_df <- aggregate(agg_formula, preddf, min, na.rm=TRUE)
-names(min_df)[ncol(min_df)] <- "min_value"
-max_df <- aggregate(agg_formula, preddf, max, na.rm=TRUE)
-names(max_df)[ncol(max_df)] <- "max_value"
-pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=FALSE)
-  pltdf <- pltdf[pltdf[[covariate]] >= pltdf[["min_value"]] & pltdf[[covariate]] <= pltdf[["max_value"]], ]
-  KK <- KK[as.numeric(rownames(pltdf)),] 
+  if (!setequal(modelterm, covariate) & as.is) {  
+    agg_formula <- formula(paste(covariate, "~", paste(vars, collapse="+")))
+    min_df <- aggregate(agg_formula, preddf, min, na.rm=TRUE)
+    names(min_df)[ncol(min_df)] <- "min_value"
+    max_df <- aggregate(agg_formula, preddf, max, na.rm=TRUE)
+    names(max_df)[ncol(max_df)] <- "max_value"
+    pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=FALSE)
+    pltdf <- pltdf[pltdf[[covariate]] >= pltdf[["min_value"]] & pltdf[[covariate]] <= pltdf[["max_value"]], ]
+    KK <- KK[as.numeric(rownames(pltdf)),] 
   }
-   
   
   # We'll work only with the non-NA elements of bhat
   KK <- KK[, mp$estimable, drop=FALSE]   
-  pltdf$yhat <- KK%*%bhat
+  pltdf$yhat <- as.numeric(KK%*%bhat)
   pltdf$ses <- sqrt(base::diag(KK %*% tcrossprod(mp$vcov, KK)))
   
-  if (is.null(Df) || Df%in%c("NULL", "")) {
+  if (is.null(Df) || all(Df%in%c("NULL", ""))) {
     if (inherits(model, "lme")) {
       Df <- terms(model$fixDF)[modelterm]
     }else if (inherits(model, "merMod")) {
-		  Df <- try(pbkrtest::getKR(calcKRDDF(model, modelterm), "ddf"))
-		  if(inherits(Df, "try-error")) stop("You need provide Df for this model!") 		  
-        }else Df <- mp$df
+      Df <- try(min(df_term(model, modelterm), na.rm=TRUE))
+      if(inherits(Df, "try-error")) stop("You need provide Df for this model!") 		  
+    }else Df <- mp$df
     if (Df==0) stop("You need provide Df for this model!")
   }
   
@@ -52,28 +50,28 @@ pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=
     pltdf$UL <- pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses
   }else{
     # if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) {
-	  # bkmtlog <- t(mapply(bt.log, meanlog=pltdf$yhat, sdlog=pltdf$ses, n=rep(round(Df*50/nrow(pltdf), 0), length(pltdf$yhat)), alpha=level, SIMPLIFY = T))[, c(1,8,9)]
-	  # bkmtlog <- bkmtlog-transOff
-	  # pltdf$Mean <- bkmtlog[, "btmean"]
-	  # pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)-transOff
-	  # pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff	
-	# }else{
+    # bkmtlog <- t(mapply(bt.log, meanlog=pltdf$yhat, sdlog=pltdf$ses, n=rep(round(Df*50/nrow(pltdf), 0), length(pltdf$yhat)), alpha=level, SIMPLIFY = T))[, c(1,8,9)]
+    # bkmtlog <- bkmtlog-transOff
+    # pltdf$Mean <- bkmtlog[, "btmean"]
+    # pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)-transOff
+    # pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff	
+    # }else{
     pltdf$Mean <- trans(pltdf$yhat)-transOff
-	if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) pltdf$Mean <- exp(pltdf$yhat+pltdf$ses/2)-transOff
+    if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) pltdf$Mean <- exp(pltdf$yhat+pltdf$ses/2)-transOff
     pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)-transOff
     pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff
-	#}
+    #}
   }
   
- # pltdf$yhat <- pltdf$ses <- NULL 
+  # pltdf$yhat <- pltdf$ses <- NULL 
   pltdf$yhat <- NULL 
   
-  if (modelterm==covariate) pltdf$factors <- factor(1) else pltdf$factors <- factor(do.call("paste", c(pltdf[, vars, drop=FALSE], sep=":")))
+  if (setequal(modelterm, covariate)) pltdf$factors <- factor(1) else pltdf$factors <- factor(do.call("paste", c(pltdf[, vars, drop=FALSE], sep=":")))
   colnames(pltdf)[colnames(pltdf)==covariate] <- "xvar"
   
   # delete empty factor combinations  
-  mdf <- model.frame(model)
-  if (!(response %in% names(mdf))) mdf[,response] <- eval(parse(text=response), mdf)
+  if (!is.null(data)) mdf <- data else mdf <- model.frame(model)
+  if (length(setdiff(response, names(mdf)))!=0) mdf[,response] <- eval(parse(text=response), mdf)
   mdf <- cbind(mdf, preddf[, !names(preddf)%in%names(mdf), drop=FALSE])
   
   ndf <- data.frame(table(mdf[, vars, drop = FALSE]))
@@ -88,7 +86,7 @@ pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=
   if (is.null(trans)) {
     mdf$bky <- mdf[, response]
   }else{
-    if (response %in% names(mdf)) {    ## Transformed y before modelling
+    if (length(setdiff(response, names(mdf)))==0) {    ## Transformed y before modelling
       if (inherits(model, "glm") || inherits(model, "glmerMod")) {
         if (inherits(mdf[, response], "factor")) {
           mdf$bky <- as.numeric(mdf[, response])-1
@@ -97,11 +95,11 @@ pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=
           # (is.null(responsen) || responsen%in%c("NULL", "")) stop("Please provide suitable name for response variable using option 'responsen'!")
           response <- "Probability"
         }else mdf$bky <- mdf[, response]
-        if (isTRUE(all.equal(trans,function(x) x))) {
-          if (inherits(model, "glm")) mdf$bky <- model$family$linkfun(mdf$bky)
-          if (inherits(model, "glmerMod")) mdf$bky <- slot(model, "resp")$family$linkfun(mdf$bky)
+        if (any( identical(trans, function(x) x, ignore.environment=TRUE), identical(trans, I, ignore.environment=TRUE))) {
+          if (inherits(model, "glm")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, model$family$linkfun(mdf$bky))	
+          if (inherits(model, "glmerMod")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, slot(model, "resp")$family$linkfun(mdf$bky))	  
           # f (is.null(responsen) || responsen%in%c("NULL", "")) stop("Please provide suitable name for response variable using option 'responsen'!")
-          response <- "Response"
+          response <- "Response"		  
         }
       }else{
         mdf$bky <- trans(mdf[, response])
@@ -110,18 +108,20 @@ pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=
       }
     }else{       ## Transformed y within modelling
       response <- regmatches(response, regexec("\\(([^<]+)\\)", response))[[1]][2]
-      if (!response %in% names(mdf)) {
-        if (is.null(responsen) || responsen%in%c("NULL", ""))  stop("Please provide suitable name for response variable using option 'responsen'!")
+      if (length(setdiff(response, names(mdf)))!=0) {
+        if (is.null(responsen) || all(responsen%in%c("NULL", "")))  stop("Please provide suitable name for response variable using option 'responsen'!")
         response <- responsen
       }
       mdf$bky <- mdf[, response]
     }
   }
-  if (modelterm==covariate) mdf$factors <- factor(1) else mdf$factors <- do.call("paste", c(mdf[, vars, drop=FALSE], sep=":"))
+
+  if (all(is.na(mdf$bky))) point <- FALSE
+  if (setequal(modelterm, covariate)) mdf$factors <- factor(1) else mdf$factors <- do.call("paste", c(mdf[, vars, drop=FALSE], sep=":"))
   names(mdf)[names(mdf)==covariate] <- "xvar"
   if (!trellis) {
     if (newwd) dev.new()
-    if (modelterm==covariate)  {
+    if (setequal(modelterm, covariate))  {
       plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n")) +
         theme_bw()
       if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL), alpha = 0.2, data=pltdf, stat="identity")
@@ -138,17 +138,17 @@ pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=
     if (length(vars)==1) {
       if (newwd) dev.new()
       plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n"), colour=factors) +
-          facet_wrap(~  factors)+
-		  theme_bw()
+        facet_wrap(~  factors)+
+        theme_bw()
       if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factors), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
       plt <- plt+guides(col = guide_legend(modelterm), fill=guide_legend(modelterm))
-      if (modelterm==covariate)  plt <- plt+ theme(legend.position="none")
+      if (setequal(modelterm, covariate))  plt <- plt+ theme(legend.position="none")
       print(plt)
     }
     if (length(vars)==2) {
       if (newwd) dev.new()
-      if (is.null(plotord) || plotord%in%c("NULL", "")) plotord <- 1:2
+      if (is.null(plotord) || all(plotord%in%c("NULL", ""))) plotord <- 1:2
       fact1 <- (vars[plotord])[1]
       fact2 <- (vars[plotord])[2]
       plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), ylab=paste(response, "\n"), main=paste(mtitle, "\n"), data=pltdf,
@@ -162,7 +162,7 @@ pltdf <- merge(merge(pltdf, min_df, by=vars, sort=FALSE), max_df, by=vars, sort=
     }
     if (length(vars)==3) {
       if (newwd) dev.new()
-      if (is.null(plotord) || plotord%in%c("NULL", "")) plotord <- 1:3
+      if (is.null(plotord) || all(plotord%in%c("NULL", ""))) plotord <- 1:3
       fact1 <- (vars[plotord])[1]
       fact2 <- (vars[plotord])[2]
       fact3 <- (vars[plotord])[3]

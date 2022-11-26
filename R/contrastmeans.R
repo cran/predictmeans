@@ -1,7 +1,7 @@
 contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none", Df, permlist) { 
   options(scipen=6)
   
-  if (is.null(ctrnames) || ctrnames%in%c("NULL", "")) ctrnames <- NULL
+  if (is.null(ctrnames) || all(ctrnames%in%c("NULL", ""))) ctrnames <- NULL
   K <- Kmatrix(model, modelterm)$K
   termsLabel <- rownames(K)
   if (missing(ctrmatrix)) {
@@ -40,12 +40,14 @@ contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none"
 			  sQuote(modelterm), "and its marginal terms vary between", sQuote(Df), "and", 
 			  sQuote(mDf), ".\n","Probabilities will be calculated using", sQuote(Df), "Df.",  "\n")
 		  }else if (inherits(model, "merMod")) {
-		    vars <- unlist(strsplit(modelterm, "\\:"))
-			termlabel <- attr(terms(model),"term.labels")
-			for (i in vars) termlabel <- termlabel[grep(i, termlabel)]
-			termlabel <- paste(termlabel, collapse="-")
-			model.b <- update( model, as.formula(paste(".~. -", termlabel)))
-			Df <- getKR(KRmodcomp(model, model.b), "ddf")
+		    # vars <- unlist(strsplit(modelterm, "\\:"))
+			# termlabel <- attr(terms(model),"term.labels")
+			# for (i in vars) termlabel <- termlabel[grep(i, termlabel)]
+			# termlabel <- paste(termlabel, collapse="-")
+			# model.b <- update( model, as.formula(paste(".~. -", termlabel)))
+			# Df <- getKR(KRmodcomp(model, model.b), "ddf")
+			Df <- df_term(model, ctrmatrix = rK)
+			print(Df)
       }else stop("You need provide Df for the model!")
 	  }
   }
@@ -57,10 +59,11 @@ contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none"
   t.v <- cm/ses
   nr <- nrow(rK)
   dv <- t(1/ses)
-  cor.contr <- as.matrix(vcov.contr * (t(dv) %*% dv))  
+  cor.contr <- as.matrix(vcov.contr * (t(dv) %*% dv)) 
   
   if (missing(permlist)) {
-    t.p.value <- 2*pt(-abs(t.v), Df)
+   # t.p.value <- 2*pt(-abs(t.v), Df)
+	t.p.value <- apply(cbind(t.v, Df), 1, function(x) 2*pt(-abs(x[1]), x[2]))
     t.p.value <- p.adjust(t.p.value, adj)
     out.put <- cbind(cm, ses, t.v, Df, t.p.value)
     colnames(out.put) <- c("Estimate", "Std. Error", "t value", "df", "Pr(>|t|)")

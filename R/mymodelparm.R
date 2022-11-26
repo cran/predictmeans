@@ -71,6 +71,7 @@ mymodelparm.lmerMod <- function(model, coef. = lme4::fixef, vcov. = vcov, df = N
 mymodelparm.glmerMod <- function(model, coef. = lme4::fixef, vcov. = vcov, df = NULL, ...)
    mymodelparm.default(model, coef. = coef., vcov. = vcov., df = df, ...)
 	
-	
+mymodelparm.gls <- function(model, coef. = coef, vcov. = vcov, df = NULL, ...)
+    mymodelparm.default(model, coef. = coef., vcov. = vcov., df = df, ...)	
 	
 	

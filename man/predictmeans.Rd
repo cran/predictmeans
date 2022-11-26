@@ -5,16 +5,16 @@ Predicted Means of a Linear Model
 }
 \description{
   This function obtains predicted means, SE of means, SED of means, LSDs and plots of means
-  with Stder bar or LSD bar for parametric models such as \code{aov}, \code{lm}, 
+  with SE bar or LSD bar for parametric models such as \code{aov}, \code{lm}, 
   \code{glm}, \code{gls}, \code{lme}, and \code{lmer}. The function also perfomrs pairwise comparisons
   and permutation tests.
 }
 \usage{
 predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,  
-  level=0.05, covariate=NULL, letterdecr=TRUE, trans = NULL, transOff = 0, 
+  lsd_bar=TRUE, level=0.05, covariate=NULL, meandecr=NULL, trans = I, transOff = 0, 
   responsen=NULL, count=FALSE, plotord=NULL, plottitle=NULL, plotxlab=NULL, 
   plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE, 
-  jitterv=0, basesz=12, prtnum=TRUE, newwd=TRUE, permlist=NULL, ndecimal=4)
+  jitterv=0.2, basesz=12, prtnum=TRUE, newwd=TRUE, permlist=NULL, ncore=3, ndecimal=4)
 }
 \arguments{
   \item{model}{
@@ -22,7 +22,7 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
 }
   \item{modelterm}{
   Name (in "quotes") for indicating which factor term's predicted mean to be calculated. 
-  The \code{modelterm} must be given exactly as it appears in the printed model, e.g. "A" or "A:B". 
+  The \code{modelterm} must be factors and given exactly as it appears in the printed model, e.g. "A" or "A:B". 
 }
   \item{pairwise}{
   An option for showing pair-wise LSDs and p-values, or not. The default is FALSE. 
@@ -39,6 +39,9 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
   \item{Df}{
   A degree of freedom for calculating LSD. For the above models, Df is obtained from the function automatically.
 }
+  \item{lsd_bar}{
+  A logical variable to indicate to print an average LSD or SED bar on the means plot. The default is TRUE.
+}
   \item{level}{
   A significant level for calculating LSD. The default value is 0.05.
 }
@@ -46,8 +49,9 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
   A numerical vector to specify values of covariates for calculating predicted means. The default 
   values are the means of the associated covariates.
 }
-  \item{letterdecr}{
-  A logical variable to indicate whether to print letters for multiple comparisons by decreasing order. The default is TRUE.
+  \item{meandecr}{
+  A logical variable to indicate whether to print letters for multiple comparisons by decreasing order of means in the mean_table. 
+  The default is NULL which indicates the mean order follows the associated factor levels.
 }
   \item{trans}{
   A function object for calculating the back transformed means, e.g. \code{trans=exp}.
@@ -107,7 +111,10 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
   A model parameter list produced by the function \code{permmodels}. When \code{permlist != NULL}, 
   the option \code{Df} will be non-functional. This is a key option for pairwise comparisons via 
   permutation tests.
-}  
+} 
+  \item{ncore}{
+Number of core for parallel computing when \code{permlist != NULL}, the default value is 3.
+} 
   \item{ndecimal}{
   An option for specifying number of decimal point to be print at predicted means table. The default is 4.
 }
@@ -119,9 +126,10 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
  \item{Standard Error of Means}{A table of standard errors of predicted means.}
  \item{Standard Error of Differences}{Standard errors of differences between predicted means.}
  \item{LSD}{Least significant differences between predicted means.}
- \item{Back Transformed Means}{When \code{trans!=NULL}, a table of back transformed means with CIs are shown.}
  \item{Pairwise p-value}{A matrix with t-values above the diagonal and p-values below the diagonal, or 
  matrix of pairwise comparison p-values for each level of \code{atvar}.}
+ \item{mean_table}{A summary of predicted means result including 'Predicted means', 'Standard error', 'Df' 
+ and 'CIs'. When \code{trans!=NULL} or \code{trans!=I}, a table of back transformed means with CIs are also shown.}
  \item{predictmeansPlot}{ggplot of predicted means.}
  \item{predictmeansBKPlot}{ggplot of back transformed means.}
  \item{predictmeansBarPlot}{gg bar plot of predicted means.}

@@ -17,26 +17,31 @@ if (requireNamespace("pbkrtest", quietly = TRUE)) {
 if (requireNamespace("plyr", quietly = TRUE)) {
     importFrom(plyr, alply)
 }
- # import(lme4)
- # import(nlme)
   import(parallel)
   import(lmeInfo)
-  
-  importFrom("nlme", "getData", "intervals")
-  importFrom("lme4", "fixef", "getME", "refit", "VarCorr")
+  import(lme4)
+  importFrom("plotly", "plot_ly", "add_trace")  
+  importFrom("HRW", "pointsInPoly")
+  importFrom("lmeSplines", "approx.Z", "smspline")
+  importFrom("numDeriv", "hessian", "jacobian")
+  importFrom("MASS", "theta.ml", "negative.binomial")
+  importFrom("lmerTest", "as_lmerModLmerTest", "contest1D")
+  importFrom("splines", "ns", "bs")
+  importFrom("splines2", "bernsteinPoly", "bSpline", "naturalSpline", "cSpline", "iSpline", "mSpline")
+  importFrom("nlme", "getData", "intervals", "getResponse")
   importFrom("grDevices", "dev.new")
-  importFrom("Matrix", "Diagonal", "forceSymmetric")
+  importFrom("Matrix", ".bdiag", "Diagonal", "forceSymmetric", "Matrix", "nearPD")
   importFrom("graphics", "abline", "axis", "box", "identify", "image",
              "legend", "lines", "par", "plot", "points", "text", "title")
-  importFrom("methods", "is", "slot")
-  importFrom("stats", "anova", "as.formula", "coef", "confint", "delete.response",
-             "density", "family", "fitted", "formula", "ftable",
-             "lm.influence", "loess.smooth", "logLik", "make.link",
+  importFrom("methods", "is", "slot", "as")
+  importFrom("stats", "anova", "as.formula", "coef", "complete.cases", "confint", "delete.response",
+             "density", "dist", "family", "fitted", "formula", "ftable", "lm", "na.action",
+             "lm.influence", "loess.smooth", "logLik", "make.link", "model.response", 
              "model.frame", "model.matrix", "na.omit", "na.pass",
-             "p.adjust", "pf", "ppoints", "predict", "pt", "ptukey",
-             "qnorm", "qqline", "qqnorm", "qt", "resid", "residuals",
+             "p.adjust", "pf", "poisson", "ppoints", "predict", "pt", "ptukey",
+             "qnorm", "qqline", "qqnorm", "qt", "quantile", "resid", "residuals", "sd",
              "setNames", "sigma", "terms", "update", "vcov", "xtabs",
 			 "aggregate", "get_all_vars")
   importFrom("utils", "combn", "edit")
 
-export(anovalmer, contrastmeans, CookD, covariatemeans, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, residplot, varcomp)
+export(contrastmeans, CookD, covariatemeans, df_term, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, residplot, semipred, semireg, smZ, varcomp)

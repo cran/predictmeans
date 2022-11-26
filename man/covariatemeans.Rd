@@ -8,7 +8,7 @@
 }
 \usage{
   covariatemeans(model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, 
-  level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, 
+  data=NULL, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, 
   plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE)
 }
 \arguments{
@@ -28,12 +28,14 @@ A logic value to specify wheather or not using original covariate values' rage f
   \item{covariateV}{
   A numeric vector when as.is is FALSE, then covariatemeans will produce the result for \code{covariate} at value of \code{covariateV}.
 }
+  \item{data}{
+In some cases, you need to provide the data set used in model fitting, especially when you have applied some variable trnasformation in the model.}
   \item{level}{
   A significant level for calculating confident interval. The default value is 0.05.
 }
 
 \item{Df}{
-A degree of freedom for calculating CI of predicted means (you can manually specified Df here). For the above models, Df is obtained from the function automatically.
+A degree of freedom for calculating CI of predicted means (you can manually specified ddf here). For the above models, ddf is obtained from the function automatically.
 }
   \item{trans}{
 A function object for calculating the back transformed means, e.g. \code{trans=exp}.

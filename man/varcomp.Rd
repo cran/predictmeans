@@ -1,10 +1,10 @@
 \name{varcomp}
 \alias{varcomp}
 \title{
-Calculate stder and CI of variance components for \code{lmer} or \code{lme} model
+Calculate SE and CI of variance components for \code{lmer} or \code{lme} model
 }
 \description{
-This function calculates stder and CI of variance components for \code{lmer} or \code{lme} model.
+This function calculates SE and CI of variance components for \code{lmer} or \code{lme} model.
 }
 \usage{
 varcomp(model, ci=TRUE, level=0.95) 
