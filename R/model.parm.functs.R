@@ -1,21 +1,31 @@
-model.frame.gls <- function(object, ...) model.frame(formula(object), nlme::getData(object),...)
-	
-model.frame.lme <- function(object, ...) object$data
 
-model.matrix.aovlist <- function(object, ...)
+model.frame.gls <- function(formula, ...) {
+  model.frame(formula(formula), nlme::getData(formula),...)
+}
+	
+model.frame.lme <- function(formula, ...) {
+  formula$data
+}
+
+model.matrix.aovlist <- function(object, ...) {
     stop(sQuote("predicted.means"), " does not support objects of class ",
          sQuote("aovlist"))
+}
 		 
-model.matrix.gls <- function(object, ...)
+model.matrix.gls <- function(object, ...) {
     model.matrix(terms(object), data = nlme::getData(object), ...)
+}
 	
-model.matrix.lme <- function(object, ...)
+model.matrix.lme <- function(object, ...) {
     model.matrix(terms(object), data = model.frame(object), ...)
+}
 
-terms.gls <- function(object, ...) terms(model.frame(object),...) 
+terms.gls <- function(x, ...) {
+  terms(model.frame(x),...)
+}
 
-terms.lme <- function (object, ...) {
-  v <- object$terms
+terms.lme <- function (x, ...) {
+  v <- x$terms
   if (is.null(v)) stop("no terms component")
   return(v)
 }

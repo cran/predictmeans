@@ -3,19 +3,18 @@ UseMethod("mymodelparm")
 
 mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ...)
 {
-
     ### extract coefficients and their covariance matrix
-    beta <- try(coef.(model))
+	if(inherits(model, "glmmTMB")) beta <- try(coef.(model)[["cond"]]) else beta <- try(coef.(model))
     if (inherits(beta, "try-error"))
         stop("no ", sQuote("coef"), " method for ",
              sQuote("model"), " found!")
-
-    sigma <- try(vcov.(model))
+			 
+    if(inherits(model, "glmmTMB")) sigma <- try(Matrix::as.matrix(vcov.(model)[["cond"]])) else sigma <- try(vcov.(model))
     if (inherits(sigma, "try-error"))
         stop("no ", sQuote("vcov"), " method for ",
              sQuote("model"), " found!")       
     sigma <- as.matrix(sigma)
-
+	
     if (any(length(beta) != dim(sigma))) 
         beta = na.omit(beta)
         # stop("dimensions of coefficients and covariance matrix don't match")
@@ -32,6 +31,9 @@ mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ..
 			dd <- model$dims
 			df <- dd[["N"]] - dd[["p"]]
 		}
+		if (inherits(model, "glmerMod") || inherits(model, "glmmTMB")) {
+			df <- summary(model)$AICtab["df.resid"]
+		}		
         if (inherits(model, "parm")) df <- model$df
     } else {
         if (df < 0) stop(sQuote("df"), " is not positive")
@@ -40,7 +42,7 @@ mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ..
     ### try to identify non-estimable coefficients
     ### coef.aov removes NAs, thus touch coefficients 
     ### directly
-    ocoef <- coef.(model)
+	if(inherits(model, "glmmTMB")) ocoef <- coef.(model)[["cond"]] else ocoef <- coef.(model)
     if (inherits(model, "aov")) ocoef <- model$coefficients
     estimable <- rep(TRUE, length(ocoef))
     if (any(is.na(ocoef))) {
@@ -73,5 +75,7 @@ mymodelparm.glmerMod <- function(model, coef. = lme4::fixef, vcov. = vcov, df = 
 	
 mymodelparm.gls <- function(model, coef. = coef, vcov. = vcov, df = NULL, ...)
     mymodelparm.default(model, coef. = coef., vcov. = vcov., df = df, ...)	
-	
+
+mymodelparm.glmmTMB <- function(model, coef. = glmmTMB::fixef, vcov. = vcov, df = NULL, ...)
+   mymodelparm.default(model, coef. = coef., vcov. = vcov., df = df, ...)	
 	

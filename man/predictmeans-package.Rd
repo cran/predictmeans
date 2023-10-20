@@ -2,20 +2,17 @@
 \alias{predictmeans-package}
 \docType{package}
 \title{
-Calculate Predicted Means for Linear Models
+Predicted Means for Linear and Semiparametric Models
 }
 \description{
-This package provides functions to diagnose and make inferences from 
-various linear models, such as those obtained from 'aov', 'lm', 'glm', 
-'gls', 'lme', and 'lmer'. Inferences include predicted means and standard 
-errors, contrasts, multiple comparisons, permutation tests and graphs. 
+This package provides functions to diagnose and make inferences from various linear models, such as those obtained from 'aov', 'lm', 'glm', 'gls', 'lme', 'lmer', 'glmmTMB' and 'semireg'. Inferences include predicted means and standard errors, contrasts, multiple comparisons, permutation tests and graphs. 
 }
 \details{
 \tabular{ll}{
 Package: \tab predictmeans\cr
 Type: \tab Package\cr
-Version: \tab 1.0.1\cr
-Date: \tab 2018-08-23\cr
+Version: \tab 1.0.9\cr
+Date: \tab 2023-10-20\cr
 License: \tab GPL (>= 2)\cr
 }
 }

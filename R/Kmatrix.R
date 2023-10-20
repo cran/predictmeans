@@ -14,6 +14,9 @@ Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL
   }else if (inherits(model, "lm")) {  
     thecall <- model$call
     contrasts <- attr(model.matrix(model), "contrasts")
+  }else if (inherits(model, "glmmTMB")) {  
+    thecall <- model$call
+    contrasts <- attr(model.matrix(model), "contrasts")
   }else stop(paste("Can't handle an model of class", class(model)[1]))
   
   cov.reduce <- function(x, name) mean(x, na.rm=TRUE)  
@@ -21,6 +24,11 @@ Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL
   
   # Get model formula and index of response
   Terms <- terms(model)
+  if (!is.null(attr(Terms, "offset"))) {
+  offset_term <- deparse(attr(Terms, "variables")[attr(Terms, "offset")+1])
+offset_n <- unlist(strsplit(trimws(gsub("[\\(\\)]"," ", offset_term)), " "))
+offset_n <- offset_n[length(offset_n)]
+  }
   yname <- as.character(attr(Terms, "variables"))[[2]]
 
   Terms <- delete.response(Terms)
@@ -31,8 +39,7 @@ Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL
   # All the variables in the model
   nm <- all.vars(formrhs)
   
-  nm <- nm[nm!="pi"]
-  
+  nm <- nm[nm!="pi"]  
   # Figure out if any are coerced to factor or ordered
   anm <- all.names(formrhs)    
   coerced <- anm[1 + grep("factor|as.factor|ordered|as.ordered", anm)]
@@ -55,7 +62,7 @@ Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL
 	  model_data <- as.data.frame(data[, c(yname, nm)]) 
 	  }else model_data <- model.frame(model)
 	}
-	
+
 	if (is.null(covariate) || !setequal(covariate, modelterm)) {
   vars <- unlist(strsplit(modelterm, "\\:"))
   if(any(!is.element(vars, names(model_data)[sapply(model_data, is.factor)])))
@@ -88,7 +95,8 @@ Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL
   
   factor_names <- c(names(xlev), coerced)
   covlevname <- setdiff(names(baselevs), factor_names)
-
+  if (!is.null(attr(Terms, "offset"))) covlevname <- covlevname[covlevname!=offset_n]
+  
   if (length(factor_names)!=0) {
   n.table <- table(preddf[, factor_names, drop = FALSE])
   ndf <- data.frame(n.table)
@@ -105,8 +113,8 @@ Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL
       }else baselevs[[covariate]] <- sort(unique(c(seq(min(X[[covariate]]), max(X[[covariate]]),length=50), X[[covariate]])))
    # }
    }else{
-   if ((!is.null(covariateV) && !unique(covariateV%in%c("NULL", ""))) && is.matrix(covariateV)){
-        for (i in seq_along(covariate)) baselevs[[covariate[i]]] <- covariateV[,i]
+   if ((!is.null(covariateV) && !unique(covariateV%in%c("NULL", ""))) && is.list(covariateV)){
+        for (i in seq_along(covariate)) baselevs[[covariate[i]]] <- sort(unique(covariateV[[i]]))
       }else{
 	    for (i in covariate) baselevs[[i]] <- sort(unique(c(seq(min(X[[i]]), max(X[[i]]),length=30))))  
    }
@@ -181,7 +189,6 @@ Kmatrix <- function(model, modelterm, covariate=NULL, covariateV=NULL, data=NULL
   K <- K[rnK, , drop=FALSE]
   if (length(setdiff(colnames(model.matrix(model)), colnames(K)))!=0) stop(paste("You may need drop empty levels in factor", modelterm))
   K <- K[, colnames(model.matrix(model)), drop=FALSE]
-  
   fctnames <- cbind(fctnames, K[, setdiff(covlevname, names(fctnames)), drop=FALSE])
   
   return(list(K=K, fctnames=fctnames, response=yname, preddf=preddf))

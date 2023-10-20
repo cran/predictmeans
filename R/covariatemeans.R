@@ -33,15 +33,16 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
   if (is.null(Df) || all(Df%in%c("NULL", ""))) {
     if (inherits(model, "lme")) {
       Df <- terms(model$fixDF)[modelterm]
-    }else if (inherits(model, "merMod")) {
-      Df <- try(min(df_term(model, modelterm), na.rm=TRUE))
+    }else if (inherits(model, "lmerMod")) {
+      Df <- try(median(df_term(model, modelterm), na.rm=TRUE))
       if(inherits(Df, "try-error")) stop("You need provide Df for this model!") 		  
     }else Df <- mp$df
     if (Df==0) stop("You need provide Df for this model!")
   }
-  
+    
   if (inherits(model, "glm") && is.null(trans)) trans <- model$family$linkinv
   if (inherits(model, "glmerMod") && is.null(trans)) trans <- slot(model, "resp")$family$linkinv
+  if (inherits(model, "glmmTMB") && is.null(trans)) trans <- model$modelInfo$family$linkinv
   
   Mean <- LL <- UL <- xvar <- factors <- bky <- NULL
   if (is.null(trans)) {
@@ -87,7 +88,7 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
     mdf$bky <- mdf[, response]
   }else{
     if (length(setdiff(response, names(mdf)))==0) {    ## Transformed y before modelling
-      if (inherits(model, "glm") || inherits(model, "glmerMod")) {
+      if (inherits(model, "glm") || inherits(model, "glmerMod") || inherits(model, "glmmTMB")) {
         if (inherits(mdf[, response], "factor")) {
           mdf$bky <- as.numeric(mdf[, response])-1
         }else if (!is.null(dim(mdf[, response]))) {
@@ -97,7 +98,8 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
         }else mdf$bky <- mdf[, response]
         if (any( identical(trans, function(x) x, ignore.environment=TRUE), identical(trans, I, ignore.environment=TRUE))) {
           if (inherits(model, "glm")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, model$family$linkfun(mdf$bky))	
-          if (inherits(model, "glmerMod")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, slot(model, "resp")$family$linkfun(mdf$bky))	  
+          if (inherits(model, "glmerMod")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, slot(model, "resp")$family$linkfun(mdf$bky))	 
+          if (inherits(model, "glmmTMB")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, model$modelInfo$family$linkfun(mdf$bky))			  
           # f (is.null(responsen) || responsen%in%c("NULL", "")) stop("Please provide suitable name for response variable using option 'responsen'!")
           response <- "Response"		  
         }
@@ -115,20 +117,24 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
       mdf$bky <- mdf[, response]
     }
   }
-
+  
   if (all(is.na(mdf$bky))) point <- FALSE
   if (setequal(modelterm, covariate)) mdf$factors <- factor(1) else mdf$factors <- do.call("paste", c(mdf[, vars, drop=FALSE], sep=":"))
   names(mdf)[names(mdf)==covariate] <- "xvar"
   if (!trellis) {
     if (newwd) dev.new()
     if (setequal(modelterm, covariate))  {
-      plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n")) +
+      plt <- ggplot(pltdf, aes(xvar, Mean))+
+        labs(title=paste(mtitle, "\n", sep=""), x=paste("\n", covariate, sep=""), y=paste(response, "\n"))+
+        geom_line(linewidth=0.5)+
         theme_bw()
       if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
     }else{
-      plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n"), colour=factors) +
-        theme_bw()
+      plt <- ggplot(pltdf, aes(xvar, Mean, colour=factors))+
+        labs(title=paste(mtitle, "\n", sep=""), x=paste("\n", covariate, sep=""), y=paste(response, "\n"))+
+        geom_line(linewidth=0.5)+
+        theme_bw()			
       if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factors), alpha = 0.2, data=pltdf, stat="identity")
       if (point) plt <- plt + geom_point(aes(x=xvar, y=bky), position = position_jitter(width = jitterv, height = jitterv), data=mdf)
       plt <- plt+guides(col = guide_legend(modelterm), fill=guide_legend(modelterm))
@@ -137,7 +143,9 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
   }else{
     if (length(vars)==1) {
       if (newwd) dev.new()
-      plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), geom="line", ylab=paste(response, "\n"), data=pltdf, main=paste(mtitle, "\n"), colour=factors) +
+      plt <- ggplot(pltdf, aes(xvar, Mean, colour=factors))+
+        labs(title=paste(mtitle, "\n", sep=""), x=paste("\n", covariate, sep=""), y=paste(response, "\n"))+
+        geom_line(linewidth=0.5)+
         facet_wrap(~  factors)+
         theme_bw()
       if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factors), alpha = 0.2, data=pltdf, stat="identity")
@@ -151,8 +159,9 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
       if (is.null(plotord) || all(plotord%in%c("NULL", ""))) plotord <- 1:2
       fact1 <- (vars[plotord])[1]
       fact2 <- (vars[plotord])[2]
-      plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), ylab=paste(response, "\n"), main=paste(mtitle, "\n"), data=pltdf,
-                   geom="line", colour=factor(eval(parse(text = fact1)))) +
+      plt <- ggplot(pltdf, aes(xvar, Mean, colour=factor(eval(parse(text = fact1)))))+
+        labs(title=paste(mtitle, "\n", sep=""), x=paste("\n", covariate, sep=""), y=paste(response, "\n"))+
+        geom_line(linewidth=0.5)+		   
         facet_grid(eval(parse(text = paste("~",fact2, sep=""))))+
         theme_bw()
       if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factor(eval(parse(text = fact1)))), alpha = 0.2, data=pltdf, stat="identity")
@@ -166,8 +175,9 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
       fact1 <- (vars[plotord])[1]
       fact2 <- (vars[plotord])[2]
       fact3 <- (vars[plotord])[3]
-      plt <- qplot(xvar, Mean, xlab=paste("\n", covariate, sep=""), ylab=paste(response, "\n"), main=paste(mtitle, "\n"), data=pltdf,
-                   geom="line", colour=factor(eval(parse(text = fact1)))) +
+      plt <- ggplot(pltdf, aes(xvar, Mean, colour=factor(eval(parse(text = fact1)))))+
+        labs(title=paste(mtitle, "\n", sep=""), x=paste("\n", covariate, sep=""), y=paste(response, "\n"))+
+        geom_line(linewidth=0.5)+	
         facet_grid(eval(parse(text = paste(fact2, "~",fact3, sep=""))))+
         theme_bw()
       if (ci) plt <- plt + geom_ribbon(aes(ymin = LL, ymax = UL, fill=factor(eval(parse(text = fact1)))), alpha = 0.2, data=pltdf, stat="identity")

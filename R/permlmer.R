@@ -1,7 +1,7 @@
 permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
   
-  if (any(!inherits(lmer0, "merMod"), !inherits(lmer1, "merMod"))) stop("The model must be a lmer object!")
-  if (!setequal(getME(lmer0, "y"), getME(lmer1, "y"))) stop("The data for modelling is changed along different model terms!")
+  if (any(!inherits(lmer0, "lmerMod"), !inherits(lmer1, "lmerMod"))) stop("The model must be a lmer object!")
+  if (!setequal(getME(lmer0, "y"), getME(lmer1, "y"))) stop("Please check the response in your model!")
   
   c_deparse <- function (...) 
     paste(deparse(..., width.cutoff = 500), collapse = "")
@@ -14,9 +14,24 @@ permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
   theta0name <- names(theta0)
   theta1name <- names(theta1)
   fixef0name <- names(fixef0)
-  fixef1name <- names(fixef1)  
+  fixef1name <- names(fixef1) 
+
+term0name <- attr(terms(lmer0),"term.labels")
+term1name <- attr(terms(lmer1),"term.labels")
+term0in1 <- rep(FALSE, length(term0name))
+names(term0in1) <- term0name
+for (i in term0name) {
+  for (j in term1name){
+    if (length(setdiff(unlist(strsplit(i, "\\:")), unlist(strsplit(j, "\\:"))))==0) {
+      term0in1[i] <- TRUE
+      break
+    }
+  }
+}  
   
-  if(!setequal(intersect(theta0name, theta1name), theta0name) || !setequal(intersect(fixef0name, fixef1name), fixef0name)) stop(paste("The model", lmernames[1], "must be nested within the model", lmernames[2]))
+  # if(!setequal(intersect(theta0name, theta1name), theta0name) || !setequal(intersect(fixef0name, fixef1name), fixef0name)) stop(paste("The model", lmernames[1], "must be nested within the model", lmernames[2]))
+
+  if(!setequal(intersect(theta0name, theta1name), theta0name) || !all(term0in1)) stop(paste("The model", lmernames[1], "must be nested within the model", lmernames[2]))
   
   if(setequal(fixef0name, fixef1name))  ref <- TRUE else ref <- FALSE
   

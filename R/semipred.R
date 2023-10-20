@@ -1,9 +1,9 @@
 semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NULL,
-                     covariateV=NULL, boundary=NULL, level=0.05, trans=NULL, trellis=TRUE, 
-					 scales=c("fixed", "free", "free_x", "free_y"), 
-					 plotord=NULL, ci=TRUE, point=TRUE, jitterv=0, threeD=FALSE, prt=TRUE) {
+                       covariateV=NULL, boundary=NULL, level=0.05, trans=NULL, trellis=TRUE, 
+                       scales=c("fixed", "free", "free_x", "free_y"), 
+                       plotord=NULL, ci=TRUE, point=TRUE, jitterv=0, threeD=FALSE, prt=TRUE) {
   
-  stopifnot(inherits(semireg, "semireg"))
+  stopifnot(inherits(semireg, "semireg"))  
   scales <- as.character(scales)
   scales <- match.arg(scales)
   if (!is.null(contr)) trans <- NULL
@@ -13,6 +13,25 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   }
   
   mod_df <- semireg$data
+  
+  if (!is.null(covariateV)){
+    if (length(covariate) > 1) {
+	stopifnot(is.matrix(covariateV), dim(covariateV)[2] == length(covariate))
+    colnames(covariateV) <- covariate
+	}
+    
+    for (i in covariate) {
+      if (!is.null(attr(mod_df, paste(i, "mean", sep="_")))) {
+        if (!is.matrix(covariateV)) covariateV <- covariateV-attr(mod_df, paste(i, "mean", sep="_"))
+        else covariateV[,i] <- covariateV[,i]-attr(mod_df, paste(i, "mean", sep="_"))
+      }
+      if (!is.null(attr(mod_df, paste(i, "sd", sep="_")))) {
+        if (length(covariate) ==1) covariateV <- covariateV/attr(mod_df, paste(i, "sd", sep="_"))
+        else covariateV[,i] <- covariateV[,i]/attr(mod_df, paste(i, "sd", sep="_"))
+      } 
+    }
+  }
+  
   semer <- semireg$semer 
   vcov_indN <- semireg$Cov_indN
   cov_lst <- semireg$cov_lst
@@ -22,6 +41,7 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   sig.epsHat <- sigma(semer) 
   
   sm_varsN <- setdiff(semireg$sm_vars, semireg$fomul_vars)
+  
   if (length(sm_varsN) > 0){
     lm_fl <- format(formula(terms(semer)))
     for (i in sm_varsN)  lm_fl <- paste(lm_fl, "+ ",i)
@@ -37,7 +57,7 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   if (!(response %in% names(mod_df))) {   # all.vars(str2expression(response0))]
     mod_df[["response_y"]] <- eval(parse(text=response), mod_df)
     names(pred_df)[names(pred_df)==response] <- "response_y" 
-	response <- "response_y"
+    response <- "response_y"
   }
   
   if (is.null(sm_term)) {
@@ -128,8 +148,8 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
     y_hat <- trans(y_hat)
     LL <- trans(LL)
     UL <- trans(UL)
-	mod_df[["Trans_y"]] <- trans(mod_df[[response]])
-	response <- "Trans_y"
+    mod_df[["Trans_y"]] <- trans(mod_df[[response]])
+    response <- "Trans_y"
   }
   
   pred_df[[response]] <- y_hat
@@ -161,16 +181,17 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
     pred_df$LL <- pred_df$LL+attr(mod_df, paste(response, "mean", sep="_")) 
     pred_df$UL <- pred_df$UL+attr(mod_df, paste(response, "mean", sep="_")) 
   }
-
+  
   if (setequal(modelterm, covariate)) {
     if (length(covariate)==1) {
-      plt <- ggplot(pred_df, aes_string(x=covariate, y=response))+
-        geom_line(size=1, col="red") +
-        geom_ribbon(aes_string(ymin = "LL", ymax = "UL"), alpha = 0.6, stat="identity", fill="#00FFFF", col="#00FFFF")+
+      plt <- ggplot(pred_df, aes(x=eval(parse(text = covariate)), y=eval(parse(text = response))))+  
+        geom_line(linewidth=1, col="red") +
+        geom_ribbon(aes(ymin = LL, ymax = UL), alpha = 0.6, stat="identity", fill="#00FFFF", col="#00FFFF")+
+        labs(x=covariate, y=response)+
         theme_bw()
-      if (point) plt <- plt + geom_point(data=mod_df, aes_string(x=covariate, y=response), col="DeepPink", position = position_jitter(width = jitterv, height = jitterv))
+      if (point) plt <- plt + geom_point(data=mod_df, aes(x=eval(parse(text = covariate)), y=eval(parse(text = response))), col="DeepPink", position = position_jitter(width = jitterv, height = jitterv))
       if (response == "response_y") plt <- plt + labs(y=paste(response0, "\n", sep=""))
-	}else if(length(covariate)==2) {
+    }else if(length(covariate)==2) {
       if (!is.null(boundary)){
         inBdry <- HRW::pointsInPoly(pred_df[, covariate], boundary)
         pred_df <- droplevels(pred_df[inBdry,])
@@ -188,8 +209,9 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
                                             z = mod_df[[response]], mode = "markers", type = "scatter3d", 
                                             marker = list(size = 2.5, color = "red", symbol = 104))						
       }else{		
-        plt <- ggplot(pred_df, aes_string(x=covariate[1], y=covariate[2], z=response)) +
-          geom_contour_filled()
+        plt <- ggplot(pred_df, aes(x=eval(parse(text = covariate[1])), y=eval(parse(text = covariate[2])), z=eval(parse(text = response)))) +
+          geom_contour_filled() +
+          labs(x=covariate[1], y=covariate[2], z=response)
         if (point) plt <- plt + geom_point(data=mod_df, col="red", size=1.5)   
         if (response == "response_y") plt <- plt + labs(y=paste(response0, "\n", sep=""))		
       }
@@ -200,16 +222,19 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
     if (length(vars)==1) {
       if (length(covariate)==1) {
         if (is.null(contr)) {
-          plt <- ggplot(pred_df, aes_string(x=covariate, y=response, col=modelterm))+
-            geom_line(aes_string(x=covariate, y=response, col=modelterm), size=1) +
+          plt <- ggplot(pred_df, aes(x=eval(parse(text = covariate)), y=eval(parse(text = response)), col=eval(parse(text = modelterm))))+
+            geom_line(aes(x=eval(parse(text = covariate)), y=eval(parse(text = response)), col=eval(parse(text = modelterm))), linewidth=1) +
+            labs(x=covariate, y=response, col=modelterm) +
             theme_bw()	
           if (ci) plt <- plt + 
-              geom_ribbon(aes_string(ymin = "LL", ymax = "UL", fill=modelterm), alpha = 0.3, stat="identity")
+              geom_ribbon(aes(ymin = LL, ymax = UL, fill=eval(parse(text = modelterm))), alpha = 0.3, stat="identity")+
+              labs(fill=modelterm)
           if (point) plt <- plt + 
-              geom_point(data=mod_df, aes_string(x=covariate, y=response, col=modelterm), position = position_jitter(width = jitterv, height = jitterv))
+              geom_point(data=mod_df, aes(x=eval(parse(text = covariate)), y=eval(parse(text = response)), col=eval(parse(text = modelterm))), position = position_jitter(width = jitterv, height = jitterv))+
+              labs(col=modelterm)
           if (trellis)  plt <- plt + 
               facet_wrap(formula(paste("~", modelterm)), scales=scales) 
-		  if (response == "response_y") plt <- plt + labs(y=paste(response0, "\n", sep=""))  
+          if (response == "response_y") plt <- plt + labs(y=paste(response0, "\n", sep=""))  
         }else{
           grp_fct <- pred_df[[modelterm]]
           grp_fct_levl <- levels(grp_fct)
@@ -234,15 +259,15 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
             plt_df_contr$UL <- plt_df_contr[[response]] + qnorm(1-level)*stderr_contr
           }          
           
-          plt <- ggplot(plt_df_contr, aes_string(x=covariate, y=response))+
-            geom_line(size=1, col="blue") +
+          plt <- ggplot(plt_df_contr, aes(x=eval(parse(text = covariate)), y=eval(parse(text = response))))+
+            geom_line(linewidth=1, col="blue") +
             geom_hline(yintercept=0, linetype="dashed", color = "red") +
-            geom_ribbon(aes_string(ymin = "LL", ymax = "UL"), alpha = 0.6, stat="identity", fill="chartreuse3", col="chartreuse3") +
-            ggtitle(paste("Factor", modelterm, "level", grp_fct_levl[contr[1]], "vs level", grp_fct_levl[contr[2]], "with Points at the Area out of", (1-level) * 100, "% CI")) +
-			labs(y=paste("The difference of ", response, "\n", sep="")) +
+            geom_ribbon(aes(ymin = LL, ymax = UL), alpha = 0.6, stat="identity", fill="chartreuse3", col="chartreuse3") +
+            ggtitle(paste("Factor", modelterm, "level", grp_fct_levl[contr[1]], "vs level", grp_fct_levl[contr[2]], "with", (1-level) * 100, "% CI")) +
+            labs(x=covariate, y=paste("The difference of ", response, "\n", sep="")) +
             theme_bw() +
             theme(plot.title = element_text(hjust = 0.5)) 
-	      if (response == "response_y") plt <- plt + labs(y=paste("The difference of ", response0, "\n", sep=""))
+          if (response == "response_y") plt <- plt + labs(y=paste("The difference of ", response0, "\n", sep=""))
           pred_df <- plt_df_contr
           pred_df$SE_contr <- stderr_contr
           pred_df$SE <- NULL
@@ -277,9 +302,10 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
               }
             }
           }else{		
-            plt <- ggplot(pred_df, aes_string(x=covariate[1], y=covariate[2], z=response)) +
+            plt <- ggplot(pred_df, aes(x=eval(parse(text = covariate[1])), y=eval(parse(text = covariate[2])), z=eval(parse(text = response)))) +
               geom_contour_filled()+
-              facet_wrap(formula(paste("~", modelterm)), scales=scales)
+              facet_wrap(formula(paste("~", modelterm)), scales=scales)+
+              labs(x=covariate[1], y=covariate[2], z=response) 
             if (point) plt <- plt + geom_point(data=mod_df, col="red", size=1.5)
             if (response == "response_y") plt <- plt + labs(y=paste(response0, "\n", sep=""))			
           }          
@@ -312,12 +338,12 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
           }else plt_df_contrN <- plt_df_contr		
           plt_df_contrSub <- subset(plt_df_contrN, LL > 0 | UL < 0)
           
-          plt <- ggplot(plt_df_contrN, aes_string(x=covariate[1], y=covariate[2], z=response)) +
+          plt <- ggplot(plt_df_contrN, aes(x=eval(parse(text = covariate[1])), y=eval(parse(text = covariate[2])), z=eval(parse(text = response)))) + 
             geom_contour_filled() +
             geom_point(data=plt_df_contrSub, col="red", size=2.5, shape=22) +
             ggtitle(paste("Factor", modelterm, "level", grp_fct_levl[contr[1]], "vs level", grp_fct_levl[contr[2]], "with Points at the Area out of", (1-level) * 100, "% CI")) +
-            labs(y=paste("The difference of ", response, "\n", sep="")) +
-			theme_bw() +
+            labs(x=covariate[1], y=paste("The difference of ", response, "\n", sep=""), z=response) +
+            theme_bw() +
             theme(plot.title = element_text(hjust = 0.5)) 			
           if (response == "response_y") plt <- plt + labs(y=paste("The difference of ", response0, "\n", sep=""))
           pred_df <- plt_df_contr
@@ -330,26 +356,29 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
       if (is.null(plotord) || all(plotord%in%c("NULL", ""))) plotord <- 1:2
       fact1 <- (vars[plotord])[1]
       fact2 <- (vars[plotord])[2]
-      plt <- ggplot(pred_df, aes_string(x=covariate, y=response, col=fact1))+
-        geom_line(aes_string(x=covariate, y=response, col=fact1), size=1) +
-        facet_wrap(formula(paste("~", fact2)), scales=scales)+
+      plt <- ggplot(pred_df, aes(x=eval(parse(text = covariate)), y=eval(parse(text = response)), col=eval(parse(text = fact1))))+         	  
+        geom_line(aes(x=eval(parse(text = covariate)), y=eval(parse(text = response)), col=eval(parse(text = fact1))), linewidth=1) +
+        labs(x=covariate, y=response, col=fact1) + 
+        facet_wrap(formula(paste("~", fact2)), scales=scales)+		
         theme_bw()
       if (response == "response_y") plt <- plt + labs(y=paste(response0, "\n", sep=""))
       if (ci) plt <- plt +
-        geom_ribbon(data=pred_df, aes_string(ymin = "LL", ymax = "UL", fill=fact1), alpha = 0.3, stat="identity")	  
+        geom_ribbon(data=pred_df, aes(ymin = LL, ymax = UL, fill=eval(parse(text = fact1))), alpha = 0.3, stat="identity") +
+        labs(fill=fact1)
       if (point) plt <- plt + 
-        geom_point(data=mod_df, aes_string(x=covariate, y=response, col=fact1), position = position_jitter(width = jitterv, height = jitterv))
+        geom_point(data=mod_df, aes(x=eval(parse(text = covariate)), y=eval(parse(text = response)), col=eval(parse(text = fact1))), position = position_jitter(width = jitterv, height = jitterv))
     }
   }
   #     facet_grid(formula(paste(Variable1, "~", Variable2)))
   
   if (prt) {
-  options(warn = -1)	  
-  if (length(covariate)==2 && threeD && !setequal(modelterm, covariate)) {
-    for (i in names(plt)) print(plt[[i]])
-  }else print(plt)
-  options(warn = 0) 
+    options(warn = -1)	  
+    if (length(covariate)==2 && threeD && !setequal(modelterm, covariate)) {
+      for (i in names(plt)) print(plt[[i]])
+    }else print(plt)
+    options(warn = 0) 
   }
+  rownames(pred_df) <- NULL
   return(invisible(list(plt=plt, pred_df=pred_df)))
 }
 

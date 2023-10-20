@@ -176,172 +176,174 @@ multcompLetters <- function (x, compare = "<", threshold = 0.05,   # function fr
 
 ######################## Functions from lmerTest begin #################
 # df_term <- function (model, term) {
-  # if(!getME(model, "is_REML"))
-    # stop("Kenward-Roger's method is only available for REML model fits")
-  # if(!requireNamespace("pbkrtest", quietly = TRUE))
-    # stop("pbkrtest package required for Kenward-Roger's method")
-  # Lc <- get_contrasts_type1(model)[[term]]
-  # Lc <- Kmatrix(model, term)$K
-  # vcov_beta_adj <- try(pbkrtest::vcovAdj(model), silent=TRUE) # Adjusted vcov(beta)
-  # ddf <- try(pbkrtest::Lb_ddf(L=Lc, V0=vcov(model),
-                              # Vadj=vcov_beta_adj), silent=TRUE) # vcov_beta_adj need to be dgeMatrix!
-  # if(any(inherits(vcov_beta_adj, "try-error"), inherits(ddf, "try-error"))) {
-    # warning("Unable to compute Kenward-Roger Df: using Satterthwaite instead")
-    # if(!inherits(model, "lmerModLmerTest")) model <- as_lmerModLmerTest(model)
-    # beta <- model@beta
-    # # Compute Var(L beta) and eigen-decompose:
-    # VLbeta <- Lc %*% model@vcov_beta %*% t(Lc) # Var(contrast) = Var(Lbeta)
-    # eig_VLbeta <- eigen(VLbeta)
-    # P <- eig_VLbeta$vectors
-    # d <- eig_VLbeta$values
-    # tol <- max(sqrt(.Machine$double.eps) * d[1], 0)
-    # pos <- d > tol
-    # q <- sum(pos) # rank(VLbeta)
-    
-    # PtL <- crossprod(P, Lc)[1:q, ]
-    # if(q == 1) { # 1D case:
-      # ddf <- contest1D(model, PtL, rhs=0, confint=FALSE)$df
-      # return(ddf)
-    # } # multi-D case proceeds:
-    
-    # # Compute q-list of gradients of (PtL)' cov(beta) (PtL) wrt. varpar vector:
-    # grad_PLcov <- lapply(1:q, function(m) {
-      # vapply(model@Jac_list, function(J) qform(PtL[m, ], J), numeric(1L))
-    # })
-    # # Compute degrees of freedom for the q t-statistics:
-    # nu_m <- vapply(1:q, function(m) {
-      # 2*(d[m])^2 / qform(grad_PLcov[[m]], model@vcov_varpar) }, numeric(1L)) # 2D_m^2 / g'Ag
-    # # Compute ddf for the F-value:
-    # ddf <- get_Fstat_ddf(nu_m, tol=1e-8)
-  # }
-  # return(ddf)
+# if(!getME(model, "is_REML"))
+# stop("Kenward-Roger's method is only available for REML model fits")
+# if(!requireNamespace("pbkrtest", quietly = TRUE))
+# stop("pbkrtest package required for Kenward-Roger's method")
+# Lc <- get_contrasts_type1(model)[[term]]
+# Lc <- Kmatrix(model, term)$K
+# vcov_beta_adj <- try(pbkrtest::vcovAdj(model), silent=TRUE) # Adjusted vcov(beta)
+# ddf <- try(pbkrtest::Lb_ddf(L=Lc, V0=vcov(model),
+# Vadj=vcov_beta_adj), silent=TRUE) # vcov_beta_adj need to be dgeMatrix!
+# if(any(inherits(vcov_beta_adj, "try-error"), inherits(ddf, "try-error"))) {
+# warning("Unable to compute Kenward-Roger Df: using Satterthwaite instead")
+# if(!inherits(model, "lmerModLmerTest")) model <- as_lmerModLmerTest(model)
+# beta <- model@beta
+# # Compute Var(L beta) and eigen-decompose:
+# VLbeta <- Lc %*% model@vcov_beta %*% t(Lc) # Var(contrast) = Var(Lbeta)
+# eig_VLbeta <- eigen(VLbeta)
+# P <- eig_VLbeta$vectors
+# d <- eig_VLbeta$values
+# tol <- max(sqrt(.Machine$double.eps) * d[1], 0)
+# pos <- d > tol
+# q <- sum(pos) # rank(VLbeta)
+
+# PtL <- crossprod(P, Lc)[1:q, ]
+# if(q == 1) { # 1D case:
+# ddf <- contest1D(model, PtL, rhs=0, confint=FALSE)$df
+# return(ddf)
+# } # multi-D case proceeds:
+
+# # Compute q-list of gradients of (PtL)' cov(beta) (PtL) wrt. varpar vector:
+# grad_PLcov <- lapply(1:q, function(m) {
+# vapply(model@Jac_list, function(J) qform(PtL[m, ], J), numeric(1L))
+# })
+# # Compute degrees of freedom for the q t-statistics:
+# nu_m <- vapply(1:q, function(m) {
+# 2*(d[m])^2 / qform(grad_PLcov[[m]], model@vcov_varpar) }, numeric(1L)) # 2D_m^2 / g'Ag
+# # Compute ddf for the F-value:
+# ddf <- get_Fstat_ddf(nu_m, tol=1e-8)
+# }
+# return(ddf)
 # }
 
 # ##########
 
 # get_contrasts_type1 <- function(model) {
-  # terms <- terms(model)
-  # X <- model.matrix(model)
-  # p <- ncol(X)
-  # if(p == 0L) return(list(matrix(numeric(0L), nrow=0L))) # no fixef
-  # if(p == 1L && attr(terms, "intercept")) # intercept-only model
-    # return(list(matrix(numeric(0L), ncol=1L)))
-  # # Compute 'normalized' doolittle factorization of XtX:
-  # L <- if(p == 1L) matrix(1L) else t(doolittle(crossprod(X))$L)
-  # dimnames(L) <- list(colnames(X), colnames(X))
-  # # Determine which rows of L belong to which term:
-  # ind.list <- term2colX(terms, X)[attr(terms, "term.labels")]
-  # lapply(ind.list, function(rows) L[rows, , drop=FALSE])
+# terms <- terms(model)
+# X <- model.matrix(model)
+# p <- ncol(X)
+# if(p == 0L) return(list(matrix(numeric(0L), nrow=0L))) # no fixef
+# if(p == 1L && attr(terms, "intercept")) # intercept-only model
+# return(list(matrix(numeric(0L), ncol=1L)))
+# # Compute 'normalized' doolittle factorization of XtX:
+# L <- if(p == 1L) matrix(1L) else t(doolittle(crossprod(X))$L)
+# dimnames(L) <- list(colnames(X), colnames(X))
+# # Determine which rows of L belong to which term:
+# ind.list <- term2colX(terms, X)[attr(terms, "term.labels")]
+# lapply(ind.list, function(rows) L[rows, , drop=FALSE])
 # }
 
 # qform <- function(x, A) {
-  # sum(x * (A %*% x)) # quadratic form: x'Ax
+# sum(x * (A %*% x)) # quadratic form: x'Ax
 # }
 
 # ##########
 # doolittle <- function(x, eps = 1e-6) {
-  # if(!is.matrix(x) || ncol(x) != nrow(x) || !is.numeric(x))
-    # stop("argument 'x' should be a numeric square matrix")
-  # stopifnot(ncol(x) > 1L)
-  # n <- nrow(x)
-  # L <- U <- matrix(0, nrow=n, ncol=n)
-  # diag(L) <- rep(1, n)
-  # for(i in 1:n) {
-    # ip1 <- i + 1
-    # im1 <- i - 1
-    # for(j in 1:n) {
-      # U[i,j] <- x[i,j]
-      # if (im1 > 0) {
-        # for(k in 1:im1) {
-          # U[i,j] <- U[i,j] - L[i,k] * U[k,j]
-        # }
-      # }
-    # }
-    # if ( ip1 <= n ) {
-      # for ( j in ip1:n ) {
-        # L[j,i] <- x[j,i]
-        # if ( im1 > 0 ) {
-          # for ( k in 1:im1 ) {
-            # L[j,i] <- L[j,i] - L[j,k] * U[k,i]
-          # }
-        # }
-        # L[j, i] <- if(abs(U[i, i]) < eps) 0 else L[j,i] / U[i,i]
-      # }
-    # }
-  # }
-  # L[abs(L) < eps] <- 0
-  # U[abs(U) < eps] <- 0
-  # list( L=L, U=U )
+# if(!is.matrix(x) || ncol(x) != nrow(x) || !is.numeric(x))
+# stop("argument 'x' should be a numeric square matrix")
+# stopifnot(ncol(x) > 1L)
+# n <- nrow(x)
+# L <- U <- matrix(0, nrow=n, ncol=n)
+# diag(L) <- rep(1, n)
+# for(i in 1:n) {
+# ip1 <- i + 1
+# im1 <- i - 1
+# for(j in 1:n) {
+# U[i,j] <- x[i,j]
+# if (im1 > 0) {
+# for(k in 1:im1) {
+# U[i,j] <- U[i,j] - L[i,k] * U[k,j]
+# }
+# }
+# }
+# if ( ip1 <= n ) {
+# for ( j in ip1:n ) {
+# L[j,i] <- x[j,i]
+# if ( im1 > 0 ) {
+# for ( k in 1:im1 ) {
+# L[j,i] <- L[j,i] - L[j,k] * U[k,i]
+# }
+# }
+# L[j, i] <- if(abs(U[i, i]) < eps) 0 else L[j,i] / U[i,i]
+# }
+# }
+# }
+# L[abs(L) < eps] <- 0
+# U[abs(U) < eps] <- 0
+# list( L=L, U=U )
 # }
 
 # ##########
 # term2colX <- function(terms, X) {
-  # if(is.null(asgn <- attr(X, "assign")))
-    # stop("Invalid design matrix:",
-         # "design matrix 'X' should have a non-null 'assign' attribute",
-         # call. = FALSE)
-  # term_names <- attr(terms, "term.labels")
-  # has_intercept <- attr(terms, "intercept") > 0
-  # col_terms <- if(has_intercept) c("(Intercept)", term_names)[asgn + 1] else
-    # term_names[asgn[asgn > 0]]
-  # if(!length(col_terms) == ncol(X)) # should never happen.
-    # stop("An error happended when mapping terms to columns of X")
-  # # get names of terms (including aliased terms)
-  # nm <- union(unique(col_terms), term_names)
-  # res <- lapply(setNames(as.list(nm), nm), function(x) numeric(0L))
-  # map <- split(seq_along(col_terms), col_terms)
-  # res[names(map)] <- map
-  # res[nm] # order appropriately
+# if(is.null(asgn <- attr(X, "assign")))
+# stop("Invalid design matrix:",
+# "design matrix 'X' should have a non-null 'assign' attribute",
+# call. = FALSE)
+# term_names <- attr(terms, "term.labels")
+# has_intercept <- attr(terms, "intercept") > 0
+# col_terms <- if(has_intercept) c("(Intercept)", term_names)[asgn + 1] else
+# term_names[asgn[asgn > 0]]
+# if(!length(col_terms) == ncol(X)) # should never happen.
+# stop("An error happended when mapping terms to columns of X")
+# # get names of terms (including aliased terms)
+# nm <- union(unique(col_terms), term_names)
+# res <- lapply(setNames(as.list(nm), nm), function(x) numeric(0L))
+# map <- split(seq_along(col_terms), col_terms)
+# res[names(map)] <- map
+# res[nm] # order appropriately
 # }
 
 # ##########
 # get_Fstat_ddf <- function(nu, tol=1e-8) {
-  # fun <- function(nu) {
-    # if(any(nu <= 2)) 2 else {
-      # E <- sum(nu / (nu - 2))
-      # 2 * E / (E - (length(nu))) # q = length(nu) : number of t-statistics
-    # }
-  # }
-  # stopifnot(length(nu) >= 1,
-            # # all(nu > 0), # returns 2 if any(nu < 2)
-            # all(sapply(nu, is.numeric)))
-  # if(length(nu) == 1L) return(nu)
-  # if(all(abs(diff(nu)) < tol)) return(mean(nu))
-  # if(!is.list(nu)) fun(nu) else vapply(nu, fun, numeric(1L))
+# fun <- function(nu) {
+# if(any(nu <= 2)) 2 else {
+# E <- sum(nu / (nu - 2))
+# 2 * E / (E - (length(nu))) # q = length(nu) : number of t-statistics
+# }
+# }
+# stopifnot(length(nu) >= 1,
+# # all(nu > 0), # returns 2 if any(nu < 2)
+# all(sapply(nu, is.numeric)))
+# if(length(nu) == 1L) return(nu)
+# if(all(abs(diff(nu)) < tol)) return(mean(nu))
+# if(!is.list(nu)) fun(nu) else vapply(nu, fun, numeric(1L))
 # }
 
 ########################
 
 df_term <- function(model, modelterm, ctrmatrix=NULL, ctrnames=NULL, type=c("Kenward-Roger", "Satterthwaite")) {
 
-   if(!getME(model, "is_REML"))
-     stop("This function works properly only for REML model fits")
-
-  if (!is.null(ctrmatrix)) {
-  if (is.vector(ctrmatrix)) Lc <- matrix(ctrmatrix, nrow=1) else Lc <- ctrmatrix
-  stopifnot(is.numeric(Lc), ncol(Lc)==length(fixef(model))) 
+  stopifnot(inherits(model, "lmerMod"))
   
-  if (!is.null(ctrnames)) rownames(Lc) <- ctrnames
+  if(!getME(model, "is_REML"))
+    stop("This function works properly only for REML model fits")
+  
+  if (!is.null(ctrmatrix)) {
+    if (is.vector(ctrmatrix)) Lc <- matrix(ctrmatrix, nrow=1) else Lc <- ctrmatrix
+    stopifnot(is.numeric(Lc), ncol(Lc)==length(fixef(model))) 
+    
+    if (!is.null(ctrnames)) rownames(Lc) <- ctrnames
   }else Lc <- Kmatrix(model, modelterm)$K 
   
-    type <- as.character(type)
+  type <- as.character(type)
   type <- match.arg(type)
   
-if (type=="Kenward-Roger") {
-  vcov_beta_adj <- try(pbkrtest::vcovAdj(model), silent=TRUE) # Adjusted vcov(beta)
-  ddf <- try(apply(Lc, 1, function(x) pbkrtest::Lb_ddf(x, V0=vcov(model),
-                              Vadj=vcov_beta_adj)), silent=TRUE) # vcov_beta_adj need to be dgeMatrix!
-
-  if(any(inherits(vcov_beta_adj, "try-error"), inherits(ddf, "try-error"))) {
-    warning("Unable to compute Kenward-Roger Df: using Satterthwaite instead")
-    type <- "Satterthwaite"	
-	}
-}
-
-if (type == "Satterthwaite") {
-	if(!inherits(model, "lmerModLmerTest")) model <- as_lmerModLmerTest(model)
-	ddf <- apply(Lc, 1, function(x) suppressMessages(lmerTest::calcSatterth(model, x)$denom))
-}
+  if (type=="Kenward-Roger") {
+    vcov_beta_adj <- try(pbkrtest::vcovAdj(model), silent=TRUE) # Adjusted vcov(beta)
+    ddf <- try(apply(Lc, 1, function(x) pbkrtest::Lb_ddf(x, V0=vcov(model),
+                                                         Vadj=vcov_beta_adj)), silent=TRUE) # vcov_beta_adj need to be dgeMatrix!
+    
+    if (any(inherits(vcov_beta_adj, "try-error"), inherits(ddf, "try-error"), ddf >= nrow(model.frame(model)))) {
+      warning("Unable to compute Kenward-Roger Df: using Satterthwaite instead")
+      type <- "Satterthwaite"	
+    }
+  }
+  
+  if (type == "Satterthwaite") {
+    if(!inherits(model, "lmerModLmerTest")) model <- as_lmerModLmerTest(model)
+    ddf <- apply(Lc, 1, function(x) suppressMessages(lmerTest::calcSatterth(model, x)$denom))
+  }
   return(ddf)
 }
 
@@ -784,16 +786,16 @@ Ztps <- function(x, k, knots=NULL, range.x=NULL) {
   
   if(is.null(knots)) {
     x1_grid <- seq(range(x[,1])[1], range(x[,1])[2], length = k)
-	x2_grid <- seq(range(x[,2])[1], range(x[,2])[2], length = k)
+    x2_grid <- seq(range(x[,2])[1], range(x[,2])[2], length = k)
     knots <- expand.grid(x1_grid, x2_grid)
     names(knots) <- colnames(x)
-   }
- 
-   if (!is.null(range.x)) {
+  }
+  
+  if (!is.null(range.x)) {
     inBdry <- HRW::pointsInPoly(knots, range.x)
     knots <- knots[inBdry, ]
-	} 
-	
+  } 
+  
   # Obtain  matrix of inter-knot distances:
   numKnots <- nrow(knots)
   
@@ -818,4 +820,88 @@ Ztps <- function(x, k, knots=NULL, range.x=NULL) {
   return(Z)
 }
 ########################################################################
+#==========================================================================  
+#  https://www.r-bloggers.com/2021/08/r-dataframe-merge-while-keeping-orders-of-row-and-column/
+#—————————————————————–
+# Function : f_loj_krc
+#—————————————————————–
+# Left outer join while keeping orders of input rows and columns
+# Meaning of input arguments are the same as those of merge() 
+#—————————————————————–
+f_loj_krc <- function(x, y, by.x, by.y) {
+  
+  # save row id
+  x.temp <- x; x.temp$temp.id <- 1:nrow(x.temp); 
+  
+  # each column names
+  x.cn <- colnames(x); y.cn <- colnames(y)
+  
+  # replace column names of y with same names of x
+  # to avoid duplicate fields
+  for(i in 1:length(by.y)) {
+    colnames(y)[which(y.cn == by.y[i])] <- by.x[i]
+  }
+  by.y <- by.x # since two fields are the same now
+  
+  # new column names of y
+  y.cn <- colnames(y)
+  
+  # remove only joining key fields which are redundant
+  # and keep only new informative fields
+  y.cn.not.key <- setdiff(y.cn, by.y)
+  
+  # left outer join
+  df <- merge(x = x.temp, y = y, by.x=by.x, by.y=by.y, all.x = TRUE)
+  
+  # recover the original rows and columns orders
+  df <- df[order(df$temp.id),c(x.cn, y.cn.not.key)]; rownames(df) <- NULL
+  
+  return(df)
+}
+
+########################################################
+# To perform a multiple comparison test based on the confidence intervals for each treatment's mean value. Specifically, if the confidence intervals for two treatments overlap, then they are not significantly different from each other, and if the confidence intervals do not overlap, then the treatments are significantly different from each other.
+
+## LL -- Lower Limit of CI
+## UL -- Upper Limit of CI
+## trt_n -- names of treatment
+
+ci_mcp <- function(LL, UL, trt_n=NULL) { 
+
+  stopifnot("Check your LL and UL input!"={
+    is.numeric(LL)
+	is.numeric(UL)
+	length(LL)==length(UL)
+	all(LL < UL)
+  })
+  trt_len <- length(LL)
+  if(is.null(trt_n) || length(unique(trt_n))!=trt_len) trt_n <- as.character(1:trt_len)
+  
+  ci_mcp_letters_0 <- rep("A", trt_len)
+  names(ci_mcp_letters_0) <- trt_n
+  
+  results <- matrix(NA_real_, nrow = trt_len, ncol = trt_len)
+  
+  for (i in 1:trt_len) { 
+    for (j in (i+1):trt_len) { 
+      if (j > trt_len) break
+      ci1 <- c(LL[i],  UL[i])
+      ci2 <-  c(LL[j],  UL[j])
+      if (max(ci1) < min(ci2) || max(ci2) < min(ci1)) {
+        results[i,j] <- 0.01
+      } else {
+        results[i,j] <- 0.08
+      }
+    }
+  }
+  
+  if (all(unique(na.omit(as.vector(results)))==0.08)) ci_mcp_letters <- ci_mcp_letters_0  
+  else{
+    rownames(results) <- colnames(results) <- trt_n
+    results[lower.tri(results)] <- t(results)[lower.tri(results)]
+    ci_mcp_letters <- multcompLetters(results, Letters=LETTERS)
+  }
+  return(ci_mcp_letters)
+}
+
 

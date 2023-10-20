@@ -30,12 +30,14 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask
     obsv <- eval(parse(text=yname), mf)
     if (length(obsv)!=length(fittedv)) obsv <- na.omit(obsv)
   }else{
-    if (inherits(model, "lmerMod") || inherits(model, "merModLmerTest") || inherits(model, "glmerMod")){
+    if (inherits(model, "lmerMod") || inherits(model, "merModLmerTest") || inherits(model, "glmerMod") || inherits(model, "glmmTMB")){
       if (slope) {
-        qqy <- as.data.frame(lme4::ranef(model)[[level]])[,2]
+        if (inherits(model, "glmmTMB")) qqy <- as.data.frame(lme4::ranef(model)[["cond"]][[level]])[,2] 
+		else qqy <- as.data.frame(lme4::ranef(model)[[level]])[,2]
         mtitle <- "Normal Plot for Random Slope"
       }else{
-        qqy <- as.data.frame(lme4::ranef(model)[[level]])[,1]
+        if (inherits(model, "glmmTMB")) qqy <- as.data.frame(lme4::ranef(model)[["cond"]][[level]])[,1] 
+		else qqy <- as.data.frame(lme4::ranef(model)[[level]])[,1]
         mtitle <- "Normal Plot for Random Intercept"
       } # end of slope if
       fittedv <- na.omit(fitted(model))
@@ -50,10 +52,15 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask
   qqnorm(qqy, col="blue", main = mtitle)
   qqline(qqy)
   
-  if(inherits(model, "glmerMod")) {
+  if(inherits(model, "glmerMod") || inherits(model, "glmmTMB")) {
   ##plot random effects against the predicted values and check for no trend:
+    if (inherits(model, "glmmTMB")){
+	  mu <- model.matrix(model)%*%lme4::fixef(model)[["cond"]]
+	  RandomEffects <- getME(model, "Z")%*%unlist(lme4::ranef(model)[["cond"]])
+	}else{
     mu <- model.matrix(model)%*%lme4::fixef(model)
     RandomEffects <- t(as.matrix(model@pp$Zt)) %*% unlist(lme4::ranef(model))
+	}
     plot(mu, RandomEffects, col = "blue", main = "Random efects vs Fitted (mu)")
     abline(0,0)
   }else{

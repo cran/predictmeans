@@ -1,8 +1,11 @@
 CookD <- function (model, group=NULL, plot=TRUE, idn=3, newwd=TRUE) {
 
+  stopifnot("CookD doesn't support this model!"={
+    any(inherits(model, "gls"), inherits(model, "lme"), inherits(model, "lmerMod"))
+  })
   if (inherits(model, "gls") || inherits(model, "lme")) model <- update(model, method="ML") 
-  if (inherits(model, "merMod")) model <- update(model, REML=FALSE)
-  if (inherits(model, "gls")) { inherits(model, "gls")
+  if (inherits(model, "lmerMod")) model <- update(model, REML=FALSE)
+  if (inherits(model, "gls") || inherits(model, "lme")) {
     mdf <- nlme::getData(model)
   }else{
     mdf <- model.frame(model)

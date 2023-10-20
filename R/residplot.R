@@ -78,5 +78,7 @@ residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd
 	  par(mfrow = c(1, 1))
   }
   if (inherits(model, "gls"))  rsplot.gls(model, group, id, ask)
-  if (inherits(model, "lme") || inherits(model, "lmerMod") || inherits(model, "merModLmerTest") || inherits(model, "glmerMod"))  rsplot.lme(model, group, level, slope, id, ask)
+  if (inherits(model, "lme") || inherits(model, "lmerMod") 
+      || inherits(model, "merModLmerTest") || inherits(model, "glmerMod") 
+	  || inherits(model, "glmmTMB"))  rsplot.lme(model, group, level, slope, id, ask)
 }

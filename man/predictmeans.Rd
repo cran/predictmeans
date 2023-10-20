@@ -10,11 +10,12 @@ Predicted Means of a Linear Model
   and permutation tests.
 }
 \usage{
-predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,  
-  lsd_bar=TRUE, level=0.05, covariate=NULL, meandecr=NULL, trans = I, transOff = 0, 
-  responsen=NULL, count=FALSE, plotord=NULL, plottitle=NULL, plotxlab=NULL, 
-  plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE, 
-  jitterv=0.2, basesz=12, prtnum=TRUE, newwd=TRUE, permlist=NULL, ncore=3, ndecimal=4)
+predictmeans(model, modelterm, data=NULL, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
+  lsd_bar=TRUE, level=NULL, covariate=NULL, meandecr=NULL, letterCI=FALSE, trans = I,
+  transOff = 0, responsen=NULL, count=FALSE, plotord=NULL, plottitle=NULL, plotxlab=NULL,
+  plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE,
+  jitterv=0.2, basesz=12, prtnum=TRUE, prtplt=TRUE, newwd=TRUE, permlist=NULL, ncore=3, 
+  ndecimal=4)
 }
 \arguments{
   \item{model}{
@@ -24,6 +25,9 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
   Name (in "quotes") for indicating which factor term's predicted mean to be calculated. 
   The \code{modelterm} must be factors and given exactly as it appears in the printed model, e.g. "A" or "A:B". 
 }
+  \item{data}{
+  In some cases, you need to provide the data set used in model fitting, especially when you have applied some 
+  variable trnasformation in the model.}
   \item{pairwise}{
   An option for showing pair-wise LSDs and p-values, or not. The default is FALSE. 
 }
@@ -43,7 +47,7 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
   A logical variable to indicate to print an average LSD or SED bar on the means plot. The default is TRUE.
 }
   \item{level}{
-  A significant level for calculating LSD. The default value is 0.05.
+  A significant level for calculating LSD, CI etc. The default value is 0.05.
 }
   \item{covariate}{
   A numerical vector to specify values of covariates for calculating predicted means. The default 
@@ -52,6 +56,10 @@ predictmeans(model, modelterm, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
   \item{meandecr}{
   A logical variable to indicate whether to print letters for multiple comparisons by decreasing order of means in the mean_table. 
   The default is NULL which indicates the mean order follows the associated factor levels.
+}
+  \item{letterCI}{
+  A logical variable to indicate printed letters for multiple comparisons by whether or not CI overlap in the mean_table. 
+  The default is FALSE.
 }
   \item{trans}{
   A function object for calculating the back transformed means, e.g. \code{trans=exp}.
@@ -104,6 +112,9 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
   \item{prtnum}{
   An option for printing covariate information on the screen, or not. The default is TRUE.
 }
+  \item{prtplt}{
+  An option for printing plots on the screen, or not. The default is TRUE.
+}
   \item{newwd}{
   A logical variable to indicate whether to print graph in a new window. The default is TRUE.
 }
@@ -118,9 +129,8 @@ Number of core for parallel computing when \code{permlist != NULL}, the default 
   \item{ndecimal}{
   An option for specifying number of decimal point to be print at predicted means table. The default is 4.
 }
-
-
 }
+
 \value{
  \item{Predicted Means}{A table of predicted means.}
  \item{Standard Error of Means}{A table of standard errors of predicted means.}
@@ -135,6 +145,7 @@ Number of core for parallel computing when \code{permlist != NULL}, the default 
  \item{predictmeansBarPlot}{gg bar plot of predicted means.}
  \item{p_valueMatrix}{p_value matrix for pairwise comparison.}
 }
+
 \note{
   The \code{predictmeans} function becomes confused if a factor or covariate is changed to the other
   in a model formula. Consequently, formulae that include calls \code{as.factor}, \code{factor}, or \code{numeric}
@@ -146,17 +157,20 @@ Number of core for parallel computing when \code{permlist != NULL}, the default 
   
   For \code{predictmeans} function, it is assumed that methods \code{coef}, \code{vcov}, \code{model.matrix}, \code{model.frame} and \code{terms} are available for \code{model}. 
 }
+
 \author{
 Dongwen Luo, Siva Ganesh and John Koolaard
 }
+
 \references{
     Torsten Hothorn, Frank Bretz and Peter Westfall (2008),
     \emph{Simultaneous Inference in General Parametric Models. Biometrical}, Journal 50(3), 346--363.
   
-	Welham, S., Cullis, B., Gogel, B., Gilm
-	our, A., & Thompson, R. (2004),
+	Welham, S., Cullis, B., Gogel, B., Gilmour, A., & Thompson, R. (2004),
 	\emph{Prediction in linear mixed models}, Australian and New Zealand Journal of Statistics, 46(3), 325-347. 
-
+	
+	Vanessa, C. (05 October 2022),
+	\emph{Confidence tricks: the 83.4\% confidence interval for comparing means}, https://vsni.co.uk/blogs/confidence_trick. 
 }
 
 \examples{
@@ -164,7 +178,6 @@ Dongwen Luo, Siva Ganesh and John Koolaard
   ftable(xtabs(yield ~ Block+Variety+nitro, data=Oats))
   Oats$nitro <- factor(Oats$nitro)
   fm <- lme(yield ~ nitro*Variety, random=~1|Block/Variety, data=Oats)
-# library(lme4)
 # fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
   predictmeans(fm, "nitro", adj="BH")
   predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH")
@@ -173,4 +186,3 @@ Dongwen Luo, Siva Ganesh and John Koolaard
   print(predictout$predictmeansPlot)
   print(predictout$predictmeansBarPlot)
 }
-

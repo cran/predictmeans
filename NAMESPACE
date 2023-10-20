@@ -20,6 +20,7 @@ if (requireNamespace("plyr", quietly = TRUE)) {
   import(parallel)
   import(lmeInfo)
   import(lme4)
+  import(glmmTMB)
   importFrom("plotly", "plot_ly", "add_trace")  
   importFrom("HRW", "pointsInPoly")
   importFrom("lmeSplines", "approx.Z", "smspline")
@@ -36,12 +37,12 @@ if (requireNamespace("plyr", quietly = TRUE)) {
   importFrom("methods", "is", "slot", "as")
   importFrom("stats", "anova", "as.formula", "coef", "complete.cases", "confint", "delete.response",
              "density", "dist", "family", "fitted", "formula", "ftable", "lm", "na.action",
-             "lm.influence", "loess.smooth", "logLik", "make.link", "model.response", 
+             "lm.influence", "loess.smooth", "logLik", "make.link", "median", "model.response", 
              "model.frame", "model.matrix", "na.omit", "na.pass",
              "p.adjust", "pf", "poisson", "ppoints", "predict", "pt", "ptukey",
              "qnorm", "qqline", "qqnorm", "qt", "quantile", "resid", "residuals", "sd",
              "setNames", "sigma", "terms", "update", "vcov", "xtabs",
 			 "aggregate", "get_all_vars")
-  importFrom("utils", "combn", "edit")
+  importFrom("utils", "as.roman", "combn", "edit")
 
-export(contrastmeans, CookD, covariatemeans, df_term, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, residplot, semipred, semireg, smZ, varcomp)
+export(ci_mcp, contrastmeans, CookD, covariatemeans, df_term, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, residplot, semipred, semireg, smZ, varcomp)

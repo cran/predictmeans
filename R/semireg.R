@@ -83,6 +83,7 @@ semireg <- function(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE,
   lmerc$nscale <- NULL
   lmerc$resp_scale <- NULL
   lmerc$ngbinomial <- NULL
+  lmerc$prt <- NULL
   
   if (!gaus) lmerc$REML <- NULL
   

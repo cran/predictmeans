@@ -39,15 +39,8 @@ contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none"
 			if (length(vars) > 2) cat("\n", "Denominator degree of freedom for", 
 			  sQuote(modelterm), "and its marginal terms vary between", sQuote(Df), "and", 
 			  sQuote(mDf), ".\n","Probabilities will be calculated using", sQuote(Df), "Df.",  "\n")
-		  }else if (inherits(model, "merMod")) {
-		    # vars <- unlist(strsplit(modelterm, "\\:"))
-			# termlabel <- attr(terms(model),"term.labels")
-			# for (i in vars) termlabel <- termlabel[grep(i, termlabel)]
-			# termlabel <- paste(termlabel, collapse="-")
-			# model.b <- update( model, as.formula(paste(".~. -", termlabel)))
-			# Df <- getKR(KRmodcomp(model, model.b), "ddf")
+		  }else if (inherits(model, "lmerMod")) {
 			Df <- df_term(model, ctrmatrix = rK)
-			print(Df)
       }else stop("You need provide Df for the model!")
 	  }
   }

@@ -23,8 +23,7 @@ A numerical vector to specify values of covariates for calculating predicted mea
 default values are the means of the associated covariates. It also can be the name of one covariate in the model.
 }
   \item{covariateV}{
-  A numeric vector when \code{as.is} is FALSE and \code{covariate} is name of one covariate in the model, then 
-  covariatemeans will produce the result for \code{covariate} at value of \code{covariateV}.
+  A numeric vector or list of numeric vector, then covariatemeans will produce the result for \code{covariate} at value of \code{covariateV}.
 }
   \item{data}{
 In some cases, you need to provide the data set used in model fitting, especially when you have applied some variable trnasformation in the model.}
