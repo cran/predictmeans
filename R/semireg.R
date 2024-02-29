@@ -1,11 +1,14 @@
 semireg <- function(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE, 
-                    smoothZ = list(), ncenter=TRUE, nscale=TRUE, resp_scale=FALSE, 
-                    control = lmerControl(optimizer="bobyqa"), start = NULL, 
-                    verbose = FALSE, drop.unused.levels=TRUE, subset, weights, 
-                    offset, contrasts = NULL, prt=TRUE, ...)
+                     smoothZ = list(), ncenter=TRUE, nscale=FALSE, resp_scale=FALSE, 
+                     control = lmerControl(optimizer="bobyqa"), start = NULL, 
+                     verbose = FALSE, drop.unused.levels=TRUE, subset, weights, 
+                     offset, contrasts = NULL, prt=TRUE, predict_info=TRUE, ...)
 {
   mc <- match.call()
-  fomul_vars <- all.vars(terms(as.formula(mc$formula)))
+  environment(formula) <- parent.frame()
+  mc$formula <- formula
+  fomul_vars <- all.vars(terms(mc$formula))
+ # fomul_vars <- all.vars(terms(as.formula(mc$formula)))
   sm_vars <- all.vars(as.list(mc)$smoothZ)
   sm_vars <- intersect(sm_vars, names(data))
   if (any(unlist(lapply(data[, setdiff(sm_vars, fomul_vars)], is.factor)))) stop("Any factor in 'smoothZ' list must be in the formula!")
@@ -13,43 +16,37 @@ semireg <- function(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE,
   fomul_vars <- fomul_vars[-1]
   
   data <- droplevels(as.data.frame(na.omit(data[, intersect(all.vars(mc), names(data))])))
-  # if (!is.null(order_by) && all(order_by %in% names(data))) {
-  # orid <- match(order_by, names(data))	 
-  # data <- switch(length(orid), data[order(data[,orid]),],
-  # data[order(data[,orid[1]], data[,orid[2]]),],
-  # data[order(data[,orid[1]], data[,orid[2]], data[,orid[3]]),],
-  # data[order(data[,orid[1]], data[,orid[2]], data[,orid[3]], data[,orid[4]]),]
-  # )
-  # }
   
   if (resp_scale) numeric_n <- names(data)[sapply(data, is.numeric)] else numeric_n <- setdiff(names(data)[sapply(data, is.numeric)], response_n)
   if (any(ncenter, nscale)) {
     for (i in numeric_n) {
       data_i <- data[,i]
       if (!is.matrix(data_i)){  
-      data[i] <- as.numeric(scale(data[i], center=ncenter, scale=nscale))
-      attr(data, paste(i, "mean", sep="_")) <- mean(data_i, na.rm=TRUE)
-      attr(data, paste(i, "sd", sep="_")) <- sd(data_i, na.rm=TRUE)
-	  }
+	    scaled_i <- scale(data[i], center=ncenter, scale=nscale)
+        data[i] <- as.numeric(scaled_i)
+        if (ncenter) attr(data, paste(i, "mean", sep="_")) <- attr(scaled_i,"scaled:center")
+        if (nscale) attr(data, paste(i, "sd", sep="_")) <- attr(scaled_i,"scaled:scale")
+      }
     }
+	attr(data, "numeric_var") <- numeric_n
   }
   smoothZm <-  eval(substitute(smoothZ), data) 
   Z_namem <- names(smoothZm)
-   
+  
   # if (any(!sapply(smoothZm, is, class2 = "sparseMatrix"))) {
   # smoothZm <- lapply(smoothZm, function(x) {
-    # attr(x, "class") <- "matrix"
-    # x_N_attr <- attributes(x)
-    # x_N <- as(x, "sparseMatrix")
-
-    # for (i in setdiff(names(x_N_attr), c("dim", "class"))) attr(x_N,i) <- x_N_attr[[i]]
-    # if (!is.null(attr(x_N,"Boundary.knots"))) {
-      # attr(x_N,"range.x") <- attr(x_N,"Boundary.knots")
-      # attr(x_N,"Boundary.knots") <- NULL
-    # }
-    # x_N
+  # attr(x, "class") <- "matrix"
+  # x_N_attr <- attributes(x)
+  # x_N <- as(x, "sparseMatrix")
+  
+  # for (i in setdiff(names(x_N_attr), c("dim", "class"))) attr(x_N,i) <- x_N_attr[[i]]
+  # if (!is.null(attr(x_N,"Boundary.knots"))) {
+  # attr(x_N,"range.x") <- attr(x_N,"Boundary.knots")
+  # attr(x_N,"Boundary.knots") <- NULL
+  # }
+  # x_N
   # })
-# }
+  # }
   
   smoothZN <- list()
   for (i in Z_namem){
@@ -78,12 +75,12 @@ semireg <- function(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE,
     lmerc$family <- poisson()
   }
   lmerc$smoothZ <- NULL
-  lmerc$order_by <- NULL
   lmerc$ncenter <- NULL
   lmerc$nscale <- NULL
   lmerc$resp_scale <- NULL
   lmerc$ngbinomial <- NULL
   lmerc$prt <- NULL
+  lmerc$predict_info <- NULL
   
   if (!gaus) lmerc$REML <- NULL
   
@@ -157,13 +154,13 @@ semireg <- function(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE,
         args$control <- lme4::lmerControl(check.rankX = "silent.drop.cols")
       Call <- as.call(c(list(quote(lme4::lmer)), args[-1]))
       
-	  options(warn = -1)
+      options(warn = -1)
       assign(as.character(Call$data), data)
       devfun <- suppressMessages(eval(Call))
       semer <- as_lmerModLT(semer0, devfun)
       # Restore the right 'call' in model:
       semer@call <- orig_call
-	  options(warn = 0)
+      options(warn = 0)
     } else {
       dfl$family <- family
       devfun <- do.call(mkGlmerDevfun,dfl)
@@ -175,25 +172,38 @@ semireg <- function(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE,
   }
   if (prt) print(semer)
   
+  if (predict_info){
   n_beta <- getME(semer, "p")
   C <- cbind(getME(semer, "X"), getME(semer, "Z"))
+
   if (gaus) {
     CTC <- Matrix::tcrossprod(t(C))	
   }else{
-    wVec <- semer@resp$sqrtWrkWt()^2
+ 	family_n <- semer@resp$family$family
+	link_n <- semer@resp$family$link 
+    yobs <- unique(semer@resp$y)
+     if (family_n =="binomial" && all(yobs%in%c(0,1))){
+      wVec <- switch(link_n,
+                     "logit" = 3/(pi^2),
+                     "probit" = 1,
+                     "cloglog" = 6/(pi^2))	
+    }else wVec <- semer@resp$sqrtWrkWt()^2 
+  
     CTC <- crossprod(C*wVec,C)
   }
   
   beta_cov <- Matrix(0, n_beta, n_beta)
-#  b_cov <- Matrix::solve(Matrix::tcrossprod(getME(semer, "Lambda")))
-
+  #  b_cov <- Matrix::solve(Matrix::tcrossprod(getME(semer, "Lambda")))
+  
   b_cov_inv <- Matrix::tcrossprod(getME(semer, "Lambda")) 
   if (any(eigen(b_cov_inv)$values <= 0)) {
-  Amatrixpd <- nearPD(b_cov_inv)$mat
-  b_cov_inv <- Amatrixpd@x
-  dim(b_cov_inv) <- Amatrixpd@Dim
+    Amatrixpd <- nearPD(b_cov_inv)$mat
+    b_cov_inv <- Amatrixpd@x
+    dim(b_cov_inv) <- Amatrixpd@Dim
   }
   b_cov <- Matrix::solve(b_cov_inv)
+  
+  # b_cov <- Matrix::tcrossprod(getME(semer, "Lambda"))*(sigma(semer)^2)
   
   D <- .bdiag(list(beta_cov, b_cov))
   fullCovMat <- Matrix::solve(CTC + D)
@@ -240,8 +250,9 @@ semireg <- function(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE,
   for (i in Z_namem) {
     knots_lst[[i]] <- attr(smoothZm[[i]], "knots")
     range_lst[[i]] <- attr(smoothZm[[i]], "range.x")
-	type_lst[[i]] <- attr(smoothZm[[i]], "type")
+    type_lst[[i]] <- attr(smoothZm[[i]], "type")
   }
+  }else knots_lst <- range_lst <- type_lst <- cov_lst <- u_lst <- fullCovMat <- vcov_ind <- vcov_indN <- df <- NULL
   
   ans <- list(semer=semer, data=data, fomul_vars=fomul_vars, sm_vars=sm_vars, smoothZ_call=mc$smoothZ, knots_lst=knots_lst, range_lst=range_lst, type_lst=type_lst, cov_lst=cov_lst, u_lst=u_lst, CovMat=fullCovMat, Cov_ind=vcov_ind, Cov_indN=vcov_indN, df=df, lmerc=lmerc)
   class(ans) <- c("semireg", "list")

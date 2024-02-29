@@ -6,7 +6,7 @@
   using "Kenward-Roger" or "Satterthwaite" method. 
 }
 \usage{
-  df_term(model, modelterm, ctrmatrix=NULL, ctrnames=NULL, 
+  df_term(model, modelterm, covariate=NULL, ctrmatrix=NULL, ctrnames=NULL, 
           type=c("Kenward-Roger", "Satterthwaite"))
 }
 \arguments{
@@ -16,6 +16,9 @@
   \item{modelterm}{
   Name (in "quotes") for indicating which factor term's degree of freedom to be calculated. 
   The \code{modelterm} must be given exactly as it appears in the model formlar, e.g. "A" or "A:B". 
+}
+  \item{covariate}{
+  Name (in "quotes") of one the covariate variables in the \code{model}.
 }
   \item{ctrmatrix}{
   A specified contrast matrix. If \code{ctrmatrix} isn't NULL, the programe will ignore modelterm 

@@ -1,17 +1,17 @@
 \name{varcomp}
 \alias{varcomp}
 \title{
-Calculate SE and CI of variance components for \code{lmer} or \code{lme} model
+Calculate SE and CI of variance components for \code{lmer}, \code{glmer}, \code{lme}, \code{glmmTMB} model
 }
 \description{
-This function calculates SE and CI of variance components for \code{lmer} or \code{lme} model.
+This function calculates SE and CI of variance components for \code{lmer}, \code{glmer}, \code{lme}, \code{glmmTMB} model.
 }
 \usage{
 varcomp(model, ci=TRUE, level=0.95) 
 }
 \arguments{
   \item{model}{
-Model object returned by \code{lmer} or \code{lme}. 
+Model object returned by \code{lmer}, \code{glmer}, \code{lme}, \code{glmmTMB}. 
 }
   \item{ci}{
 a logical value to indicates wheather or not to simulate a confidence interval for \code{lmer} model, the default value is TRUE.

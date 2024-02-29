@@ -1,12 +1,15 @@
 semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NULL,
-                       covariateV=NULL, boundary=NULL, level=0.05, trans=NULL, trellis=TRUE, 
-                       scales=c("fixed", "free", "free_x", "free_y"), 
-                       plotord=NULL, ci=TRUE, point=TRUE, jitterv=0, threeD=FALSE, prt=TRUE) {
+                     covariateV=NULL, boundary=NULL, level=0.05, trans=NULL, trellis=TRUE, 
+                     scales=c("fixed", "free", "free_x", "free_y"), 
+                     plotord=NULL, ci=TRUE, point=TRUE, jitterv=0, threeD=FALSE, prt=TRUE) {
   
-  stopifnot(inherits(semireg, "semireg"))  
+  stopifnot(inherits(semireg, "semireg"), !is.null(semireg$CovMat))  
   scales <- as.character(scales)
   scales <- match.arg(scales)
-  if (!is.null(contr)) trans <- NULL
+  if (!is.null(contr)) {
+    trans <- NULL
+	stopifnot("'modelterm' must be a single term"=length(unlist(strsplit(modelterm, "\\:")))==1) 
+  }
   
   if (is.null(modelterm) || all(modelterm%in%c("NULL", ""))) {  
     modelterm <- covariate
@@ -16,9 +19,9 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   
   if (!is.null(covariateV)){
     if (length(covariate) > 1) {
-	stopifnot(is.matrix(covariateV), dim(covariateV)[2] == length(covariate))
-    colnames(covariateV) <- covariate
-	}
+      stopifnot(is.matrix(covariateV), dim(covariateV)[2] == length(covariate))
+      colnames(covariateV) <- covariate
+    }
     
     for (i in covariate) {
       if (!is.null(attr(mod_df, paste(i, "mean", sep="_")))) {
@@ -37,7 +40,7 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   cov_lst <- semireg$cov_lst
   fullCovMat <- semireg$CovMat
   
-  betaHat <- fixef(semer)
+  if (inherits(semer, "glmmTMB")) betaHat <- fixef(semer)$cond else betaHat <- fixef(semer)
   sig.epsHat <- sigma(semer) 
   
   sm_varsN <- setdiff(semireg$sm_vars, semireg$fomul_vars)
@@ -69,7 +72,7 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
       sm_Cov <- cov_lst[[sm_term]] 
     }else{
       sm_term <- intersect(names(vcov_indN), sm_term)
-      sm_termInds <- 1:getME(semer, "p")
+      sm_termInds <- 1:ncol(getME(semer, "X")) 
       for (i in sm_term) {
         stmch_id <- match(i, names(vcov_indN))
         sm_termInds <- c(sm_termInds, (vcov_indN[stmch_id-1]+1):vcov_indN[stmch_id])
@@ -122,17 +125,27 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   UL <- y_hat + qnorm(1-level)*stderr  
   
   if (is.null(trans)) {
-    if (inherits(semer, "glmerMod")) {
-      invfun <- slot(semer, "resp")$family$linkinv	
-      weight_fun <- function(eta, glmer_mod){
-        family_fun <- slot(glmer_mod, "resp")$family
-        family_fun$mu.eta(eta)^2/family_fun$variance(family_fun$linkinv(eta))
-      } 
+    if (!isLMM(semer)) {
+      if (inherits(semer, "glmmTMB")) {
+        family_n <- semer$modelInfo$family$family
+        invfun <- semer$modelInfo$family$linkinv
+        weight_fun <- function(eta, mod){
+          family_fun <- mod$modelInfo$family
+          family_fun$mu.eta(eta)^2/family_fun$variance(family_fun$linkinv(eta))
+        } 	  
+      }else{
+        family_n <- slot(semer, "resp")$family$family
+        invfun <- slot(semer, "resp")$family$linkinv	
+        weight_fun <- function(eta, mod){
+          family_fun <- slot(mod, "resp")$family
+          family_fun$mu.eta(eta)^2/family_fun$variance(family_fun$linkinv(eta))
+        }
+      }		
       stderr_mu <- sig.epsHat*sqrt(diag(D_mx%*%sm_Cov%*%t(D_mx)))*weight_fun(y_hat, semer)
       y_hat <- invfun(y_hat)
       LL <- y_hat - qnorm(1-level)*stderr_mu
       UL <- y_hat + qnorm(1-level)*stderr_mu
-      if (slot(semer, "resp")$family$family == "binomial"){
+      if (family_n == "binomial"){
         UL <- ifelse(UL > 1, 1, UL)	
         LL <- ifelse(LL < 0, 0, LL)	
         if (is.factor(mod_df[[response]])) {
@@ -156,28 +169,26 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   pred_df$LL <- LL
   pred_df$UL <- UL
   
-  for (i in covariate) {
-    if (!is.null(attr(mod_df, paste(i, "sd", sep="_")))) {
-      mod_df[[i]] <- mod_df[[i]]*attr(mod_df, paste(i, "sd", sep="_"))
-      pred_df[[i]] <- pred_df[[i]]*attr(mod_df, paste(i, "sd", sep="_"))  
-    }  
-    
-    if (!is.null(attr(mod_df, paste(i, "mean", sep="_")))) {
-      mod_df[[i]] <- mod_df[[i]]+attr(mod_df, paste(i, "mean", sep="_"))
-      pred_df[[i]] <- pred_df[[i]]+attr(mod_df, paste(i, "mean", sep="_"))  
-    }  
+  if (!is.null(attr(mod_df, "numeric_var"))) {
+    for (i in attr(mod_df, "numeric_var")) {
+      if (!is.null(attr(mod_df, paste(i, "sd", sep="_")))) {
+        mod_df[[i]] <- mod_df[[i]]*attr(mod_df, paste(i, "sd", sep="_"))
+        pred_df[[i]] <- pred_df[[i]]*attr(mod_df, paste(i, "sd", sep="_"))  
+      }  
+      
+      if (!is.null(attr(mod_df, paste(i, "mean", sep="_")))) {
+        mod_df[[i]] <- mod_df[[i]]+attr(mod_df, paste(i, "mean", sep="_"))
+        pred_df[[i]] <- pred_df[[i]]+attr(mod_df, paste(i, "mean", sep="_"))  
+      }  
+    }
   }
   
   if (!is.null(attr(mod_df, paste(response, "sd", sep="_")))) {
-    mod_df[[response]] <- mod_df[[response]]*attr(mod_df, paste(response, "sd", sep="_"))
-    pred_df[[response]] <- pred_df[[response]]*attr(mod_df, paste(response, "sd", sep="_"))  
     pred_df$LL <- pred_df$LL*attr(mod_df, paste(response, "sd", sep="_")) 
     pred_df$UL <- pred_df$UL*attr(mod_df, paste(response, "sd", sep="_")) 
   }
   
   if (!is.null(attr(mod_df, paste(response, "mean", sep="_")))) {
-    mod_df[[response]] <- mod_df[[response]]+attr(mod_df, paste(response, "mean", sep="_"))
-    pred_df[[response]] <- pred_df[[response]]+attr(mod_df, paste(response, "mean", sep="_"))  
     pred_df$LL <- pred_df$LL+attr(mod_df, paste(response, "mean", sep="_")) 
     pred_df$UL <- pred_df$UL+attr(mod_df, paste(response, "mean", sep="_")) 
   }
@@ -239,14 +250,14 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
           grp_fct <- pred_df[[modelterm]]
           grp_fct_levl <- levels(grp_fct)
           plt_df_lst <- lapply(split(pred_df, grp_fct), function(x) x[, !names(x) %in% modelterm])
-          plt_df_contr <- plt_df_lst[[grp_fct_levl[contr[1]]]] - plt_df_lst[[grp_fct_levl[contr[2]]]]
-          
-          plt_df_contr[[covariate]] <- plt_df_lst[[grp_fct_levl[contr[1]]]][[covariate]]
+          plt_df_contr <- plt_df_lst[[grp_fct_levl[contr[1]]]] - plt_df_lst[[grp_fct_levl[contr[2]]]]		  
+          diff_covarn <- setdiff(names(plt_df_contr), c("SE", response, "LL", "UL"))
+          plt_df_contr[,diff_covarn] <- plt_df_lst[[grp_fct_levl[contr[1]]]][, diff_covarn]
           
           D_mx_lst <- lapply(split(data.frame(as.matrix(D_mx)), grp_fct), as.matrix)
           D_contr <- D_mx_lst[[grp_fct_levl[contr[1]]]] - D_mx_lst[[grp_fct_levl[contr[2]]]]
           
-          if (inherits(semer, "glmerMod")) {
+          if (!isLMM(semer)) {
             stderr_contr <- sig.epsHat*sqrt(diag(D_contr%*%sm_Cov%*%t(D_contr)))*weight_fun(plt_df_contr[[response]], semer)
           }else{
             stderr_contr <- sig.epsHat*sqrt(diag(D_contr%*%sm_Cov%*%t(D_contr)))
@@ -314,12 +325,13 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
           grp_fct_levl <- levels(grp_fct)
           plt_df_lst <- lapply(split(pred_df, grp_fct), function(x) x[, !names(x) %in% modelterm])
           plt_df_contr <- plt_df_lst[[grp_fct_levl[contr[1]]]] - plt_df_lst[[grp_fct_levl[contr[2]]]]
-          for (i in covariate) plt_df_contr[[i]] <- plt_df_lst[[grp_fct_levl[contr[1]]]][[i]]
+          diff_covarn <- setdiff(names(plt_df_contr), c("SE", response, "LL", "UL"))
+          plt_df_contr[,diff_covarn] <- plt_df_lst[[grp_fct_levl[contr[1]]]][, diff_covarn]
           
           D_mx_lst <- lapply(split(data.frame(as.matrix(D_mx)), grp_fct), as.matrix)
           D_contr <- D_mx_lst[[grp_fct_levl[contr[1]]]] - D_mx_lst[[grp_fct_levl[contr[2]]]]
           
-          if (inherits(semer, "glmerMod")) {
+          if (!isLMM(semer)) {
             stderr_contr <- sig.epsHat*sqrt(diag(D_contr%*%sm_Cov%*%t(D_contr)))*weight_fun(plt_df_contr[[response]], semer)
           }else{
             stderr_contr <- sig.epsHat*sqrt(diag(D_contr%*%sm_Cov%*%t(D_contr)))

@@ -5,14 +5,14 @@
 Predicted Means for Linear and Semiparametric Models
 }
 \description{
-This package provides functions to diagnose and make inferences from various linear models, such as those obtained from 'aov', 'lm', 'glm', 'gls', 'lme', 'lmer', 'glmmTMB' and 'semireg'. Inferences include predicted means and standard errors, contrasts, multiple comparisons, permutation tests and graphs. 
+This package provides functions to diagnose and make inferences from various linear models, such as those obtained from 'aov', 'lm', 'glm', 'gls', 'lme', 'lmer', 'glmmTMB' and 'semireg'. Inferences include predicted means and standard errors, contrasts, multiple comparisons, permutation tests, adjusted R-square and graphs.
 }
 \details{
 \tabular{ll}{
 Package: \tab predictmeans\cr
 Type: \tab Package\cr
-Version: \tab 1.0.9\cr
-Date: \tab 2023-10-20\cr
+Version: \tab 1.1.0\cr
+Date: \tab 2024-02-29\cr
 License: \tab GPL (>= 2)\cr
 }
 }

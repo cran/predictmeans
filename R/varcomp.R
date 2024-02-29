@@ -1,9 +1,13 @@
 varcomp <- function(model, ci=TRUE, level=0.95) {
-  if (inherits(model, "merMod")) {
+  # vcov_lmerMod(model, full = TRUE, ranpar = "var"), vcov_lmerMod(model, full = TRUE, ranpar = "sd")?
+  if (any(inherits(model, "lmerMod"), inherits(model, "glmerMod"), inherits(model, "lmerModLmerTest"))) {
     varcomp <- as.data.frame(VarCorr(model), order = "lower.tri")
     vcov_index <- -1:-length(fixef(model))
-    random_vcov <- as.matrix(vcov_lmerMod(model, full = TRUE, ranpar = "var")[vcov_index, vcov_index])
-    random_terms <- gsub("cov_", "", colnames(random_vcov))
+	if (inherits(model, "glmerMod")) {
+	  random_vcov <- as.matrix(vcov_glmerMod(model, full = TRUE, ranpar = "var")[vcov_index, vcov_index]) 
+	  ci <- FALSE
+	}else random_vcov <- as.matrix(vcov_lmerMod(model, full = TRUE, ranpar = "var")[vcov_index, vcov_index])
+    if (inherits(model, "glmerMod")) random_terms <- gsub("cov_", "", rownames(random_vcov)) else random_terms <- gsub("cov_", "", colnames(random_vcov)) 
     varcomp$SE <- sqrt(diag(random_vcov))
 	if (ci){
     varcomp <- cbind(varcomp, confint(model, level=level)[1:length(random_terms), ])
@@ -13,11 +17,9 @@ varcomp <- function(model, ci=TRUE, level=0.95) {
     varcomp <- round(varcomp[,c(4,6:8)], 4)
 	}else{
 	  varcomp <- round(varcomp[,c(4,6)], 4)	
-	}
-	
+	}	
     rownames(varcomp) <- random_terms
-  }else if(inherits(model, "lme")){
-    
+  }else if(inherits(model, "lme")){    
     vcov=unlist(extract_varcomp(model))
     SE=sqrt(diag(varcomp_vcov(model)))
     
@@ -54,8 +56,19 @@ varcomp <- function(model, ci=TRUE, level=0.95) {
     }else{
       varcomp <- cbind(vcov, SE)      
     }
-  }else{
-    stop("The model must be a lme or lmer object!")
+  }else if(inherits(model, "glmmTMB")){
+    theta_sd <- sqrt(diag(vcov(model, full=TRUE)))
+    theta_sd <- theta_sd[grepl("theta", names(theta_sd))]
+    theta <- getME(model, "theta")
+    vcov <- exp(2*theta)
+    SE=theta_sd*2*exp(2*theta)
+    theta_UL <- theta+qnorm(p=(1-level)/2, lower.tail=FALSE)*theta_sd
+    upper <- theta_sd*2*exp(2*theta_UL)
+    theta_LL <- theta-qnorm(p=(1-level)/2, lower.tail=FALSE)*theta_sd
+    lower <- theta_sd*2*exp(2*theta_LL)
+    varcomp <- cbind(vcov, SE, lower, upper)   
+  } else {
+    stop("The model must be a lme, lmer, glmer or glmmTMB object!")
   }
   return(varcomp)  
 }

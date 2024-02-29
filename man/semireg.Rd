@@ -8,10 +8,10 @@
 }
 \usage{
 semireg(formula, data, family = NULL, ngbinomial=FALSE, REML = TRUE, 
-        smoothZ = list(), ncenter=TRUE, nscale=TRUE, resp_scale=FALSE, 
+        smoothZ = list(), ncenter=TRUE, nscale=FALSE, resp_scale=FALSE, 
         control = lmerControl(optimizer="bobyqa"), start = NULL, 
         verbose = FALSE, drop.unused.levels=TRUE, subset, weights, 
-        offset, contrasts = NULL,  prt=TRUE, ...)
+        offset, contrasts = NULL,  prt=TRUE, predict_info=TRUE, ...)
 }
 
 \arguments{	
@@ -69,6 +69,9 @@ An optional list. See the contrasts.arg of model.matrix.default.
 }
 \item{prt}{
 Logical scalar - Should the info to be print on screen in the middle of the process or not?
+}
+\item{predict_info}{
+Logical scalar - Should provide the info for function semipred or not?
 }
 \item{...}{	
 Further arguments for passing on to model setup routines.

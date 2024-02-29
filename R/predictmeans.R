@@ -1,12 +1,12 @@
 predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL, lsd_bar=TRUE,
-                          level=NULL, covariate=NULL, meandecr=NULL, letterCI=FALSE, trans = I, transOff=0, responsen=NULL, count=FALSE, 
-                          plotord=NULL, plottitle=NULL, plotxlab=NULL, plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, 
-                          bkplot=TRUE, plot=TRUE, jitterv=0.2, basesz=12, prtnum=TRUE, prtplt=TRUE, newwd=TRUE,
-                          permlist=NULL, ncore=3, ndecimal=4) {
+                          level=NULL, covariate=NULL, meandecr=NULL, letterCI=FALSE, trans = I, transOff=0, 
+						  responsen=NULL, count=FALSE, plotord=NULL, lineplot=TRUE, plottitle=NULL, plotxlab=NULL, 
+						  plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE, jitterv=0.2, 
+						  basesz=12, prtnum=TRUE, prtplt=TRUE, newwd=TRUE, permlist=NULL, ncore=3, ndecimal=4) {
   options(scipen=6)
   if(any(missing(model), missing(modelterm))) stop("The arguments 'model', and 'modelterm' must be provided!")
   if (!(modelterm %in% attr(terms(model), "term.labels"))) stop(paste("The", modelterm, "must be exactly a term in the model (especially check the order of interaction)."))  
-  predictmeansPlot <- predictmeansBarPlot <- NULL
+  meanPlot <- ciPlot <- predictmeansBarPlot <- NULL
   if (inherits(model, "aovlist")) stop("Plese use model 'lme' instead of 'aov'!")
   if (inherits(model, "glm")) {
     trans <- model$family$linkinv  # identical(trans, make.link("log")$linkinv)
@@ -202,6 +202,7 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
         t.p.valuep <- t.p.valuem    # for plot
         t.p.valuem <- t(t.p.valuem) + tvm
         names(t.p.valuem) <- NULL
+		diag(t.p.valuem) <- 1
         if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {
           attr(t.p.valuem, "Degree of freedom") <- Df
           attr(t.p.valuem, "Note") <- paste("The matrix has t-value above the diagonal, p-value (adjusted by '",
@@ -238,7 +239,10 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
         }			
         
         atvar.df <- f_loj_krc(KKvarndiff, dses.df, by.x=names(KKvarndiff), by.y=names(KKvarndiff))            
-        names(atvar.df)[1:length(vars)] <- vars
+        names(atvar.df)[1:length(vars)] <- vars		
+		for (i in vars) {       # To ensure factor vars  have the same level as original
+          atvar.df[,i] <- factor(atvar.df[,i], levels=levels(mdf[, i][[1]]))
+        }
         atvar.df$adj.pvalue <- unlist(lapply(split(atvar.df, atvar.df[, atvar]), function(x) {
           t_value <- x$tvalue
           t_valueN <- length(na.omit(t_value)) 
@@ -247,8 +251,7 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
             if (adj=="tukey") x$adj.pvalue <- ptukey(sqrt(2)*abs(x$tvalue), t_valueN, Df, lower.tail=FALSE)
             else x$adj.pvalue <- p.adjust(x$pvalue, adj)
           }
-        })) 
-        
+        }))
         
         rnK.df <- as.data.frame(matrix(unlist(strsplit(rnKK, "\\:")), byrow=T, nrow=nKK)) # To find the suitable names for pm
         colnames(rnK.df) <- vars
@@ -266,7 +269,7 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
         mt.atvar <- mt[do.call(order, mt[, atvar, drop=FALSE]),]		
         bkmt <- mt.atvar[, c(atvar, resvar, "pm", "ses")]
         listlength <- length(atvar.levels)
-        pmlist <- pmlistTab <- vector("list", listlength)
+        pmlist <- pmlistTab <- pmlistLetter <- vector("list", listlength)
         indexlength <- nrow(atvar.df)/listlength
         nrow.pm <- length(resvar.levels)
         
@@ -280,7 +283,18 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
           outtab[col(outtab)==row(outtab)] <- 1.0000
           outtab[upper.tri(outtab)] <-""
           Grpatvar.pm <- t(atvar.pm)+ atvar.pm
-          if (all(!is.na(outtab))) outtab <- as.table(cbind(outtab, Group=multcompLetters(Grpatvar.pm, Letters=LETTERS, threshold=slevel)[resvar.levels]))
+		  if (all(!is.na(outtab))) {		  
+		   Grpatvar.letter <- multcompLetters(Grpatvar.pm, Letters=LETTERS, threshold=slevel)[resvar.levels] 
+		   outtab <- as.table(cbind(outtab, Group=Grpatvar.letter))
+		  }else{
+		  Grpatvar.letterM <- rep(NA, nrow.pm)
+		  names(Grpatvar.letterM) <- resvar.levels		  
+		  atvar.rowname <- resvar.levels[!is.na(Grpatvar.pm[, 1])]
+		  Grpatvar.letterM[atvar.rowname] <- multcompLetters(Grpatvar.pm[atvar.rowname, atvar.rowname], Letters=LETTERS, threshold=slevel)[atvar.rowname]
+		  outtab <- as.table(cbind(outtab, Group=Grpatvar.letterM))
+		  Grpatvar.letter <- Grpatvar.letterM[atvar.rowname]
+		  }
+		  pmlistLetter[[i]] <- Grpatvar.letter
           pmlistTab[[i]] <- outtab  		  
         }         
         
@@ -341,29 +355,30 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
           if (newwd) dev.new()
           mtitle <- plottitle
           if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Predicted means for \"", vars, "\" with ", bar_label, " (", slevel * 100, "%) Bar", sep="") 
-          p <- ggplot(plotmt, aes(eval(parse(text = vars)), pm, group=1))+
+          p1 <- ggplot(plotmt, aes(eval(parse(text = vars)), pm, group=1))+
             labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
             lims(x= c(bar_label, levels(plotmt[, vars])), y = c(yMin - offSet, max(yMax + offSet, yMin + LSD_value + offSet))) +
-            geom_point(colour="red")+
-            geom_line(linewidth=0.5)+
+            geom_point(colour="red", size=2)+
+          #  geom_line(linewidth=0.5)+
             geom_errorbar(aes(ymax=up, ymin=yMin, x=bar_label), width=0.15, linewidth=0.8, colour="blue") +  #data=lsdBar, 
             theme_bw(basesz)
-          predictmeansPlot <- p
-          if (prtplt) print(p)		  
+		  if (lineplot) p1 <- p1 + geom_line(linewidth=0.5)
+          meanPlot <- p1
+          if (prtplt) print(p1)		  
         } # end of if mplot	   
         if (barplot) {
           if (newwd) dev.new()
           mtitle <- plottitle
           if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Predicted means for \"", modelterm, "\" with SE Bars", sep = "")
           dodge <- position_dodge(width=0.9)
-          p <- ggplot(plotmt, aes(eval(parse(text = vars)), pm))+
+          bp1 <- ggplot(plotmt, aes(eval(parse(text = vars)), pm))+
             labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
             ylim(c(min(0, (min(pm) - max(ses)) * 1.2), max(0, (max(pm) + max(ses)) * 1.2))) +
             geom_bar(position=dodge, stat="identity", fill="papayawhip", colour="darkgreen") +
             geom_errorbar(limits, position=dodge, width=0.25, colour="blue")+theme_bw(basesz)+
             theme(panel.border = element_blank(), axis.line = element_line(), panel.grid = element_blank())
-          predictmeansBarPlot <- p
-          if (prtplt) print(p)
+          predictmeansBarPlot <- bp1
+          if (prtplt) print(bp1)
         }
       }
       if (length(vars) == 2) {
@@ -387,23 +402,25 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
           mtitle <- plottitle
           if (is.null(plottitle) || plottitle%in%c("NULL", ""))  mtitle <- paste("Predicted means for \"", fact1, "\" by \"", fact2, "\" with ", paste(atvar, collapse=" "), " ", bar_label, " (", slevel * 100, "%) Bar", sep = "")
           plotmt[, fact1] <- factor(plotmt[, fact1], levels = c(bar_label, levels(plotmt[, fact1])))
-          p <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=eval(parse(text = fact2)), col=eval(parse(text = fact2))))+
+          p2 <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=eval(parse(text = fact2)), col=eval(parse(text = fact2))))+
             labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
             lims(x= levels(plotmt[, fact1]), y = c(yMin - offSet, max(yMax + offSet, yMin + LSD_value + offSet))) +
-            geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.96)+
+			geom_point(size=2)+
+           # geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.96)+
             geom_errorbar(aes(ymax=up, ymin=yMin, x=bar_label), width=0.15, linewidth=0.8, colour="blue")+
-            guides(linetype = guide_legend(title = fact2))+
+          #  guides(linetype = guide_legend(title = fact2))+
             guides(col = guide_legend(title = fact2))+
-            theme_bw(basesz)  
-          predictmeansPlot <- p
-          if (prtplt) print(p)
+            theme_bw(basesz)
+          if (lineplot) p2 <- p2 + geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.96)+guides(linetype = guide_legend(title = fact2))		
+          meanPlot <- p2
+          if (prtplt) print(p2)
         } # end if mplot
         if (barplot) {
           if (newwd) dev.new()
           mtitle <- plottitle
           if (is.null(plottitle) || plottitle%in%c("NULL", ""))  mtitle <- paste("Predicted means for \"", modelterm, "\" with SE Bars", sep = "")
           dodge <- position_dodge(width=0.9)
-          p <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=eval(parse(text = fact2)), fill=  eval(parse(text = fact2))))+
+          bp2 <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=eval(parse(text = fact2)), fill=  eval(parse(text = fact2))))+
             geom_point(position=dodge) +
             geom_bar(stat = "identity", position=dodge)+
             labs( x = mxlab, y = mylab, title =mtitle)+
@@ -412,8 +429,8 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
             scale_fill_brewer()+
             theme(panel.border = element_blank(), axis.line = element_line(), panel.grid = element_blank())+            
             theme(legend.position = "top")+guides(fill = guide_legend(title = fact2))
-          predictmeansBarPlot <- p
-          if (prtplt) print(p)
+          predictmeansBarPlot <- bp2
+          if (prtplt) print(bp2)
         }
       }
       
@@ -437,25 +454,27 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
         if (is.null(plotxlab) || plotxlab%in%c("NULL", "")) mxlab <- paste("\n", fact1, sep="")
         mylab <- plotylab
         if (is.null(plotylab) || plotylab%in%c("NULL", "")) mylab <- paste(response, "\n", sep="") 
-        p <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=factor(eval(parse(text = fact2))), col=factor(eval(parse(text = fact2)))))+
+        p3 <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=factor(eval(parse(text = fact2))), col=factor(eval(parse(text = fact2)))))+
           labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
           lims(x= levels(plotmt[, fact1]), y = c(yMin-0.5*offSet, max(yMax+0.5*offSet, yMin+LSD_value+0.5*offSet))) +
           geom_errorbar(aes(ymax=up, ymin=yMin, x=bar_label), width=0.15, linewidth=0.8, colour="blue")+
-          geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.8)+
+		  geom_point(size=2)+
+         # geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.8)+
           facet_grid(eval(parse(text = paste("~",fact3, sep=""))))+
           guides(group = guide_legend(fact2))+
-          guides(linetype = guide_legend(fact2))+
+         # guides(linetype = guide_legend(fact2))+
           guides(col = guide_legend(fact2))+
           theme_bw(basesz)
-        predictmeansPlot <- p
-        if (prtplt) print(p)
+        if (lineplot) p3 <- p3 + geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.8) + guides(linetype = guide_legend(title = fact2))
+        meanPlot <- p3
+        if (prtplt) print(p3)
       }
       
     }
   }
   
   if (!is.null(trans)) {    
-    Mean <- Trt <- predictmeansBKPlot <- NULL
+    Mean <- Trt <- ciPlot <- NULL
     bkmt$Mean <- trans(bkmt$pm)-transOff
     if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) bkmt$Mean <- exp(bkmt$pm)-transOff
     if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {    
@@ -491,8 +510,8 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
         }# end of if factor
       }else{       ## Transformed y within modelling
         nresponse <- regmatches(response, regexec("\\(([^<]+)\\)", response))[[1]][2]
-        if (!nresponse %in% names(mdf)) {
-          if (is.null(responsen) || all(responsen%in%c("NULL", "")))  stop("Please provide suitable name for response variable using option 'responsen'!")
+        if (!(nresponse %in% names(mdf))) {	
+          if (is.null(responsen) || all(responsen%in%c("NULL", "")))  stop(paste("Please provide suitable name for response variable using option responsen='", names(mdf)[1], "'!", sep=""))
           nresponse <- responsen
         }
         bky <- mdf[, nresponse]
@@ -513,18 +532,19 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
       xMin <- min(min(bkmt[, nc - 1], na.rm=TRUE), bky, na.rm=TRUE)
       xoffSet <- 0.15 * (xMax - xMin)
       mtitle <- plottitle
-      if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Back Transformed Means with ", (1 - slevel) * 100, "% CIs\n for '",
-                                                                            modelterm, "'", "\n", sep = "")
+      if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Back Transformed Means with ", (1 - slevel) * 100, "% CIs\n for '", modelterm, "'", "\n", sep = "")
       if (newwd) dev.new()
       xlimv <- c(xMin - xoffSet, xMax + xoffSet)
-      p <- ggplot(bkmt, aes(Mean, Trt))+
+	  bkmt[, c("Mean", "LL", "UL")] <- lapply(bkmt[, c("Mean", "LL", "UL")], as.numeric)
+	  newdata2$bky <- as.numeric(newdata2$bky)
+	  p <- ggplot(bkmt, aes(Mean, Trt))+
         labs(title=mtitle, x="", y="")+
         xlim(xlimv) +
         geom_point(colour="red") + geom_errorbarh(aes(xmax = UL, xmin=LL ), height=0.2, linewidth=0.8, colour="red") +
         scale_y_discrete(limits = rev(unique(bkmt$Trt)))+
         geom_point(aes(x=bky, y=Trtn), shape=1, position = position_jitter(width = jitterv, height = jitterv), colour="blue", alpha=0.6, data=newdata2)+
         theme_bw(basesz)
-      predictmeansBKPlot <- p
+      ciPlot <- p
       if (prtplt) print(p)
     }
     rownames(bkmt) <- NULL
@@ -541,15 +561,20 @@ predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NUL
                                                                      paste("Bk_UL(", (1 - slevel) * 100, "%)", sep = ""))
     }															   
     
-    if ((is.null(atvar) || all(atvar%in%c("NULL", ""))) && pairwise) {        
+	if (pairwise) {
+    if ((is.null(atvar) || all(atvar%in%c("NULL", "")))) {        
       if (!is.null(meandecr) && is.logical(meandecr)) meanTable <- meanTable[order(meanTable$Mean, decreasing = meandecr), ]
       meanTable$LetterGrp <- multcompLetters(t.p.valuemGrp, Letters=LETTERS, threshold=slevel)
       if (letterCI)  meanTable$LetterGrp <- ci_mcp(meanTable[, grepl("^LL", names(meanTable))], meanTable[, grepl("^UL", names(meanTable))])
       
       meanTable <- list(Table=meanTable, Note=paste("Letter-based representation of pairwise comparisons at significant level '", slevel, "'", sep=""))
       # attr(meanTable, "Note") <- paste("Note: letter-based representation of pairwise comparisons at significant level '", slevel, "'", sep="")
-    }
-    predictmeansPlot <- list(predictmeansPlot, predictmeansBKPlot)
+    }else{
+	  meanTable$LetterGrp <- unlist(pmlistLetter)
+      meanTable <- list(Table=meanTable, Note=paste("Letter-based representation of pairwise comparisons at significant level '", slevel, "' at each level of ", atvar, sep=""))	  
+	}
+	}
+    predictmeansPlot <- list(meanPlot=meanPlot, ciPlot=ciPlot)
   }   
   
   if (pairwise) {

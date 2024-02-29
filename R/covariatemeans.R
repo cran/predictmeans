@@ -5,6 +5,11 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
     trellis=FALSE
   }
   
+  if (!is.null(covariateV) && length(covariate) > 1){
+      stopifnot(is.matrix(covariateV), dim(covariateV)[2] == length(covariate))
+      colnames(covariateV) <- covariate
+  }
+  
   vars <- unlist(strsplit(modelterm, "\\:"))
   ctr.matrix <- Kmatrix(model, modelterm, covariate, covariateV, data)
   KK <- ctr.matrix$K
@@ -34,7 +39,7 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
     if (inherits(model, "lme")) {
       Df <- terms(model$fixDF)[modelterm]
     }else if (inherits(model, "lmerMod")) {
-      Df <- try(median(df_term(model, modelterm), na.rm=TRUE))
+      Df <- try(median(df_term(model, modelterm, covariate), na.rm=TRUE))
       if(inherits(Df, "try-error")) stop("You need provide Df for this model!") 		  
     }else Df <- mp$df
     if (Df==0) stop("You need provide Df for this model!")
@@ -50,18 +55,10 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
     pltdf$LL <- pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses
     pltdf$UL <- pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses
   }else{
-    # if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) {
-    # bkmtlog <- t(mapply(bt.log, meanlog=pltdf$yhat, sdlog=pltdf$ses, n=rep(round(Df*50/nrow(pltdf), 0), length(pltdf$yhat)), alpha=level, SIMPLIFY = T))[, c(1,8,9)]
-    # bkmtlog <- bkmtlog-transOff
-    # pltdf$Mean <- bkmtlog[, "btmean"]
-    # pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)-transOff
-    # pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff	
-    # }else{
     pltdf$Mean <- trans(pltdf$yhat)-transOff
     if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) pltdf$Mean <- exp(pltdf$yhat+pltdf$ses/2)-transOff
     pltdf$LL <- trans(pltdf$yhat - qt(1 - level/2, df = Df) * pltdf$ses)-transOff
     pltdf$UL <- trans(pltdf$yhat + qt(1 - level/2, df = Df) * pltdf$ses)-transOff
-    #}
   }
   
   # pltdf$yhat <- pltdf$ses <- NULL 
@@ -93,19 +90,16 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
           mdf$bky <- as.numeric(mdf[, response])-1
         }else if (!is.null(dim(mdf[, response]))) {
           mdf$bky <- mdf[, response][,1]/rowSums(mdf[, response])
-          # (is.null(responsen) || responsen%in%c("NULL", "")) stop("Please provide suitable name for response variable using option 'responsen'!")
           response <- "Probability"
         }else mdf$bky <- mdf[, response]
         if (any( identical(trans, function(x) x, ignore.environment=TRUE), identical(trans, I, ignore.environment=TRUE))) {
           if (inherits(model, "glm")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, model$family$linkfun(mdf$bky))	
           if (inherits(model, "glmerMod")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, slot(model, "resp")$family$linkfun(mdf$bky))	 
-          if (inherits(model, "glmmTMB")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, model$modelInfo$family$linkfun(mdf$bky))			  
-          # f (is.null(responsen) || responsen%in%c("NULL", "")) stop("Please provide suitable name for response variable using option 'responsen'!")
+          if (inherits(model, "glmmTMB")) mdf$bky <- ifelse(mdf$bky >=1 | mdf$bky <= 0, NA, model$modelInfo$family$linkfun(mdf$bky))
           response <- "Response"		  
         }
       }else{
         mdf$bky <- trans(mdf[, response])
-        # if (is.null(responsen) || responsen%in%c("NULL", ""))  stop("Please provide suitable name for response variable using option 'responsen'!")
         response <- paste("Transformed", response)
       }
     }else{       ## Transformed y within modelling
@@ -121,6 +115,8 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
   if (all(is.na(mdf$bky))) point <- FALSE
   if (setequal(modelterm, covariate)) mdf$factors <- factor(1) else mdf$factors <- do.call("paste", c(mdf[, vars, drop=FALSE], sep=":"))
   names(mdf)[names(mdf)==covariate] <- "xvar"
+  pltdf[, c("Mean", "LL", "UL")] <- lapply(pltdf[, c("Mean", "LL", "UL")], as.numeric)
+  
   if (!trellis) {
     if (newwd) dev.new()
     if (setequal(modelterm, covariate))  {
@@ -186,6 +182,6 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
       print(plt)
     }
   }
-  
-  return(invisible(plt))
+
+  return(invisible(list(plt=plt, pltdf=pltdf)))
 }

@@ -12,10 +12,10 @@ Predicted Means of a Linear Model
 \usage{
 predictmeans(model, modelterm, data=NULL, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
   lsd_bar=TRUE, level=NULL, covariate=NULL, meandecr=NULL, letterCI=FALSE, trans = I,
-  transOff = 0, responsen=NULL, count=FALSE, plotord=NULL, plottitle=NULL, plotxlab=NULL,
-  plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE,
-  jitterv=0.2, basesz=12, prtnum=TRUE, prtplt=TRUE, newwd=TRUE, permlist=NULL, ncore=3, 
-  ndecimal=4)
+  transOff = 0, responsen=NULL, count=FALSE, plotord=NULL, lineplot=TRUE, plottitle=NULL, 
+  plotxlab=NULL, plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, 
+  plot=TRUE, jitterv=0.2, basesz=12, prtnum=TRUE, prtplt=TRUE, newwd=TRUE, permlist=NULL, 
+  ncore=3, ndecimal=4)
 }
 \arguments{
   \item{model}{
@@ -79,6 +79,9 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
   axis, the first variable as the grouping variable, and the third one as the panel variable). 
   The defaults are \code{c(1, 2)} and \code{c(1, 2, 3)} for two and three way interactions. 
 } 
+  \item{lineplot}{
+  An option for drawing a line chart, or dot chart. The default is TRUE.
+}
   \item{plottitle}{
   A character vector specifying the main title for plot(s). The default is NULL. 
 }
@@ -180,8 +183,9 @@ Dongwen Luo, Siva Ganesh and John Koolaard
   fm <- lme(yield ~ nitro*Variety, random=~1|Block/Variety, data=Oats)
 # fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
   predictmeans(fm, "nitro", adj="BH")
-  predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH")
-  predictout <- predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH", barplot=TRUE)
+  predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH", line=FALSE)
+  predictout <- predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH", 
+    barplot=TRUE, line=FALSE)
   names(predictout)
   print(predictout$predictmeansPlot)
   print(predictout$predictmeansBarPlot)

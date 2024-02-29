@@ -36,7 +36,7 @@ if (requireNamespace("plyr", quietly = TRUE)) {
              "legend", "lines", "par", "plot", "points", "text", "title")
   importFrom("methods", "is", "slot", "as")
   importFrom("stats", "anova", "as.formula", "coef", "complete.cases", "confint", "delete.response",
-             "density", "dist", "family", "fitted", "formula", "ftable", "lm", "na.action",
+             "density", "dist", "family", "fitted", "formula", "ftable", "gaussian", "lm", "na.action",
              "lm.influence", "loess.smooth", "logLik", "make.link", "median", "model.response", 
              "model.frame", "model.matrix", "na.omit", "na.pass",
              "p.adjust", "pf", "poisson", "ppoints", "predict", "pt", "ptukey",
@@ -45,4 +45,4 @@ if (requireNamespace("plyr", quietly = TRUE)) {
 			 "aggregate", "get_all_vars")
   importFrom("utils", "as.roman", "combn", "edit")
 
-export(ci_mcp, contrastmeans, CookD, covariatemeans, df_term, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, residplot, semipred, semireg, smZ, varcomp)
+export(ci_mcp, contrastmeans, CookD, covariatemeans, df_term, Kmatrix, permanova.lmer, permindex, permlmer, permmodels, PMplot, predictmeans, R2_glmm, residplot, semipred, semireg, semireg_tmb, se_ranef, smZ, varcomp)
