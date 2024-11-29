@@ -56,18 +56,35 @@ varcomp <- function(model, ci=TRUE, level=0.95) {
     }else{
       varcomp <- cbind(vcov, SE)      
     }
-  }else if(inherits(model, "glmmTMB")){
-    theta_sd <- sqrt(diag(vcov(model, full=TRUE)))
-    theta_sd <- theta_sd[grepl("theta", names(theta_sd))]
-    theta <- getME(model, "theta")
-    vcov <- exp(2*theta)
-    SE=theta_sd*2*exp(2*theta)
-    theta_UL <- theta+qnorm(p=(1-level)/2, lower.tail=FALSE)*theta_sd
-    upper <- theta_sd*2*exp(2*theta_UL)
-    theta_LL <- theta-qnorm(p=(1-level)/2, lower.tail=FALSE)*theta_sd
-    lower <- theta_sd*2*exp(2*theta_LL)
-    varcomp <- cbind(vcov, SE, lower, upper)   
-  } else {
+  }
+  # else if(inherits(model, "glmmTMB")){
+    # theta_sd <- sqrt(diag(vcov(model, full=TRUE)))
+    # theta_sd <- theta_sd[grepl("theta", names(theta_sd))]
+    # theta <- getME(model, "theta")
+	# vc <- VarCorr(model)$cond
+    # theta_id <- unlist(lapply(vc, function(x) {
+      # n <- dim(x)[1] 
+      # v_ind <- rep(2, n*(n+1)/2)
+      # v_ind[1:n] <- 1
+      # return(v_ind)
+    # }
+    # ))
+    # # vcov <- exp(2 * theta)
+    # # vcov[theta_id==2] <- theta[theta_id==2]	
+    
+    # vcov <- unlist(lapply(vc, function(x) c(diag(x), x[lower.tri(x, diag = FALSE)])))	
+    # SE=theta_sd*2*vcov
+    # theta_UL <- theta+qnorm(p=(1-level)/2, lower.tail=FALSE)*theta_sd
+    # upper <- theta_sd*2*exp(2*theta_UL)
+	# upperN <- theta_sd*2*theta_UL
+	# upper[theta_id==2] <- upperN[theta_id==2]	
+    # theta_LL <- theta-qnorm(p=(1-level)/2, lower.tail=FALSE)*theta_sd
+    # lower <- theta_sd*2*exp(2*theta_LL)
+	# lowerN <- theta_sd*2*theta_LL
+	# lower[theta_id==2] <- lowerN[theta_id==2]	
+    # varcomp <- round(cbind(vcov, SE, lower, upper), 4)   
+  # } 
+  else {
     stop("The model must be a lme, lmer, glmer or glmmTMB object!")
   }
   return(varcomp)  

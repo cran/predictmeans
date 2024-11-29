@@ -7,7 +7,7 @@ Diagnostic Plots for a Linear (Mixed) Model
 This function produces diagnostic plots for linear models including 'aov', 'lm', 'glm', 'gls', 'lme' and 'lmer'. 
 }
 \usage{
-  residplot(model, group = "none", level = 1, slope = FALSE, id = FALSE, newwd=TRUE,
+  residplot(model, group = "none", level = 1, slope = FALSE, id = FALSE, newwd=FALSE,
     ask=FALSE)
 }
 \arguments{
@@ -27,7 +27,7 @@ An integer 1, 2, etc. used to specify a level of the random effect for plotting.
   A logical variable. If set to TRUE, outliers in the residual vs fitted plot can be identified interactively.
 }
 \item{newwd}{
-A logical variable to indicate whether to print graph in a new window. The default is TRUE.
+A logical variable to indicate whether to print graph in a new window. The default is FALSE.
 }
   \item{ask}{
   logical. If TRUE (and the R session is interactive) the user is asked for input, before a new figure is drawn.

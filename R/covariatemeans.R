@@ -1,4 +1,4 @@
-covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, data=NULL, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE) {
+covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, data=NULL, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=FALSE) {
   
   if (is.null(modelterm) || all(modelterm%in%c("NULL", ""))) {
     modelterm <- covariate
@@ -11,6 +11,19 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
   }
   
   vars <- unlist(strsplit(modelterm, "\\:"))
+  if (!is.null(plotord) && !unique(plotord%in%c("NULL", ""))) {
+    if(length(plotord) != length(vars)){
+      stop(paste("plotord must be a character vector of length", length(vars)))
+    }
+    if(is.character(plotord)){      
+      i = match(plotord, vars)
+      if(any(is.na(i))){
+        stop(paste("The entries", paste0(plotord[is.na(i)], sep = ", "), "do not match any term in ", modelterm))
+      }else{
+        plotord = i
+      }
+    }	
+  }
   ctr.matrix <- Kmatrix(model, modelterm, covariate, covariateV, data)
   KK <- ctr.matrix$K
   pltdf <- ctr.matrix$fctnames
@@ -39,8 +52,12 @@ covariatemeans <- function (model, modelterm=NULL, covariate, as.is=FALSE, covar
     if (inherits(model, "lme")) {
       Df <- terms(model$fixDF)[modelterm]
     }else if (inherits(model, "lmerMod")) {
-      Df <- try(median(df_term(model, modelterm, covariate), na.rm=TRUE))
-      if(inherits(Df, "try-error")) stop("You need provide Df for this model!") 		  
+      # Df <- try(median(df_term(model, modelterm, covariate), na.rm=TRUE))
+	  # Df <- mp$df[modelterm]
+      # if(inherits(Df, "try-error")) stop("You need provide Df for this model!") 
+      L_term <- get_contrasts_type1(model)[[modelterm]]
+      Df <- mean(df_term(model, ctrmatrix=L_term))
+	  if (is.nan(Df)) stop("You need provide Df for this model term!")	  
     }else Df <- mp$df
     if (Df==0) stop("You need provide Df for this model!")
   }

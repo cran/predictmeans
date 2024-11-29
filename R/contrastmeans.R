@@ -1,6 +1,8 @@
 contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none", Df, permlist) { 
   options(scipen=6)
   
+  if (inherits(model, "aovlist")) model <- aovlist_lmer(model)
+  
   if (is.null(ctrnames) || all(ctrnames%in%c("NULL", ""))) ctrnames <- NULL
   K <- Kmatrix(model, modelterm)$K
   termsLabel <- rownames(K)
@@ -29,7 +31,7 @@ contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none"
   
   mp <- mymodelparm(model)  
   if (all(missing(permlist), missing(Df))){
-	  if (mp$df!=0) {
+	  if (length(mp$df)==1 && mp$df!=0) {
 		Df <- mp$df
 	  }else{   
 		  if (inherits(model, "lme")) { 
@@ -41,7 +43,7 @@ contrastmeans <- function(model, modelterm, ctrmatrix, ctrnames=NULL, adj="none"
 			  sQuote(mDf), ".\n","Probabilities will be calculated using", sQuote(Df), "Df.",  "\n")
 		  }else if (inherits(model, "lmerMod")) {
 			Df <- df_term(model, ctrmatrix = rK)
-      }else stop("You need provide Df for the model!")
+          }else stop("You need provide Df for the model!")
 	  }
   }
 

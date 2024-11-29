@@ -31,6 +31,10 @@ mymodelparm.default <- function(model, coef. = coef, vcov. = vcov, df = NULL, ..
 			dd <- model$dims
 			df <- dd[["N"]] - dd[["p"]]
 		}
+		# if (inherits(model, "lmerMod")) {
+		    # L_list <- get_contrasts_type1(model)
+            # df <- sapply(L_list, function(L) mean(df_term(model, ctrmatrix=L)))
+		# }
 		if (inherits(model, "glmerMod") || inherits(model, "glmmTMB")) {
 			df <- summary(model)$AICtab["df.resid"]
 		}		

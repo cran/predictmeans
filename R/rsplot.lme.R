@@ -55,7 +55,7 @@ rsplot.lme <- function (model, group="none", level=1, slope=FALSE, id=FALSE, ask
   if(inherits(model, "glmerMod") || inherits(model, "glmmTMB")) {
   ##plot random effects against the predicted values and check for no trend:
     if (inherits(model, "glmmTMB")){
-	  mu <- model.matrix(model)%*%lme4::fixef(model)[["cond"]]
+	  mu <- model.matrix(model)%*%na.omit(lme4::fixef(model)[["cond"]])
 	  RandomEffects <- getME(model, "Z")%*%unlist(lme4::ranef(model)[["cond"]])
 	}else{
     mu <- model.matrix(model)%*%lme4::fixef(model)

@@ -1,6 +1,6 @@
-residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd=TRUE, ask=FALSE) { 
+residplot <- function(model, group="none", level=1, slope=FALSE, id=FALSE, newwd=FALSE, ask=FALSE) { 
 
-  if (inherits(model, "aovlist")) stop("Plese use model 'lme' instead of 'aov'!")
+  if (inherits(model, "aovlist")) model <- aovlist_lmer(model)
   if (newwd) dev.new()
   if (inherits(model, "lm") || inherits(model, "aov")){
     op <- par(mfrow=c(2, 2), cex=0.7, mar=c(5, 5, 4, 2), mex=0.8, ask=ask)

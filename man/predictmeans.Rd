@@ -11,11 +11,11 @@ Predicted Means of a Linear Model
 }
 \usage{
 predictmeans(model, modelterm, data=NULL, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL,
-  lsd_bar=TRUE, level=NULL, covariate=NULL, meandecr=NULL, letterCI=FALSE, trans = I,
+  lsd_bar=TRUE, level=0.05, covariate=NULL, meandecr=NULL, letterCI=FALSE, trans = I,
   transOff = 0, responsen=NULL, count=FALSE, plotord=NULL, lineplot=TRUE, plottitle=NULL, 
   plotxlab=NULL, plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, 
-  plot=TRUE, jitterv=0.2, basesz=12, prtnum=TRUE, prtplt=TRUE, newwd=TRUE, permlist=NULL, 
-  ncore=3, ndecimal=4)
+  plot=TRUE, jitterv=0.2, basesz=12L, prtnum=TRUE, prtplt=TRUE, newwd=FALSE, 
+  permlist=NULL, ncore=3L, ndecimal=4L)
 }
 \arguments{
   \item{model}{
@@ -59,7 +59,7 @@ predictmeans(model, modelterm, data=NULL, pairwise=FALSE, atvar=NULL, adj="none"
 }
   \item{letterCI}{
   A logical variable to indicate printed letters for multiple comparisons by whether or not CI overlap in the mean_table. 
-  The default is FALSE.
+  The default is FALSE. Note that the method of examining overlap is more conservative (i.e., rejects the null hypothesis less often) than the standard method when the null hypothesis is true.
 }
   \item{trans}{
   A function object for calculating the back transformed means, e.g. \code{trans=exp}.
@@ -73,11 +73,12 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
   \item{count}{
   An option for indicating the back transformed mean values are counts or not. The default is FALSE.
 } 
-  \item{plotord}{
-  A numeric vector specifying the order of plotting for two or three way interaction (e.g. 
-  \code{plotord = c(2, 1, 3)} will put the second variable in \code{modelterm} on the \code{X} 
-  axis, the first variable as the grouping variable, and the third one as the panel variable). 
-  The defaults are \code{c(1, 2)} and \code{c(1, 2, 3)} for two and three way interactions. 
+ \item{plotord}{
+  A numeric (or character) vector specifying the order of plotting for two or three way interaction (e.g. 
+  \code{plotord = c(2, 1, 3)} or \code{plotord = c("B", "A", "C")} will put the second variable 'B' in 
+  \code{modelterm} on the \code{X} axis, the first variable 'A' as the grouping variable, and the third one 
+  'C' as the panel variable). The defaults are \code{c(1, 2)} and \code{c(1, 2, 3)} for two and three way 
+  interactions. 
 } 
   \item{lineplot}{
   An option for drawing a line chart, or dot chart. The default is TRUE.
@@ -119,7 +120,7 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
   An option for printing plots on the screen, or not. The default is TRUE.
 }
   \item{newwd}{
-  A logical variable to indicate whether to print graph in a new window. The default is TRUE.
+  A logical variable to indicate whether to print graph in a new window. The default is FALSE.
 }
   \item{permlist}{
   A model parameter list produced by the function \code{permmodels}. When \code{permlist != NULL}, 
@@ -166,14 +167,14 @@ Dongwen Luo, Siva Ganesh and John Koolaard
 }
 
 \references{
-    Torsten Hothorn, Frank Bretz and Peter Westfall (2008),
-    \emph{Simultaneous Inference in General Parametric Models. Biometrical}, Journal 50(3), 346--363.
-  
-	Welham, S., Cullis, B., Gogel, B., Gilmour, A., & Thompson, R. (2004),
-	\emph{Prediction in linear mixed models}, Australian and New Zealand Journal of Statistics, 46(3), 325-347. 
+	Maghsoodloo Saeed, Ching-Ying Huang (2010),
+	\emph{Comparing the overlapping of two independent confidence intervals with a single confidence interval for two normal population parameters}, Journal of Statistical Planning and Inference, 140(11), 3295-3305. https://www.sciencedirect.com/science/article/pii/S0378375810002405. 
 	
-	Vanessa, C. (05 October 2022),
-	\emph{Confidence tricks: the 83.4\% confidence interval for comparing means}, https://vsni.co.uk/blogs/confidence_trick. 
+	Torsten Hothorn, Frank Bretz and Peter Westfall (2008),
+    \emph{Simultaneous Inference in General Parametric Models. Biometrical}, Journal 50(3), 346-363.
+  
+	Welham S., Cullis B., Gogel B., Gilmour A., & Thompson R. (2004),
+	\emph{Prediction in linear mixed models}, Australian and New Zealand Journal of Statistics, 46(3), 325-347.
 }
 
 \examples{

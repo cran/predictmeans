@@ -8,7 +8,7 @@ Creates a plot of p-values of pairwise comparisons.
 }
 \usage{
 PMplot(pmatrix, level=0.05, mtitle=NULL, xylabel=NULL, margin=5, legendx=0.73, 
-  newwd=TRUE)  
+  newwd=FALSE)  
 }
 
 \arguments{
@@ -31,7 +31,7 @@ PMplot(pmatrix, level=0.05, mtitle=NULL, xylabel=NULL, margin=5, legendx=0.73,
   A value for specifying x coordinate of legend. The default value is 0.73.
 }
 \item{newwd}{
-A logical variable to indicate whether to print graph in a new window. The default is TRUE.
+A logical variable to indicate whether to print graph in a new window. The default is FALSE.
 }
 }
 
@@ -51,7 +51,6 @@ Dongwen Luo, Siva Ganesh and John Koolaard
   Oats$nitro <- factor(Oats$nitro)
   fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
   predictout <- predictmeans(fm, "nitro:Variety", atvar="Variety", adj="BH", barplot=TRUE)
-  PMplot(predictout$p_valueMatrix)
-  
+  PMplot(predictout$p_valueMatrix)  
 }
 

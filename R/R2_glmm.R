@@ -14,19 +14,22 @@ R2_glmm <- function(model, over_disp=FALSE){
   if (inherits(model, "glmmTMB")){
     tmb_call <- model$call
     tmb_call$doFit <- FALSE
-	tmbf <- try(with(model$frame, eval(tmb_call)), TRUE)
-	if (inherits(tmbf, "try-error")) {
-	  tmb_call$data <- base::merge(eval(tmb_call$data), model$frame, sort=FALSE)
-	  tmbf <- eval(tmb_call)
-	}
-   # tmbf <- with(model$frame, eval(tmb_call))
+    tmbf <- try(with(model$frame, eval(tmb_call)), TRUE)
+    if (inherits(tmbf, "try-error")) {
+      tmb_call$data <- base::merge(eval(tmb_call$data), model$frame, sort=FALSE)
+      tmbf <- eval(tmb_call)
+    }
+    # tmbf <- with(model$frame, eval(tmb_call))
     weights <- tmbf$data.tmb$weights
-    cond_reTrms <- tmbf$condList$reTrms
-    theta <- exp(getME(model, "theta"))/sigma(model)
+    cond_reTrms <- reTrms_tmb(model)
     Lambda <- t(cond_reTrms$Lambdat)
-    Lambda@x <- theta[cond_reTrms$Lind]    
+    
     beta <- getME(model, "beta")
-    beta <- beta[setdiff(names(beta), c("betad", "betazi"))]
+    beta_L <- grep("betadisp|betazi", names(beta))
+    if (length(beta_L > 0)) beta <- beta[-beta_L]
+    b <- getME(model, "b")
+    b_L <- grep("bzi", names(b))
+    if (length(b_L > 0)) b <- b[-b_L]
     family_n <- model$modelInfo$family$family
     if (family_n=="binomial") yobs <- unique(tmbf$data.tmb$yobs)
     link_n <- model$modelInfo$family$link
@@ -44,7 +47,7 @@ R2_glmm <- function(model, over_disp=FALSE){
   X <- getME(model, "X") 
   Z <- getME(model, "Z") 
   XZ <- cbind(X, Z)
-  
+
   if (family_n != "gaussian"){
     if (family_n =="binomial" && all(yobs%in%c(0,1))){
       prior_weight <- switch(link_n,
@@ -57,13 +60,13 @@ R2_glmm <- function(model, over_disp=FALSE){
           family_fun <- mod$modelInfo$family
           family_fun$mu.eta(eta)^2/family_fun$variance(family_fun$linkinv(eta))
         }
-        y_hat <- as.vector(XZ%*%c(beta, getME(model, "b")))
+        y_hat <- as.vector(XZ%*%c(beta, b))
         prior_weight <- as.vector(weight_fun(y_hat, model))*tmbf$data.tmb$weights 
         if (length(tmbf$data.tmb$size) > 0) prior_weight <- prior_weight*tmbf$data.tmb$size
       }else prior_weight <- model@resp$sqrtWrkWt()^2 
     }
   }else prior_weight <- weights
- 
+  
   n <- nrow(X) 
   Zt <- t(Z)
   s <- sigma(model)    
@@ -87,22 +90,22 @@ R2_glmm <- function(model, over_disp=FALSE){
   
   if (!over_disp) {
     if (inherits(model, "glmmTMB")){
-      u_ind <- c(ini=0, cond_reTrms$nl)
-	  u_ind <- cumsum(u_ind)
+      u_ind <- c(ini=0, sapply(cond_reTrms$Ztlist, function(x) x@Dim[1]))
+      u_ind <- cumsum(u_ind)
       u_indn <- names(u_ind)
     }else{
       u_ind <- c(ini=0, sapply(getME(model, "Ztlist"), function(x) x@Dim[1]))
-	  u_ind <- cumsum(u_ind)
+      u_ind <- cumsum(u_ind)
       u_indn <- sub("\\.\\(Intercept\\)$", "",names(u_ind))
       names(u_ind) <- u_indn
     }
     
     Omega_u_list <- vector("list", length(u_indn)-1)
     names(Omega_u_list) <- u_indn[-1]
-
+    
     for (i in 1:length(Omega_u_list)) {
-	  contInds <- (u_ind[i] + 1):(u_ind[i + 1])
-	  theta_Zu_i <- tr(P%*%Z[, contInds]%*%G[contInds, contInds]%*%Zt[contInds,])/(n-1)
+      contInds <- (u_ind[i] + 1):(u_ind[i + 1])
+      theta_Zu_i <- tr(P%*%Z[, contInds]%*%G[contInds, contInds]%*%Zt[contInds,])/(n-1)
       Omega_u_list[i] <- theta_Zu_i/Omega_full
     }
   }else Omega_u_list <- NULL

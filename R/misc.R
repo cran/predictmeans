@@ -175,6 +175,79 @@ multcompLetters <- function (x, compare = "<", threshold = 0.05,   # function fr
 }
 
 ######################## Functions from lmerTest begin #################
+
+get_contrasts_type1 <- function(model) {
+  terms <- terms(model)
+  X <- model.matrix(model)
+  p <- ncol(X)
+  if(p == 0L) return(list(matrix(numeric(0L), nrow=0L))) # no fixef
+  if(p == 1L && attr(terms, "intercept")) # intercept-only model
+    return(list(matrix(numeric(0L), ncol=1L)))
+  # Compute 'normalized' doolittle factorization of XtX:
+  L <- if(p == 1L) matrix(1L) else t(doolittle(crossprod(X))$L)
+  dimnames(L) <- list(colnames(X), colnames(X))
+  # Determine which rows of L belong to which term:
+  ind.list <- term2colX(terms, X)[attr(terms, "term.labels")]
+  lapply(ind.list, function(rows) L[rows, , drop=FALSE])
+}
+
+term2colX <- function(terms, X) {
+  # Compute map from terms to columns in X using the assign attribute of X.
+  # Returns a list with one element for each term containing indices of columns
+  #   in X belonging to that term.
+  if(is.null(asgn <- attr(X, "assign")))
+    stop("Invalid design matrix:",
+         "design matrix 'X' should have a non-null 'assign' attribute",
+         call. = FALSE)
+  term_names <- attr(terms, "term.labels")
+  has_intercept <- attr(terms, "intercept") > 0
+  col_terms <- if(has_intercept) c("(Intercept)", term_names)[asgn + 1] else
+    term_names[asgn[asgn > 0]]
+  if(!length(col_terms) == ncol(X)) # should never happen.
+    stop("An error happended when mapping terms to columns of X")
+  # get names of terms (including aliased terms)
+  nm <- union(unique(col_terms), term_names)
+  res <- lapply(setNames(as.list(nm), nm), function(x) numeric(0L))
+  map <- split(seq_along(col_terms), col_terms)
+  res[names(map)] <- map
+  res[nm] # order appropriately
+}
+
+doolittle <- function(x, eps = 1e-6) {
+  if(!is.matrix(x) || ncol(x) != nrow(x) || !is.numeric(x))
+    stop("argument 'x' should be a numeric square matrix")
+  stopifnot(ncol(x) > 1L)
+  n <- nrow(x)
+  L <- U <- matrix(0, nrow=n, ncol=n)
+  diag(L) <- rep(1, n)
+  for(i in 1:n) {
+    ip1 <- i + 1
+    im1 <- i - 1
+    for(j in 1:n) {
+      U[i,j] <- x[i,j]
+      if (im1 > 0) {
+        for(k in 1:im1) {
+          U[i,j] <- U[i,j] - L[i,k] * U[k,j]
+        }
+      }
+    }
+    if ( ip1 <= n ) {
+      for ( j in ip1:n ) {
+        L[j,i] <- x[j,i]
+        if ( im1 > 0 ) {
+          for ( k in 1:im1 ) {
+            L[j,i] <- L[j,i] - L[j,k] * U[k,i]
+          }
+        }
+        L[j, i] <- if(abs(U[i, i]) < eps) 0 else L[j,i] / U[i,i]
+      }
+    }
+  }
+  L[abs(L) < eps] <- 0
+  U[abs(U) < eps] <- 0
+  list( L=L, U=U )
+}
+
 # df_term <- function (model, term) {
 # if(!getME(model, "is_REML"))
 # stop("Kenward-Roger's method is only available for REML model fits")
@@ -215,83 +288,6 @@ multcompLetters <- function (x, compare = "<", threshold = 0.05,   # function fr
 # ddf <- get_Fstat_ddf(nu_m, tol=1e-8)
 # }
 # return(ddf)
-# }
-
-# ##########
-
-# get_contrasts_type1 <- function(model) {
-# terms <- terms(model)
-# X <- model.matrix(model)
-# p <- ncol(X)
-# if(p == 0L) return(list(matrix(numeric(0L), nrow=0L))) # no fixef
-# if(p == 1L && attr(terms, "intercept")) # intercept-only model
-# return(list(matrix(numeric(0L), ncol=1L)))
-# # Compute 'normalized' doolittle factorization of XtX:
-# L <- if(p == 1L) matrix(1L) else t(doolittle(crossprod(X))$L)
-# dimnames(L) <- list(colnames(X), colnames(X))
-# # Determine which rows of L belong to which term:
-# ind.list <- term2colX(terms, X)[attr(terms, "term.labels")]
-# lapply(ind.list, function(rows) L[rows, , drop=FALSE])
-# }
-
-# qform <- function(x, A) {
-# sum(x * (A %*% x)) # quadratic form: x'Ax
-# }
-
-# ##########
-# doolittle <- function(x, eps = 1e-6) {
-# if(!is.matrix(x) || ncol(x) != nrow(x) || !is.numeric(x))
-# stop("argument 'x' should be a numeric square matrix")
-# stopifnot(ncol(x) > 1L)
-# n <- nrow(x)
-# L <- U <- matrix(0, nrow=n, ncol=n)
-# diag(L) <- rep(1, n)
-# for(i in 1:n) {
-# ip1 <- i + 1
-# im1 <- i - 1
-# for(j in 1:n) {
-# U[i,j] <- x[i,j]
-# if (im1 > 0) {
-# for(k in 1:im1) {
-# U[i,j] <- U[i,j] - L[i,k] * U[k,j]
-# }
-# }
-# }
-# if ( ip1 <= n ) {
-# for ( j in ip1:n ) {
-# L[j,i] <- x[j,i]
-# if ( im1 > 0 ) {
-# for ( k in 1:im1 ) {
-# L[j,i] <- L[j,i] - L[j,k] * U[k,i]
-# }
-# }
-# L[j, i] <- if(abs(U[i, i]) < eps) 0 else L[j,i] / U[i,i]
-# }
-# }
-# }
-# L[abs(L) < eps] <- 0
-# U[abs(U) < eps] <- 0
-# list( L=L, U=U )
-# }
-
-# ##########
-# term2colX <- function(terms, X) {
-# if(is.null(asgn <- attr(X, "assign")))
-# stop("Invalid design matrix:",
-# "design matrix 'X' should have a non-null 'assign' attribute",
-# call. = FALSE)
-# term_names <- attr(terms, "term.labels")
-# has_intercept <- attr(terms, "intercept") > 0
-# col_terms <- if(has_intercept) c("(Intercept)", term_names)[asgn + 1] else
-# term_names[asgn[asgn > 0]]
-# if(!length(col_terms) == ncol(X)) # should never happen.
-# stop("An error happended when mapping terms to columns of X")
-# # get names of terms (including aliased terms)
-# nm <- union(unique(col_terms), term_names)
-# res <- lapply(setNames(as.list(nm), nm), function(x) numeric(0L))
-# map <- split(seq_along(col_terms), col_terms)
-# res[names(map)] <- map
-# res[nm] # order appropriately
 # }
 
 # ##########
@@ -336,7 +332,10 @@ df_term <- function(model, modelterm, covariate=NULL, ctrmatrix=NULL, ctrnames=N
     ddf <- try(apply(Lc, 1, function(x) pbkrtest::Lb_ddf(x, V0=vcov(model),
                                                          Vadj=vcov_beta_adj)), silent=TRUE) # vcov_beta_adj need to be dgeMatrix!
     
-    if (any(inherits(vcov_beta_adj, "try-error"), inherits(ddf, "try-error"), ddf >= nrow(model.frame(model)))) {
+    if (any(inherits(vcov_beta_adj, "try-error"), 
+	        inherits(ddf, "try-error"), 
+			ddf >= nrow(model.frame(model)),
+			ddf <= 0)) {
       warning("Unable to compute Kenward-Roger Df: using Satterthwaite instead")
       type <- "Satterthwaite"	
     }
@@ -1002,7 +1001,7 @@ ci_mcp <- function(LL, UL, trt_n=NULL) {
     is.numeric(LL)
 	is.numeric(UL)
 	length(LL)==length(UL)
-	all(LL < UL)
+	all(LL <= UL)
   })
   trt_len <- length(LL)
   if(is.null(trt_n) || length(unique(trt_n))!=trt_len) trt_n <- as.character(1:trt_len)
@@ -1034,4 +1033,61 @@ ci_mcp <- function(LL, UL, trt_n=NULL) {
   return(ci_mcp_letters)
 }
 
+########################################################
+# To handle aovlist object refit by lmer function
+aovlist_lmer <- function(object) {
+  stopifnot(inherits(object, "aovlist"))
+  mod_df <- model.frame(object)
+  lmer_call = match.call(aov, attr(object, "call"))
+  
+  trms = terms(object)
+  response <- as.character(attr(trms, "variables"))[[2]]
+  
+  # Find the Error terms
+  trms_label = attr(trms, "term.labels")
+  err.idx = grep("^Error\\(", trms_label)
+  
+  # Original Error term
+  error_term <- trms_label[err.idx]
+  error_term <- gsub("Error\\(|\\)", "", error_term)
+  error_terms <- strsplit(error_term, "\\+\\s+")[[1]]
+  
+  # Reformat into lmer format
+  lmer_random_parts <- paste0("(1|", error_terms, ")", collapse = " + ")
+  lmer_fix_parts <- paste0(trms_label[-err.idx], collapse = " + ")
+  
+  lmer_call$formula <- as.formula(paste(response, " ~ ", lmer_fix_parts, "+", lmer_random_parts, sep=""))
+  lmer_call[[1]] <- as.name("lmer")
+  assign(as.character(lmer_call$data), mod_df)
+  lmer_object <- eval(lmer_call)
+  return(lmer_object)
+}
+
+########################################################
+reTrms_tmb <- function(model, ...) {
+  form <- formula(model)
+  cond_reTrms <- reformulas::mkReTrms(
+    reformulas::findbars(form, ...),
+    model.frame(model), reorder.terms=FALSE, calc.lambdat=TRUE)    
+  
+  rmattr <- function(x, a = c("correlation",  "blockCode", "stddev")) {
+    for (aa in a) attr(x, aa) <- NULL
+    x
+  }
+  
+  mktheta <- function(model) {
+    vc <- VarCorr(model)$cond
+    get_chol <- function(v) {
+      cc <- t(chol(rmattr(v)))
+      cc[lower.tri(cc, diag = TRUE)]
+    }
+    theta <- lapply(vc, get_chol)
+    return(unlist(theta)/sigma(model))
+  }
+  
+  cond_reTrms$Lambdat@x <- unname(mktheta(model)[cond_reTrms$Lind])
+  return(cond_reTrms)
+}
+
+########################################################
 

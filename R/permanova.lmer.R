@@ -1,4 +1,4 @@
-permanova.lmer <- function(model, nperm = 999, ncore=3, type = c("I", "II", "III",  "1", "2", "3"), ...)  { # perms
+permanova.lmer <- function(model, nperm = 999, ncore=3L, type = c("I", "II", "III",  "1", "2", "3"), ...)  { # perms
 
   if (!inherits(model, "lmerMod")) stop("The model must be a lmer object!")
   if (inherits(try(refit(model, getME(model, "y")), TRUE), "try-error")) stop("Please remove missing values in your model!")

@@ -1,7 +1,7 @@
 \name{varcomp}
 \alias{varcomp}
 \title{
-Calculate SE and CI of variance components for \code{lmer}, \code{glmer}, \code{lme}, \code{glmmTMB} model
+Calculate SE and CI of variance components for \code{lmer}, \code{glmer}, \code{lme} model
 }
 \description{
 This function calculates SE and CI of variance components for \code{lmer}, \code{glmer}, \code{lme}, \code{glmmTMB} model.

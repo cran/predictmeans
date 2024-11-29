@@ -8,7 +8,7 @@ This function produces Cook's distance plots for a linear model obtained from fu
   or \code{lmer}.
 }
 \usage{
-CookD(model, group=NULL, plot=TRUE, idn=3, newwd=TRUE)
+CookD(model, group=NULL, plot=TRUE, idn=3, newwd=FALSE)
 }
 
 \arguments{
@@ -25,7 +25,7 @@ Name (in "quotes") for indicating how observations are deleted for Cook's distan
   An integer indicating the number of top Cook's distances to be labelled in the plot. The default value is 3.
 }
 \item{newwd}{
-A logical variable to indicate whether to print graph in a new window. The default value is TRUE.
+A logical variable to indicate whether to print graph in a new window. The default value is FALSE.
 }
 }
 \author{

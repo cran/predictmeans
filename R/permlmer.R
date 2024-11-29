@@ -1,4 +1,4 @@
-permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3, plot=FALSE, seed){
+permlmer <- function(lmer0, lmer1, nperm = 999, ncore=3L, plot=FALSE, seed){
   
   if (any(!inherits(lmer0, "lmerMod"), !inherits(lmer1, "lmerMod"))) stop("The model must be a lmer object!")
   if (!setequal(getME(lmer0, "y"), getME(lmer1, "y"))) stop("Please check the response in your model!")

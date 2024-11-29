@@ -7,7 +7,7 @@ Permutation ANOVA for \code{lmer} Model
 This function provides permutation ANOVA for \code{lmer} model.
 }
 \usage{
-permanova.lmer(model, nperm = 999, ncore=3, type = c("I", "II", "III",  "1", "2", "3"),
+permanova.lmer(model, nperm = 999, ncore=3L, type = c("I", "II", "III",  "1", "2", "3"),
  ...) 
 }
 \arguments{
@@ -37,14 +37,16 @@ Dongwen Luo, Siva Ganesh and John Koolaard
 }
 
 \examples{
+## NOT RUN
 # library(predictmeans)
 # Oats$nitro <- factor(Oats$nitro) 
 # fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
-
-## Permutation Test for model terms
+# 
+# # Permutation Test for model terms
 # permanova.lmer(fm)
 # permanova.lmer(fm, type=2)
-## Compare to F test
+# 
+# # Compare to F test
 # fm0 <- lme(yield ~ nitro*Variety, random=~1|Block/Variety, data=Oats)
 # anova(fm0)
 }

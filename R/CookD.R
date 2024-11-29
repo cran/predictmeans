@@ -1,4 +1,4 @@
-CookD <- function (model, group=NULL, plot=TRUE, idn=3, newwd=TRUE) {
+CookD <- function (model, group=NULL, plot=TRUE, idn=3, newwd=FALSE) {
 
   stopifnot("CookD doesn't support this model!"={
     any(inherits(model, "gls"), inherits(model, "lme"), inherits(model, "lmerMod"))

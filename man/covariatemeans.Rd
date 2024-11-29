@@ -9,7 +9,7 @@
 \usage{
   covariatemeans(model, modelterm=NULL, covariate, as.is=FALSE, covariateV=NULL, 
   data=NULL, level=0.05, Df=NULL, trans=NULL, transOff=0, responsen=NULL, trellis=TRUE, 
-  plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=TRUE)
+  plotord=NULL, mtitle=NULL, ci=TRUE, point=TRUE, jitterv=0, newwd=FALSE)
 }
 \arguments{
   \item{model}{
@@ -50,10 +50,11 @@ When you use \code{trans=exp(x+1)}, then \code{transOff=1}, the default is 0.
   A logical variable. If set to TRUE (default), a trellis plots of predicted means with CI will be drawn.
 }
  \item{plotord}{
-  A numeric vector specifying the order of plotting for two or three way interaction (e.g. 
-  \code{plotord = c(2, 1, 3)} will put the second variable in \code{modelterm} on the \code{X} 
-  axis, the first variable as the grouping variable, and the third one as the panel variable). 
-  The defaults are \code{c(1, 2)} and \code{c(1, 2, 3)} for two and three way interactions. 
+  A numeric (or character) vector specifying the order of plotting for two or three way interaction (e.g. 
+  \code{plotord = c(2, 1, 3)} or \code{plotord = c("B", "A", "C")} will put the second variable 'B' in 
+  \code{modelterm} on the \code{X} axis, the first variable 'A' as the grouping variable, and the third one 
+  'C' as the panel variable). The defaults are \code{c(1, 2)} and \code{c(1, 2, 3)} for two and three way 
+  interactions. 
 }
   \item{mtitle}{
   The main title in the graph.
@@ -68,7 +69,7 @@ A logical variable to indicate whether to print raw data points. The default val
   A degree of jitter in x and y direction in the graph. The default is zero.
 }
 \item{newwd}{
-A logical variable to indicate whether to print graph in a new window. The default value is TRUE.
+A logical variable to indicate whether to print graph in a new window. The default value is FALSE.
 } 
 }
 
@@ -86,5 +87,5 @@ Dongwen Luo, Siva Ganesh and John Koolaard
 # library(lme4)
 # fm <- lmer(yield ~ nitro*Variety+(1|Block/Variety), data=Oats)
   covariatemeans(fm, "Variety", covariate="nitro")
-  covariatemeans(fm, "Variety", covariate="nitro", covariateV=seq(0, 0.6, 0.1))$data
+  covariatemeans(fm, "Variety", covariate="nitro", covariateV=seq(0, 0.6, 0.1))$pltdf
 }

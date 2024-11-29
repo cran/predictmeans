@@ -6,16 +6,32 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   stopifnot(inherits(semireg, "semireg"), !is.null(semireg$CovMat))  
   scales <- as.character(scales)
   scales <- match.arg(scales)
-  if (!is.null(contr)) {
-    trans <- NULL
-	stopifnot("'modelterm' must be a single term"=length(unlist(strsplit(modelterm, "\\:")))==1) 
-  }
   
   if (is.null(modelterm) || all(modelterm%in%c("NULL", ""))) {  
     modelterm <- covariate
   }
   
   mod_df <- semireg$data
+  if (!is.null(contr)) {
+    trans <- NULL
+    stopifnot("'modelterm' must be a single term"=length(unlist(strsplit(modelterm, "\\:")))==1) 
+    
+    if(length(contr) != 2){
+      stop("contr must be a character vector of length 2")
+    }
+    
+    if(is.character(contr)){
+      grp_fct <- mod_df[[modelterm]]
+      grp_fct_levl <- levels(grp_fct)
+      
+      i = match(contr, grp_fct_levl)
+      if(any(is.na(i))){
+        stop(paste("The entries", paste0(contr[is.na(i)], sep = ", "), "do not match any level in ", modelterm))
+      }else{
+        contr = i
+      }
+    }
+  }
   
   if (!is.null(covariateV)){
     if (length(covariate) > 1) {
@@ -191,6 +207,10 @@ semipred <- function(semireg, modelterm=NULL, covariate, sm_term=NULL, contr=NUL
   if (!is.null(attr(mod_df, paste(response, "mean", sep="_")))) {
     pred_df$LL <- pred_df$LL+attr(mod_df, paste(response, "mean", sep="_")) 
     pred_df$UL <- pred_df$UL+attr(mod_df, paste(response, "mean", sep="_")) 
+  }
+  
+  for (i in names(pred_df)){
+    if (is(pred_df[,i], "AsIs")) pred_df[,i] <- as.numeric(pred_df[,i])
   }
   
   if (setequal(modelterm, covariate)) {

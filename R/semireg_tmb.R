@@ -76,18 +76,7 @@ semireg_tmb <- function(formula, data, family = gaussian(), smoothZ = list(), zi
     beta <- fixef(semer)$cond
     n_beta <- length(beta)
     s <- sigma(semer) 
-    
-    cond_reTrms <- tmbf$condList$reTrms
-    n_diag <- sum(cond_reTrms$lower==0)
-    theta_ini <- getME(semer, "theta")
-    if (length(theta_ini)!=n_diag) {
-      theta <- cond_reTrms$lower
-      theta[theta==0] <- exp(theta_ini[1:n_diag])/s
-      theta[theta!=0] <- theta_ini[-1:-n_diag]/s
-    }else theta <- exp(theta_ini)/s
-    
-    Lambdat <- cond_reTrms$Lambdat
-    Lambdat@x <- theta[cond_reTrms$Lind]
+    Lambdat <- reTrms_tmb(semer)$Lambdat	
     b_cov_inv <- Matrix::tcrossprod(t(Lambdat)) 
     
     if (any(eigen(b_cov_inv)$values <= 0)) {
@@ -131,7 +120,16 @@ semireg_tmb <- function(formula, data, family = gaussian(), smoothZ = list(), zi
       CTC <- crossprod(C*wVec,C)
     }
     
-    fullCovMat <- Matrix::solve(CTC + D)
+   # fullCovMat <- Matrix::solve(CTC + D)
+	
+	AA <- CTC + D
+    if (any(eigen(AA)$values <= 0)) {
+      AAmatrixpd <- nearPD(AA, doSym =TRUE)$mat
+      AA <- AAmatrixpd@x
+      dim(AA) <- AAmatrixpd@Dim
+    }
+    fullCovMat <- Matrix::solve(AA)
+	
     # Compute the degrees of freedom  formula
     df <- sum(diag(fullCovMat%*%CTC)) 
     

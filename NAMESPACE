@@ -19,10 +19,11 @@ if (requireNamespace("plyr", quietly = TRUE)) {
 }
   import(parallel)
   import(lmeInfo)
-  import(lme4)
   import(glmmTMB)
   importFrom("plotly", "plot_ly", "add_trace")  
   importFrom("HRW", "pointsInPoly")
+  importFrom("lme4", "devfun2", "isLMM", "lmerControl", "mkGlmerDevfun", "mkLmerDevfun", "mkMerMod", "optimizeGlmer", "optimizeLmer", 
+             "updateGlmerDevfun", "vcov.merMod")
   importFrom("lmeSplines", "approx.Z", "smspline")
   importFrom("numDeriv", "hessian", "jacobian")
   importFrom("MASS", "theta.ml", "negative.binomial")
@@ -31,15 +32,16 @@ if (requireNamespace("plyr", quietly = TRUE)) {
   importFrom("splines2", "bernsteinPoly", "bSpline", "naturalSpline", "cSpline", "iSpline", "mSpline")
   importFrom("nlme", "getData", "intervals", "getResponse")
   importFrom("grDevices", "dev.new")
-  importFrom("Matrix", ".bdiag", "Diagonal", "forceSymmetric", "Matrix", "nearPD")
+  importFrom("Matrix", ".bdiag", "Diagonal", "forceSymmetric", "Matrix", "nearPD", "sparseMatrix")
   importFrom("graphics", "abline", "axis", "box", "identify", "image",
              "legend", "lines", "par", "plot", "points", "text", "title")
+  importFrom("reformulas", "findbars", "mkReTrms")
   importFrom("methods", "is", "slot", "as")
-  importFrom("stats", "anova", "as.formula", "coef", "complete.cases", "confint", "delete.response",
+  importFrom("stats", "anova", "as.formula", "aov", "coef", "complete.cases", "confint", "delete.response",
              "density", "dist", "family", "fitted", "formula", "ftable", "gaussian", "lm", "na.action",
              "lm.influence", "loess.smooth", "logLik", "make.link", "median", "model.response", 
              "model.frame", "model.matrix", "na.omit", "na.pass",
-             "p.adjust", "pf", "poisson", "ppoints", "predict", "pt", "ptukey",
+             "p.adjust", "pf", "pnorm", "poisson", "ppoints", "predict", "pt", "ptukey",
              "qnorm", "qqline", "qqnorm", "qt", "quantile", "resid", "residuals", "sd",
              "setNames", "sigma", "terms", "update", "vcov", "xtabs",
 			 "aggregate", "get_all_vars")

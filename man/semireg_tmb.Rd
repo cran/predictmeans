@@ -21,7 +21,7 @@ A two-sided linear formula object describing both the fixed-effects and random-e
 
 \item{data}{data frame (tibbles are OK) containing model variables. Not required, but strongly recommended; if \code{data} is not specified, downstream methods such as prediction with new data (\code{predict(fitted_model, newdata = ...)}) will fail. If it is necessary to call \code{glmmTMB} with model variables taken from the environment rather than from a data frame, specifying \code{data=NULL} will suppress the warning message.}
 
-\item{family}{a family function, a character string naming a family function, or the result of a call to a family function (variance/link function) information. See \code{\link{family}} for a generic discussion of families or \code{\link{family_glmmTMB}} for details of \code{glmmTMB}-specific families.}
+\item{family}{a family function, a character string naming a family function, or the result of a call to a family function (variance/link function) information. See \code{family} for a generic discussion of families or \code{family_glmmTMB} for details of \code{glmmTMB}-specific families.}
 
 \item{smoothZ}{
 A list includes a set of smooth Z matrixs (called 'smooth term') used in the mixed effects model, the name of 'smooth term' should be different any variables in the model, each 'smooth term' is the result of function \code{smZ}. e.g.
@@ -30,13 +30,13 @@ smoothZ=list(sm1=smZ(x1), sm2=smZ(x2, by=f1), sm3=smZ(x3, by=f2, group=TRUE), ..
 
 \item{ziformula}{a \emph{one-sided} (i.e., no response variable) formula for zero-inflation combining fixed and random effects: the default \code{~0} specifies no zero-inflation. Specifying \code{~.} sets the zero-inflation formula identical to the right-hand side of \code{formula} (i.e., the conditional effects formula); terms can also be added or subtracted. \strong{When using \code{~.} as the zero-inflation formula in models where the conditional effects formula contains an offset term, the offset term will automatically be dropped}. The zero-inflation model uses a logit link.}
 
-\item{dispformula}{a \emph{one-sided} formula for dispersion containing only fixed effects: the default \code{~1} specifies the standard dispersion given any family. The argument is ignored for families that do not have a dispersion parameter. For an explanation of the dispersion parameter for each family, see \code{\link{sigma}}. The dispersion model uses a log link. In Gaussian mixed models, \code{dispformula=~0} fixes the residual variance to be 0 (actually a small non-zero value), forcing variance into the random effects. The precise value can be controlled via \code{control=glmmTMBControl(zero_dispval=...)}; the default value is \code{sqrt(.Machine$double.eps)}.}
+\item{dispformula}{a \emph{one-sided} formula for dispersion containing only fixed effects: the default \code{~1} specifies the standard dispersion given any family. The argument is ignored for families that do not have a dispersion parameter. For an explanation of the dispersion parameter for each family, see \code{sigma}. The dispersion model uses a log link. In Gaussian mixed models, \code{dispformula=~0} fixes the residual variance to be 0 (actually a small non-zero value), forcing variance into the random effects. The precise value can be controlled via \code{control=glmmTMBControl(zero_dispval=...)}; the default value is \code{sqrt(.Machine$double.eps)}.}
 
 \item{weights}{weights, as in \code{glm}. Not automatically scaled to have sum 1.}
 
 \item{offset}{offset for conditional model (only).}
 
-\item{contrasts}{an optional list, e.g., \code{list(fac1="contr.sum")}. See the \code{contrasts.arg} of \code{\link{model.matrix.default}}.}
+\item{contrasts}{an optional list, e.g., \code{list(fac1="contr.sum")}. See the \code{contrasts.arg} of \code{model.matrix.default}.}
 
 \item{na.action}{a function that specifies how to handle observations
 containing \code{NA}s.  The default action (\code{na.omit},
@@ -54,13 +54,13 @@ because of missingness.}
 
 \item{doFit}{whether to fit the full model, or (if FALSE) return the preprocessed data and parameter objects, without fitting the model.}
 
-\item{control}{control parameters, see \code{\link{glmmTMBControl}}.}
+\item{control}{control parameters, see \code{glmmTMBControl}.}
 
 \item{REML}{whether to use REML estimation rather than maximum likelihood.}
 
 \item{start}{starting values, expressed as a list with possible components \code{beta}, \code{betazi}, \code{betad} (fixed-effect parameters for conditional, zero-inflation, dispersion models); \code{b}, \code{bzi} (conditional modes for conditional and zero-inflation models); \code{theta}, \code{thetazi} (random-effect parameters, on the standard deviation/Cholesky scale, for conditional and z-i models); \code{psi} (extra family parameters, e.g., shape for Tweedie models).}
 
-\item{map}{a list specifying which parameter values should be fixed to a constant value rather than estimated. \code{map} should be a named list containing factors corresponding to a subset of the internal parameter names (see \code{start} parameter). Distinct factor values are fitted as separate parameter values, \code{NA} values are held fixed: e.g., \code{map=list(beta=factor(c(1,2,3,NA)))} would fit the first three fixed-effect parameters of the conditional model and fix the fourth parameter to its starting value. In general, users will probably want to use \code{start} to specify non-default starting values for fixed parameters. See \code{\link[TMB]{MakeADFun}} for more details.}
+\item{map}{a list specifying which parameter values should be fixed to a constant value rather than estimated. \code{map} should be a named list containing factors corresponding to a subset of the internal parameter names (see \code{start} parameter). Distinct factor values are fitted as separate parameter values, \code{NA} values are held fixed: e.g., \code{map=list(beta=factor(c(1,2,3,NA)))} would fit the first three fixed-effect parameters of the conditional model and fix the fourth parameter to its starting value. In general, users will probably want to use \code{start} to specify non-default starting values for fixed parameters. See \code{MakeADFun} for more details.}
 
 \item{sparseX}{a named logical vector containing (possibly) elements named "cond", "zi", "disp" to indicate whether fixed-effect model matrices for particular model components should be generated as sparse matrices, e.g. \code{c(cond=TRUE)}. Default is all \code{FALSE}}
 
@@ -103,24 +103,24 @@ Wand, M.P. and Ormerod, J.T. (2008). On semiparametric regression with O'Sulliva
 }
 
 \examples{
-## Not run
+## NOT RUN
 # library(predictmeans)
 # library(HRW) 
 # data(WarsawApts)
 # help(WarsawApts)
 # str(WarsawApts)
 # fit1 <- semireg_tmb(areaPerMzloty ~ construction.date,
-#                smoothZ=list(
-#                  grp=smZ(construction.date, k=25)
-#                ),
-#                data = WarsawApts)
+#                     smoothZ=list(
+#                       grp=smZ(construction.date, k=25)
+#                     ),
+#                     data = WarsawApts)
 # sp_out1 <- semipred(fit1, "construction.date", "construction.date")
 # 
 # WarsawApts$district <- factor(WarsawApts$district)
 # fit2 <- semireg_tmb(areaPerMzloty ~ construction.date*district, resp_scale = TRUE,
-#                 smoothZ=list(group=smZ(construction.date, k=15,
-#                                        by = district, group=TRUE)), 
-#                 data=WarsawApts)
+#                     smoothZ=list(group=smZ(construction.date, k=15,
+#                                            by = district, group=TRUE)), 
+#                     data=WarsawApts)
 # sp_out2_1 <- semipred(fit2, "district", "construction.date")
 # sp_out2_2 <- semipred(fit2, "district", "construction.date", contr=c(2,1))
 # 
@@ -128,16 +128,16 @@ Wand, M.P. and Ormerod, J.T. (2008). On semiparametric regression with O'Sulliva
 # help(indonRespir)
 # str(indonRespir)
 # fit3 <- semireg_tmb(respirInfec ~ age+vitAdefic + female + height
-#                + stunted + visit2 + visit3 + visit4  + visit5 + visit6+(1|idnum),
-#                smoothZ=list(
-#                  grp=smZ(age)
-#                ),
-#                family = binomial,
-#                data = indonRespir)
+#                     + stunted + visit2 + visit3 + visit4  + visit5 + visit6+(1|idnum),
+#                     smoothZ=list(
+#                       grp=smZ(age)
+#                     ),
+#                     family = binomial,
+#                     data = indonRespir)
 # sp_out3 <- semipred(fit3, "age", "age")
 # library(ggplot2)
 # sp_out3$plt+
 #   geom_rug(data = subset(indonRespir, respirInfec==0), sides = "b", col="deeppink") +
 #   geom_rug(data = subset(indonRespir, respirInfec==1), sides = "t", col="deeppink")+
-#   ylim(0, 0.2)                     
+#   ylim(0, 0.2)  
 }
