@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Dongwen Luo" />
+
+
+<title>Adjusted R² for generalized linear mixed models</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Adjusted R² for generalized linear mixed
+models</h1>
+<h4 class="author">Dongwen Luo</h4>
+
+
+
+<p><code>R2_model()</code> computes an adjusted coefficient of
+determination (R²) for linear and generalized linear mixed models with
+Piepho’s (2023) method (<code>R2_glmm()</code> before 2.0, which printed
+the same values as percentages). It works for <code>lmer</code>,
+<code>glmer</code> and <code>glmmTMB</code> fits and picks the residual
+(distribution-specific) variance for the model’s family and link
+automatically.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(predictmeans)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">args</span>(R2_model)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; function (model, method = c(&quot;piepho&quot;, &quot;nakagawa&quot;), over_disp = FALSE) </span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; NULL</span></span></code></pre></div>
+<p>With <code>over_disp = TRUE</code>, an observation-level random
+effect (one level per observation) is treated as overdispersion and
+counted as residual variance.</p>
+<div id="example-1-body-length-linear-mixed-model" class="section level2">
+<h2>Example 1: body length (linear mixed model)</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">data</span>(Body_length)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">str</span>(Body_length)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &#39;data.frame&#39;:    960 obs. of  6 variables:</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;  $ Population: Factor w/ 12 levels &quot;1&quot;,&quot;10&quot;,&quot;11&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;  $ Container : Factor w/ 120 levels &quot;1&quot;,&quot;10&quot;,&quot;100&quot;,..: 1 1 1 1 1 1 1 1 33 33 ...</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;  $ Sex       : Factor w/ 2 levels &quot;Female&quot;,&quot;Male&quot;: 1 1 1 1 1 1 1 1 2 2 ...</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;  $ Habitat   : Factor w/ 2 levels &quot;A&quot;,&quot;B&quot;: 1 1 1 1 2 2 2 2 1 1 ...</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;  $ Treatment : Factor w/ 2 levels &quot;Cont&quot;,&quot;Exp&quot;: 1 2 1 2 1 2 1 2 1 2 ...</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;  $ BodyL     : num  10.8 11.2 11.6 15.6 12.4 ...</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>mod_BodyL <span class="ot">&lt;-</span> <span class="fu">lmer</span>(BodyL <span class="sc">~</span> Treatment <span class="sc">+</span> Habitat <span class="sc">+</span> Sex <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>Population<span class="sc">/</span>Container),</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>                  <span class="at">data =</span> Body_length)</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="fu">R2_model</span>(mod_BodyL)</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt;                Total                Fixed               Random </span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt;               73.39%               40.09%               33.30% </span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; Container:Population           Population </span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt;                5.18%               28.13%</span></span></code></pre></div>
+</div>
+<div id="example-2-egg-counts-poisson-glmm-with-overdispersion" class="section level2">
+<h2>Example 2: egg counts (Poisson GLMM with overdispersion)</h2>
+<p>Each female has her own level of <code>individual</code> within
+<code>Container</code> and <code>Population</code>, so the innermost
+random effect is observation-level and models overdispersion.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">data</span>(Poisson_ind)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>mod_poisson <span class="ot">&lt;-</span> <span class="fu">glmer</span>(Egg <span class="sc">~</span> Treatment <span class="sc">+</span> Habitat <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>Population<span class="sc">/</span>Container<span class="sc">/</span>individual),</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                     <span class="at">family =</span> <span class="st">&quot;poisson&quot;</span>, <span class="at">data =</span> Poisson_ind)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">R2_model</span>(mod_poisson, <span class="at">over_disp =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;  Total  Fixed Random </span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 50.93%  9.13% 41.79% </span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span></code></pre></div>
+</div>
+<div id="example-3-clinical-trial-binomial-glmm-three-links" class="section level2">
+<h2>Example 3: clinical trial (binomial GLMM, three links)</h2>
+<p>The <code>Clinical</code> data (Beitler &amp; Landis 1985) give the
+number of favourable responses out of the patients in each treatment
+group at each of eight clinics.</p>
+<div id="clinic-level-data" class="section level3">
+<h3>Clinic-level data</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">data</span>(Clinical)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>Clinical<span class="sc">$</span>Unfavorable <span class="ot">&lt;-</span> Clinical<span class="sc">$</span>Total <span class="sc">-</span> Clinical<span class="sc">$</span>Favorable</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>fit_grp <span class="ot">&lt;-</span> <span class="cf">function</span>(link)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="fu">glmer</span>(<span class="fu">cbind</span>(Favorable, Unfavorable) <span class="sc">~</span> Treatment <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>Clinic<span class="sc">/</span>Treatment),</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>        <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> link), <span class="at">data =</span> Clinical)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="fu">R2_model</span>(<span class="fu">fit_grp</span>(<span class="st">&quot;logit&quot;</span>))</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;            Total            Fixed           Random Treatment:Clinic </span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;           75.73%            4.69%           71.04%            0.23% </span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;           Clinic </span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;           70.81% </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="fu">R2_model</span>(<span class="fu">fit_grp</span>(<span class="st">&quot;probit&quot;</span>))</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt;            Total            Fixed           Random Treatment:Clinic </span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt;           77.90%            5.00%           72.90%            0.05% </span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;           Clinic </span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt;           72.84% </span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="fu">R2_model</span>(<span class="fu">fit_grp</span>(<span class="st">&quot;cloglog&quot;</span>))</span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a><span class="co">#&gt;            Total            Fixed           Random Treatment:Clinic </span></span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a><span class="co">#&gt;           72.63%            3.54%           69.09%            0.00% </span></span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a><span class="co">#&gt;           Clinic </span></span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a><span class="co">#&gt;           69.09% </span></span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a><span class="co">#&gt; ! The fit is singular: a variance estimated as zero gives no share to its</span></span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a><span class="co">#&gt;   random effect, so the random part of R2 may be understated. Consider</span></span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a><span class="co">#&gt;   simplifying the random effects.</span></span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span></code></pre></div>
+</div>
+<div id="patient-level-binary-data" class="section level3">
+<h3>Patient-level (binary) data</h3>
+<p>The same data with one row per patient give the same fixed effects,
+but the residual variance is now that of a Bernoulli outcome.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>idx <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(Clinical)), Clinical<span class="sc">$</span>Total)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>Clinical_N <span class="ot">&lt;-</span> Clinical[idx, <span class="fu">c</span>(<span class="st">&quot;Clinic&quot;</span>, <span class="st">&quot;Treatment&quot;</span>)]</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>Clinical_N<span class="sc">$</span>favour <span class="ot">&lt;-</span> <span class="fu">unlist</span>(<span class="fu">lapply</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(Clinical)), <span class="cf">function</span>(i)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">rep</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">0</span>), <span class="fu">c</span>(Clinical<span class="sc">$</span>Favorable[i], Clinical<span class="sc">$</span>Unfavorable[i]))))</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">str</span>(Clinical_N)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; &#39;data.frame&#39;:    273 obs. of  3 variables:</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;  $ Clinic   : Factor w/ 8 levels &quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;  $ Treatment: Factor w/ 2 levels &quot;control&quot;,&quot;drug&quot;: 2 2 2 2 2 2 2 2 2 2 ...</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;  $ favour   : num  1 1 1 1 1 1 1 1 1 1 ...</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>fit_pat <span class="ot">&lt;-</span> <span class="cf">function</span>(link)</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="fu">glmer</span>(favour <span class="sc">~</span> Treatment <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>Clinic<span class="sc">/</span>Treatment),</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>        <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> link), <span class="at">data =</span> Clinical_N)</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="fu">R2_model</span>(<span class="fu">fit_pat</span>(<span class="st">&quot;logit&quot;</span>))</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt;            Total            Fixed           Random Treatment:Clinic </span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt;           34.57%            2.23%           32.35%            0.11% </span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt;           Clinic </span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#&gt;           32.24% </span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a><span class="fu">R2_model</span>(<span class="fu">fit_pat</span>(<span class="st">&quot;probit&quot;</span>))</span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="co">#&gt;            Total            Fixed           Random Treatment:Clinic </span></span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a><span class="co">#&gt;           37.48%            2.50%           34.97%            0.03% </span></span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a><span class="co">#&gt;           Clinic </span></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a><span class="co">#&gt;           34.95% </span></span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a><span class="fu">R2_model</span>(<span class="fu">fit_pat</span>(<span class="st">&quot;cloglog&quot;</span>))</span>
+<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a><span class="co">#&gt;            Total            Fixed           Random Treatment:Clinic </span></span>
+<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a><span class="co">#&gt;           37.65%            1.91%           35.74%            0.00% </span></span>
+<span id="cb5-39"><a href="#cb5-39" tabindex="-1"></a><span class="co">#&gt;           Clinic </span></span>
+<span id="cb5-40"><a href="#cb5-40" tabindex="-1"></a><span class="co">#&gt;           35.74% </span></span>
+<span id="cb5-41"><a href="#cb5-41" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-42"><a href="#cb5-42" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb5-43"><a href="#cb5-43" tabindex="-1"></a><span class="co">#&gt; ! The fit is singular: a variance estimated as zero gives no share to its</span></span>
+<span id="cb5-44"><a href="#cb5-44" tabindex="-1"></a><span class="co">#&gt;   random effect, so the random part of R2 may be understated. Consider</span></span>
+<span id="cb5-45"><a href="#cb5-45" tabindex="-1"></a><span class="co">#&gt;   simplifying the random effects.</span></span>
+<span id="cb5-46"><a href="#cb5-46" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb5-47"><a href="#cb5-47" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb5-48"><a href="#cb5-48" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span></code></pre></div>
+</div>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Piepho, H.-P. (2023). An adjusted coefficient of determination (R²)
+for generalized linear mixed models in one go. <em>Biometrical
+Journal</em>, 65(7), e2200290. <a href="https://doi.org/10.1002/bimj.202200290" class="uri">https://doi.org/10.1002/bimj.202200290</a></p>
+<p>Nakagawa, S. and Schielzeth, H. (2013). A general and simple method
+for obtaining R² from generalized linear mixed-effects models.
+<em>Methods in Ecology and Evolution</em>, 4, 133–142.</p>
+<p>Beitler, P. J. and Landis, J. R. (1985). A mixed-effects model for
+categorical data. <em>Biometrics</em>, 41, 991–1000.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

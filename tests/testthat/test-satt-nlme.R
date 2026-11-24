@@ -1,0 +1,124 @@
+## Satterthwaite df for gls and lme models (R/satt-nlme.R); reference values
+## from the SAS run of dev/sas/pm-reference.sas (DDFM=SATTERTHWAITE)
+
+rep_data <- function() {
+  y <- c(20.1, 24.5, 28.2, 18.4, 22.0, 25.9, 22.3, 26.1, 30.4, 19.0, 23.4, 27.1, 21.5, 25.0, 29.0, 17.8, 21.2, 24.8,
+         19.5, 21.0, 22.4, 21.0, 22.8, 23.9, 18.2, 19.5, 20.8, 20.4, 21.9, 23.1, 22.1, 23.5, 24.6, 19.0, 20.1, 21.5)
+  d <- data.frame(Subj = factor(rep(1:12, each = 3)), Group = factor(rep(c("TrtA", "TrtB"), each = 18)),
+                  Time = factor(rep(1:3, 12)), Y = y)
+  set.seed(1)
+  d[sample(nrow(d)), ]                       # rows not sorted by subject: tests the ordering
+}
+
+test_that("gls with an unstructured covariance: Satterthwaite df equal SAS", {
+  r <- rep_data()
+  g <- nlme::gls(Y ~ Group * Time, data = r, correlation = nlme::corSymm(form = ~ as.integer(Time) | Subj),
+                 weights = nlme::varIdent(form = ~ 1 | Time))
+  pm <- predictmeans(g, "Group:Time", df_method = "Satterthwaite", plot = FALSE)
+  expect_equal(pm$means$df, rep(10, 6), tolerance = 1e-3)
+  expect_identical(pm$settings$df_method, "Satterthwaite")
+  # pairs: SAS 10 or 10.1 / 10.2 (printed to one decimal)
+  expect_true(all(pm$pairs$df > 9.99 & pm$pairs$df < 10.25))
+  expect_equal(sort(round(pm$pairs$df, 1)), sort(c(rep(10, 9), 10.1, 10.1, rep(10.2, 4))))
+  jt <- pm_joint(g, "Time", df_method = "Satterthwaite")
+  expect_equal(c(jt$df2, jt$F.ratio), c(10, 1795.59), tolerance = 1e-4)
+  expect_identical(attr(jt, "df_method"), "Satterthwaite")
+  ct <- contrastmeans(g, "Time", ctrmatrix = rbind(c(-1, 1, 0)), df_method = "Satterthwaite")[[1]]
+  expect_equal(unname(ct[, "df"]), 10, tolerance = 1e-3)
+  expect_error(pm_vcov_kr_nlme(update(g, method = "ML")), "REML")
+})
+
+test_that("ML fits of lme and gls: Satterthwaite from the ML log-likelihood, as ML lmer (lmerTest)", {
+  skip_on_cran()
+  o <- as.data.frame(nlme::Oats)
+  o$nitro <- factor(o$nitro)
+  o$Variety <- factor(o$Variety, ordered = FALSE)
+  od <- droplevels(o[!(o$Block == "I" & o$Variety == "Golden Rain"), ])[-c(5, 17, 30), ]
+  e <- nlme::lme(yield ~ Variety * nitro, random = ~ 1 | Block/Variety, data = od, method = "ML")
+  f <- lme4::lmer(yield ~ Variety * nitro + (1 | Block/Variety), data = od, REML = FALSE)
+  expect_message(pe <- predictmeans(e, "Variety", plot = FALSE), "ML: using Satterthwaite")
+  pf <- suppressMessages(predictmeans(f, "Variety", plot = FALSE))
+  expect_identical(pe$settings$df_method, "Satterthwaite")
+  expect_equal(pe$pairs$df, pf$pairs$df, tolerance = 1e-4)          # the two optimisers differ slightly
+  expect_equal(suppressMessages(pm_joint(e, "Variety"))$df2, suppressMessages(pm_joint(f, "Variety"))$df2,
+               tolerance = 1e-4)
+  # Kenward-Roger needs REML: Satterthwaite, with a warning (as for lmer)
+  r <- rep_data()
+  g <- nlme::gls(Y ~ Group * Time, data = r, method = "ML", correlation = nlme::corSymm(form = ~ as.integer(Time) | Subj),
+                 weights = nlme::varIdent(form = ~ 1 | Time))
+  expect_warning(pk <- predictmeans(g, "Time", df_method = "Kenward-Roger", plot = FALSE), "REML")
+  expect_identical(pk$settings$df_method, "Satterthwaite")
+  # nlme's or the residual df stay available
+  pc <- predictmeans(g, "Time", df_method = "containment", plot = FALSE)
+  expect_equal(unique(pc$pairs$df), 30)
+})
+
+test_that("Kenward-Roger for gls and lme: SAS DDFM=KR F tests, and lme equals lmer", {
+  skip_on_cran()
+  r <- rep_data()
+  g <- nlme::gls(Y ~ Group * Time, data = r, correlation = nlme::corSymm(form = ~ as.integer(Time) | Subj),
+                 weights = nlme::varIdent(form = ~ 1 | Time))
+  for (dm in c("KR-expected", "Kenward-Roger")) {
+    pk <- predictmeans(g, "Group:Time", df_method = dm, plot = FALSE)
+    expect_equal(pk$means$df, rep(10, 6), tolerance = 1e-3)
+    expect_equal(sort(round(pk$pairs$df, 1)), sort(c(rep(10, 9), 10.1, 10.1, rep(10.2, 4))))
+    jt <- rbind(pm_joint(g, "Group", df_method = dm), pm_joint(g, "Time", df_method = dm),
+                pm_joint(g, "Group:Time", ctrmatrix = t(kronecker(contr.helmert(2), contr.helmert(3))), df_method = dm))
+    expect_equal(jt$F.ratio, c(5.55, 1616.03, 395.30), tolerance = 1e-3)     # SAS DDFM=KR
+    expect_equal(jt$df2, c(10, 9, 9), tolerance = 1e-3)
+  }
+  expect_equal(pk$settings$df_method, "Kenward-Roger")
+  # lme with random effects only: the same as lmer's Kenward-Roger
+  d <- as.data.frame(nlme::Oats); d$nitro <- factor(d$nitro)
+  d <- droplevels(subset(d, !(Block == "II" & Variety == "Victory" & nitro == "0.6")))
+  l <- nlme::lme(yield ~ Variety * nitro, random = ~ 1 | Block/Variety, data = d)
+  m <- lme4::lmer(yield ~ Variety * nitro + (1 | Block/Variety), data = d)
+  expect_equal(unclass(pm_vcov_kr_nlme(l))[, ], unclass(pm_vcov_kr(m))[, ], tolerance = 1e-5, ignore_attr = TRUE)
+  pl <- predictmeans(l, "Variety", df_method = "Kenward-Roger", plot = FALSE)
+  pr <- predictmeans(m, "Variety", df_method = "Kenward-Roger", plot = FALSE)
+  expect_equal(pl$pairs[, c("std.error", "df")], pr$pairs[, c("std.error", "df")], tolerance = 1e-5)
+  expect_equal(pl$pairs$df, c(9.79, 9.97, 9.97), tolerance = 2e-3)                 # SAS DDFM=KR
+})
+
+test_that("lme: Satterthwaite df equal lmer's (and SAS's) for the split plot with a plot missing", {
+  d <- as.data.frame(nlme::Oats); d$nitro <- factor(d$nitro)
+  d <- droplevels(subset(d, !(Block == "II" & Variety == "Victory" & nitro == "0.6")))
+  l <- nlme::lme(yield ~ Variety * nitro, random = ~ 1 | Block/Variety, data = d)
+  m <- lme4::lmer(yield ~ Variety * nitro + (1 | Block/Variety), data = d)
+  pl <- predictmeans(l, "Variety:nitro", df_method = "Satterthwaite", plot = FALSE)
+  pr <- predictmeans(m, "Variety:nitro", df_method = "Satterthwaite", plot = FALSE)
+  expect_equal(pl$pairs$df, pr$pairs$df, tolerance = 1e-3)
+  expect_equal(range(pl$pairs$df), c(31.3, 44.7), tolerance = 2e-3)        # SAS 31.3 ... 44.7
+  # with a within-subject correlation and unequal variances: the rebuilt covariance is checked inside
+  r <- rep_data()
+  la <- nlme::lme(Y ~ Group * Time, random = ~ 1 | Subj, data = r,
+                  correlation = nlme::corAR1(form = ~ as.integer(Time) | Subj),
+                  weights = nlme::varIdent(form = ~ 1 | Time))
+  P <- pm_satt_parts_nlme(la)
+  expect_s3_class(P, "pm_satt")
+  df <- pm_satt_ddf(diag(6)[2, , drop = FALSE], P)
+  expect_true(is.finite(df) && df > 0)
+})
+
+test_that("the observed information from its formula equals the Hessian of the log-likelihood", {
+  skip_on_cran()
+  # pm_nlme_info(): T/2 - expected + 2 average, the second derivatives of the
+  # covariance from its pieces only; against numDeriv's Hessian of -2 logLik
+  r <- rep_data()
+  r$tn <- as.numeric(r$Time)
+  fits <- list(
+    nlme::gls(Y ~ Group * Time, data = r, correlation = nlme::corSymm(form = ~ as.integer(Time) | Subj),
+              weights = nlme::varIdent(form = ~ 1 | Time)),
+    nlme::gls(Y ~ Group * Time, data = r, correlation = nlme::corAR1(form = ~ as.integer(Time) | Subj),
+              weights = nlme::varPower(form = ~ tn)),
+    nlme::gls(Y ~ Group * Time, data = r, correlation = nlme::corCompSymm(form = ~ 1 | Subj), method = "ML"),
+    nlme::lme(distance ~ age * Sex, random = ~ age | Subject, data = nlme::Orthodont,
+              correlation = nlme::corAR1(), weights = nlme::varIdent(form = ~ 1 | Sex)),
+    nlme::lme(yield ~ nitro, random = ~ 1 | Block/Variety, data = nlme::Oats, method = "ML"))
+  for (m in fits) {
+    R <- pm_nlme_reml(m)
+    I <- pm_nlme_info(R, pm_nlme_parts(R), "observed", reml = !R$ml)
+    H <- numDeriv::hessian(R$reml2, R$th0)
+    expect_equal(I, H / 2, tolerance = 1e-6)
+  }
+})

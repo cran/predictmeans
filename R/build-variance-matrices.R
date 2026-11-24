@@ -2,13 +2,19 @@
 get_cor_grouping <- function(mod, levels = NULL) {
   if (!is.null(mod$groups)) {
     struct <- mod$modelStruct$corStruct
-    if (is.null(struct)) struct <- mod
+    if (is.null(struct)) {
+      struct <- mod
+    }
     mod_formula <- nlme::getGroupsFormula(struct)
-    dat <- nlme::getData(mod)
-    if (inherits(na.action(mod), "exclude")) dat <- dat[-as.integer(na.action(mod)),,drop=FALSE]
+    dat <- pm_get_data(mod)
+    if (inherits(na.action(mod), "exclude")) {
+      dat <- dat[-as.integer(na.action(mod)),,drop=FALSE]
+    }
     grps <- stats::model.frame(mod_formula, data = dat)
     grps <- apply(grps, 1, paste, collapse = "/")
-    if (is.null(levels)) levels <- unique(grps)
+    if (is.null(levels)) {
+      levels <- unique(grps)
+    }
     grps <- factor(grps, levels = levels)
   } else if (!is.null(mod$modelStruct$corStruct)) {
     grps <- factor(rep("A",mod$dims$N))
@@ -28,7 +34,9 @@ build_corr_mats <- function(mod) {
   } else {
     R_list <- nlme::corMatrix(mod$modelStruct$corStruct)
     grps <- get_cor_grouping(mod, levels = names(R_list))
-    if (!is.list(R_list)) R_list <- list(A = R_list)
+    if (!is.list(R_list)) {
+      R_list <- list(A = R_list)
+    }
     attr(R_list, "groups") <- grps
     return(R_list)
   }
@@ -49,7 +57,11 @@ get_sort_order <- function(mod) {
 
 build_var_cor_mats <- function(mod, R_list = build_corr_mats(mod), sigma_scale = FALSE) {
 
-  sigma <- if (sigma_scale) mod$sigma else 1
+  sigma <- if (sigma_scale) {
+    mod$sigma
+  } else {
+    1
+  }
 
   if (is.null(R_list)) {
 
@@ -60,11 +72,12 @@ build_var_cor_mats <- function(mod, R_list = build_corr_mats(mod), sigma_scale =
 
       # if there are no groups then make diagonal matrix-lists
 
+      # one 1 x 1 block per observation
       if (is.null(mod$modelStruct$varStruct)) {
-        V_list <- as.list(rep(sigma^2, mod$dims$N))
+        V_list <- lapply(rep(sigma^2, mod$dims$N), function(v) matrix(v, 1, 1))
       } else {
         sd_vec <- sigma / as.numeric(nlme::varWeights(mod$modelStruct$varStruct))
-        V_list <- as.list(sd_vec^2)
+        V_list <- lapply(sd_vec^2, function(v) matrix(v, 1, 1))
       }
       grps <- factor(1:mod$dims$N)
       attr(V_list, "groups") <- grps
@@ -91,7 +104,11 @@ build_var_cor_mats <- function(mod, R_list = build_corr_mats(mod), sigma_scale =
     # build block-diagonals according to its grouping structure
 
     if (is.null(mod$modelStruct$varStruct)) {
-      V_list <- if (sigma_scale) lapply(R_list, function(x) x * mod$sigma^2) else R_list
+      V_list <- if (sigma_scale) {
+        lapply(R_list, function(x) x * mod$sigma^2)
+      } else {
+        R_list
+      }
     } else {
       sort_order <- get_sort_order(mod)
       sd_vec <- sigma / as.numeric(nlme::varWeights(mod$modelStruct$varStruct))[sort_order]
@@ -121,9 +138,11 @@ build_RE_mats <- function(mod, sigma_scale = FALSE) {
   if (length(all_groups) == 1) {
 
     D_mat <- as.matrix(mod$modelStruct$reStruct[[1]])
-    if (sigma_scale) D_mat <- mod$sigma^2 * D_mat
-    data <- nlme::getData(mod)
-    Z_mat <- model.matrix(mod$modelStruct$reStruc, data[complete.cases(data), ])
+    if (sigma_scale) {
+      D_mat <- mod$sigma^2 * D_mat
+    }
+    data <- pm_get_data(mod)
+    Z_mat <- model.matrix(mod$modelStruct$reStruct, data[complete.cases(data), ])
     row.names(Z_mat) <- NULL
     Z_list <- matrix_list(Z_mat, all_groups[[1]], "row")
     ZDZ_list <- ZDZt(D_mat, Z_list)
@@ -136,8 +155,8 @@ build_RE_mats <- function(mod, sigma_scale = FALSE) {
     } else {
       D_list <- lapply(mod$modelStruct$reStruct, as.matrix)
     }
-    data <- nlme::getData(mod)
-    Z_mat <- model.matrix(mod$modelStruct$reStruc, data[complete.cases(data), ])
+    data <- pm_get_data(mod)
+    Z_mat <- model.matrix(mod$modelStruct$reStruct, data[complete.cases(data), ])
     Z_names <- sapply(strsplit(colnames(Z_mat), ".", fixed=TRUE), function(x) x[1])
     row.names(Z_mat) <- NULL
     Z_levels <- lapply(names(all_groups), function(x) Z_mat[,x==Z_names,drop=FALSE])
@@ -163,11 +182,13 @@ build_RE_mats <- function(mod, sigma_scale = FALSE) {
 
 build_Sigma_mats <- function(mod, invert = FALSE, sigma_scale = FALSE) UseMethod("build_Sigma_mats")
 
+#' @exportS3Method NULL
 build_Sigma_mats.default <- function(mod, invert = FALSE, sigma_scale = FALSE) {
   mod_class <- paste(class(mod), collapse = "-")
   stop(paste0("Sigma matrices not available for models of class ", mod_class, "."))
 }
 
+#' @exportS3Method NULL
 build_Sigma_mats.gls <- function(mod, invert = FALSE, sigma_scale = FALSE) {
 
   # lowest-level covariance structure
@@ -183,9 +204,12 @@ build_Sigma_mats.gls <- function(mod, invert = FALSE, sigma_scale = FALSE) {
   return(V_list)
 }
 
+#' @exportS3Method NULL
 build_Sigma_mats.lme <- function(mod, invert = FALSE, sigma_scale = FALSE) {
 
-  if (inherits(mod, "nlme")) stop("not implemented for \"nlme\" objects")
+  if (inherits(mod, "nlme")) {
+    stop("not implemented for \"nlme\" objects")
+  }
 
   # lowest-level covariance structure
   V_list <- build_var_cor_mats(mod, sigma_scale = sigma_scale)
@@ -204,10 +228,14 @@ build_Sigma_mats.lme <- function(mod, invert = FALSE, sigma_scale = FALSE) {
     Sigma_list <- add_bdiag(V_list, ZDZ_list, data.frame(V_grps, ZDZ_grps))
     Sigma_grps <- attr(ZDZ_list, "groups")
   } else {
-    V_mat <- unblock(V_list, block = V_grps)
-    ZDZ_mat <- unblock(ZDZ_list, block = ZDZ_grps)
-    Sigma_list <- V_mat + ZDZ_mat
-    Sigma_grps <- factor(rep("A", nrow(Sigma_list)))
+    # crossed groupings: V + ZDZ' in the data's order, built sparse, then split
+    # into its connected blocks (often far smaller than n x n)
+    n <- length(V_grps)
+    pos <- function(grps) split(seq_len(n), grps)
+    S <- pm_place_blocks(V_list, pos(V_grps), n) + pm_place_blocks(ZDZ_list, pos(ZDZ_grps), n)
+    comp <- pm_sparse_components(S)
+    Sigma_list <- lapply(split(seq_len(n), comp), function(i) as.matrix(S[i, i, drop = FALSE]))
+    Sigma_grps <- factor(comp)
   }
 
   if (invert) {

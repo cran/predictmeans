@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Migrating from predictmeans 1.x</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Migrating from predictmeans 1.x</h1>
+
+
+
+<p>predictmeans 2.0 removes options that did the same thing under two
+names, the printing and plot settings in the calls of the analysis
+functions, five functions, and the 1.x smooth interface
+(<code>smZ()</code>, <code>smoothZ</code>). The means functions share
+one vocabulary: <code>conf_level</code>, <code>df_method</code>,
+<code>at</code>, <code>weights</code>, <code>vcov</code>,
+<code>plot</code>.</p>
+<p><strong>To update a 1.1.1 script, run it.</strong> A removed argument
+or function stops with its 2.0 spelling, the value you gave filled
+in:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(predictmeans)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>Oats <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(nlme<span class="sc">::</span>Oats)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>Oats<span class="sc">$</span>nitro <span class="ot">&lt;-</span> <span class="fu">factor</span>(Oats<span class="sc">$</span>nitro)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>fm <span class="ot">&lt;-</span> <span class="fu">lmer</span>(yield <span class="sc">~</span> nitro <span class="sc">*</span> Variety <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Block<span class="sc">/</span>Variety), <span class="at">data =</span> Oats)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">try</span>(<span class="fu">predictmeans</span>(fm, <span class="st">&quot;nitro&quot;</span>, <span class="at">level =</span> <span class="fl">0.1</span>, <span class="at">Df =</span> <span class="dv">30</span>))</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; Error : predictmeans(): &#39;level&#39; was removed in predictmeans 2.0: use conf_level = 0.9.</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;   &#39;Df&#39; was removed in predictmeans 2.0: use df_method = 30.</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt; See vignette(&quot;migrating&quot;) for every change from 1.1.1.</span></span></code></pre></div>
+<p>Nothing is silently ignored. A rewritten call gives the same numbers
+as 1.1.1, apart from the changes listed under <a href="#defaults-that-change">Defaults that change</a> and <a href="#results-that-change">Results that change</a>. The package sources
+check this for every rewrite (<code>dev/snapshot-*.R</code>,
+<code>dev/check-smz-migration.R</code>).</p>
+<style>
+.pm-cols { display: flex; flex-wrap: wrap; gap: 0 1em; margin-bottom: 0.4em; }
+.pm-cols > div { flex: 1 1 18em; min-width: 0; }
+.pm-cols pre, .pm-cols pre code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pm-cols pre { margin-top: 0.1em; }
+.pm-cols p { margin: 0.6em 0 0; font-size: 0.85em; color: #666; }
+table { display: block; max-width: 100%; overflow-x: auto; }
+</style>
+<div id="code-side-by-side" class="section level2">
+<h2>Code side by side</h2>
+<p>The models: <code>fm</code> above; <code>fm0</code>, the same model
+without the interaction; <code>fmc</code>, with <code>nitro</code> as a
+covariate; <code>fs</code>, a smooth model; <code>fit</code> stands for
+any model. Every 2.0 line below is run by
+<code>dev/check-migrating.R</code> in the package sources, and every
+1.1.1 line checked to stop with the 2.0 spelling.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>fm0 <span class="ot">&lt;-</span> <span class="fu">lmer</span>(yield <span class="sc">~</span> nitro <span class="sc">+</span> Variety <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Block<span class="sc">/</span>Variety), <span class="at">data =</span> Oats)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>fmc <span class="ot">&lt;-</span> <span class="fu">lmer</span>(yield <span class="sc">~</span> nitro <span class="sc">*</span> Variety <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Block<span class="sc">/</span>Variety), <span class="at">data =</span> nlme<span class="sc">::</span>Oats)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>fs <span class="ot">&lt;-</span> <span class="fu">semireg</span>(rate <span class="sc">~</span> <span class="fu">s</span>(pressure, <span class="at">by =</span> QB, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">4</span>) <span class="sc">+</span> (pressure <span class="sc">|</span> Subject),</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>              <span class="at">data =</span> nlme<span class="sc">::</span>Dialyzer)</span></code></pre></div>
+<div id="means-and-comparisons" class="section level3">
+<h3>Means and comparisons</h3>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">predictmeans</span>(fm, <span class="st">&quot;nitro:Variety&quot;</span>,</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">pairwise =</span> <span class="cn">TRUE</span>, <span class="at">level =</span> <span class="fl">0.1</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">plotord =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>), <span class="at">plottitle =</span> <span class="st">&quot;Yield&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">prtnum =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="fu">predictmeans</span>(fm, <span class="st">&quot;nitro&quot;</span>, <span class="at">Df =</span> <span class="dv">30</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  <span class="at">mplot =</span> <span class="cn">FALSE</span>, <span class="at">barplot =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  <span class="at">pplot =</span> <span class="cn">FALSE</span>, <span class="at">bkplot =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="fu">predictmeans</span>(fit, <span class="st">&quot;A&quot;</span>, <span class="at">trans =</span> exp,</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  <span class="at">transOff =</span> <span class="dv">1</span>)</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="fu">predictmeans</span>(fit_pois, <span class="st">&quot;A&quot;</span>, <span class="at">count =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="fu">contrastmeans</span>(fm, <span class="st">&quot;nitro&quot;</span>, <span class="at">ctrmatrix =</span> K,</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  <span class="at">Df =</span> <span class="dv">30</span>)</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="fu">df_term</span>(fm, <span class="st">&quot;nitro&quot;</span>,</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">&quot;Satterthwaite&quot;</span>)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>pm <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm, <span class="st">&quot;nitro:Variety&quot;</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">pairwise =</span> <span class="cn">TRUE</span>, <span class="at">conf_level =</span> <span class="fl">0.9</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">autoplot</span>(pm, <span class="at">x =</span> <span class="st">&quot;Variety&quot;</span>, <span class="at">group =</span> <span class="st">&quot;nitro&quot;</span>) <span class="sc">+</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Yield&quot;</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co"># plot(pm, ...) prints it</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>pm <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm, <span class="st">&quot;nitro&quot;</span>, <span class="at">df_method =</span> <span class="dv">30</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="fu">autoplot</span>(pm, <span class="at">type =</span> <span class="st">&quot;bar&quot;</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="fu">predictmeans</span>(fit, <span class="st">&quot;A&quot;</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>  <span class="at">trans =</span> <span class="cf">function</span>(x) <span class="fu">exp</span>(x) <span class="sc">-</span> <span class="dv">1</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="fu">predictmeans</span>(fit_pois, <span class="st">&quot;A&quot;</span>)</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="fu">contrastmeans</span>(fm, <span class="st">&quot;nitro&quot;</span>, <span class="at">ctrmatrix =</span> K,</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>  <span class="at">df_method =</span> <span class="dv">30</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="fu">df_term</span>(fm, <span class="st">&quot;nitro&quot;</span>,</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>  <span class="at">df_method =</span> <span class="st">&quot;Satterthwaite&quot;</span>)</span></code></pre></div>
+</div>
+</div>
+<ul>
+<li>Nothing is printed and no plot is drawn during the call:
+<code>print(pm)</code> (or <code>pm</code> at the prompt) shows the
+tables, <code>autoplot(pm)</code> (or <code>plot(pm)</code>) draws.
+<code>predictmeans()</code> has no <code>plot</code> or
+<code>plot_args</code>: the 1.x plots are <code>autoplot(pm)</code>
+(means with one LSD bar), <code>type = &quot;bar&quot;</code>,
+<code>type = &quot;ci&quot;</code> (the back-transformed plot, with
+<code>data = TRUE</code> the observations) and
+<code>type = &quot;pvalue&quot;</code>; <code>x</code>, <code>group</code>,
+<code>panel</code> replace <code>plotord</code>,
+<code>lines = FALSE</code> <code>lineplot = FALSE</code>, and
+<code>+ labs()</code> / <code>+ theme_bw(14)</code> the titles and
+<code>basesz</code>.</li>
+<li><code>trans</code> is needed only for a transformation outside the
+formula: <code>log(y + 1)</code> in the formula is detected and
+back-transformed, constant included. Poisson and negative binomial means
+need no <code>count = TRUE</code>.</li>
+</ul>
+</div>
+<div id="covariates-and-curves" class="section level3">
+<h3>Covariates and curves</h3>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">covariatemeans</span>(fmc, <span class="st">&quot;Variety&quot;</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="at">covariate =</span> <span class="st">&quot;nitro&quot;</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">covariateV =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.6</span>, <span class="fl">0.1</span>),</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">level =</span> <span class="fl">0.1</span>, <span class="at">trellis =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">mtitle =</span> <span class="st">&quot;Yield by nitrogen&quot;</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="fu">semipred</span>(<span class="at">semireg =</span> fs, <span class="at">modelterm =</span> <span class="st">&quot;QB&quot;</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="at">covariate =</span> <span class="st">&quot;pressure&quot;</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="at">covariateV =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">1.5</span>),</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="at">trellis =</span> <span class="cn">FALSE</span>, <span class="at">prt =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="fu">Kmatrix</span>(fmc, <span class="st">&quot;Variety&quot;</span>, <span class="at">covariate =</span> <span class="st">&quot;nitro&quot;</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>  <span class="at">covariateV =</span> <span class="fl">0.3</span>, <span class="at">prtnum =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>cm <span class="ot">&lt;-</span> <span class="fu">covariatemeans</span>(fmc, <span class="st">&quot;Variety&quot;</span>,</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="at">covariate =</span> <span class="st">&quot;nitro&quot;</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">at =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.6</span>, <span class="fl">0.1</span>),</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">conf_level =</span> <span class="fl">0.9</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">autoplot</span>(cm, <span class="at">trellis =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="at">mtitle =</span> <span class="st">&quot;Yield by nitrogen&quot;</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>sp <span class="ot">&lt;-</span> <span class="fu">semipred</span>(fs, <span class="st">&quot;QB&quot;</span>, <span class="st">&quot;pressure&quot;</span>,</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>  <span class="at">at =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">1.5</span>))</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="fu">autoplot</span>(sp, <span class="at">trellis =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="fu">Kmatrix</span>(fmc, <span class="st">&quot;Variety&quot;</span>, <span class="at">covariate =</span> <span class="st">&quot;nitro&quot;</span>,</span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>  <span class="at">at =</span> <span class="fl">0.3</span>)</span></code></pre></div>
+</div>
+</div>
+</div>
+<div id="permutation-tests" class="section level3">
+<h3>Permutation tests</h3>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">permanova.lmer</span>(fm, <span class="at">nperm =</span> <span class="dv">999</span>, <span class="at">type =</span> <span class="dv">3</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">permlmer</span>(<span class="at">lmer0 =</span> fm0, <span class="at">lmer1 =</span> fm)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="fu">permglmer</span>(glmer0, glmer1)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">permglmmTMB</span>(tmb0, tmb1)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="fu">permmodels</span>(fit, <span class="at">fo =</span> f, <span class="at">prt =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="fu">permstats</span>(..., <span class="at">level =</span> <span class="fl">0.05</span>)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">permmodels</span>(fm, <span class="at">nperm =</span> <span class="dv">999</span>, <span class="at">type =</span> <span class="dv">3</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">permlmer</span>(fm0, fm)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="fu">permlmer</span>(glmer0, glmer1)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="fu">permlmer</span>(tmb0, tmb1)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">permmodels</span>(fit); res</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="fu">permstats</span>(..., <span class="at">conf_level =</span> <span class="fl">0.95</span>)</span></code></pre></div>
+</div>
+</div>
+<p><code>permmodels()</code> uses Freedman–Lane permutations, so its
+p-values are not those of <code>permanova.lmer()</code>’s refits (<a href="#results-that-change">Results that change</a>).</p>
+</div>
+<div id="diagnostics-r²-and-letters" class="section level3">
+<h3>Diagnostics, R² and letters</h3>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">residplot</span>(fm, <span class="at">level =</span> <span class="dv">2</span>, <span class="at">id =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">newwd =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">CookD</span>(fm, <span class="at">idn =</span> <span class="dv">5</span>, <span class="at">newwd =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="fu">PMplot</span>(pm<span class="sc">$</span>p_valueMatrix, <span class="at">level =</span> <span class="fl">0.01</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">legendx =</span> <span class="fl">0.7</span>, <span class="at">newwd =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="fu">varcomp</span>(fm, <span class="at">level =</span> <span class="fl">0.9</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="fu">R2_glmm</span>(fm)</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co"># LL, UL: limits of the means</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="fu">ci_mcp</span>(LL, UL)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">residplot</span>(fm, <span class="at">re_level =</span> <span class="dv">2</span>, <span class="at">id =</span> <span class="dv">3</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">CookD</span>(fm, <span class="at">id =</span> <span class="dv">5</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">PMplot</span>(pm<span class="sc">$</span>p_valueMatrix,</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="at">conf_level =</span> <span class="fl">0.99</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="fu">varcomp</span>(fm, <span class="at">conf_level =</span> <span class="fl">0.9</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="fu">R2_model</span>(fm)</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="fu">predictmeans</span>(fm, <span class="st">&quot;nitro&quot;</span>, <span class="at">pairwise =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>  <span class="at">letter_ci =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>mean_table</span></code></pre></div>
+</div>
+</div>
+<ul>
+<li><code>varcomp(level = 0.9)</code> was a confidence level already:
+the value stays.</li>
+<li><code>R2_model()</code> gives the values of <code>R2_glmm()</code>
+as numbers, not as text with a <code>%</code> sign.</li>
+<li><code>ci_mcp()</code> gave letters from the overlap of the intervals
+it was given. Overlap of 95% (or 83.4%) confidence intervals does not
+answer the pairwise tests; <code>letter_ci = TRUE</code> gives letters
+from comparison intervals, which overlap exactly when a pair is not
+significant (<code>vignette(&quot;predictmeans&quot;)</code>).</li>
+</ul>
+</div>
+</div>
+<div id="every-argument-and-function" class="section level2">
+<h2>Every argument and function</h2>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>1.1.1</th>
+<th>2.0</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>predictmeans()</code>, <code>contrastmeans()</code>,
+<code>covariatemeans()</code>, <code>pm_slopes()</code>,
+<code>semipred()</code>, <code>permstats()</code>,
+<code>PMplot()</code></td>
+<td><code>level = 0.05</code> (a significance level)</td>
+<td><code>conf_level = 0.95</code></td>
+</tr>
+<tr class="even">
+<td><code>varcomp()</code></td>
+<td><code>level = 0.9</code> (a confidence level)</td>
+<td><code>conf_level = 0.9</code></td>
+</tr>
+<tr class="odd">
+<td><code>predictmeans()</code>, <code>contrastmeans()</code>,
+<code>covariatemeans()</code></td>
+<td><code>Df = 10</code></td>
+<td><code>df_method = 10</code></td>
+</tr>
+<tr class="even">
+<td><code>df_term()</code></td>
+<td><code>type =</code></td>
+<td><code>df_method =</code></td>
+</tr>
+<tr class="odd">
+<td><code>covariatemeans()</code>, <code>semipred()</code>,
+<code>Kmatrix()</code></td>
+<td><code>covariateV =</code></td>
+<td><code>at =</code></td>
+</tr>
+<tr class="even">
+<td><code>predictmeans()</code>, <code>covariatemeans()</code></td>
+<td><code>trans = exp, transOff = 1</code></td>
+<td><code>trans = function(x) exp(x) - 1</code></td>
+</tr>
+<tr class="odd">
+<td><code>predictmeans()</code>, <code>covariatemeans()</code></td>
+<td><code>responsen =</code></td>
+<td>removed: the response is read from the model</td>
+</tr>
+<tr class="even">
+<td><code>predictmeans()</code></td>
+<td><code>count = TRUE</code></td>
+<td>removed: Poisson and negative binomial means are detected</td>
+</tr>
+<tr class="odd">
+<td><code>predictmeans()</code></td>
+<td><code>mplot</code>, <code>barplot</code>, <code>pplot</code>,
+<code>bkplot</code>, and <code>plot</code> of earlier 2.0 versions</td>
+<td><code>autoplot(pm, type = &quot;means&quot;)</code>, <code>&quot;bar&quot;</code>,
+<code>&quot;pvalue&quot;</code>, <code>&quot;ci&quot;</code>; <code>plot = FALSE</code> is
+still accepted</td>
+</tr>
+<tr class="even">
+<td><code>predictmeans()</code></td>
+<td><code>lsd_bar</code>, <code>plotord</code>, <code>lineplot</code>,
+<code>plottitle</code>, <code>plotxlab</code>, <code>plotylab</code>,
+<code>jitterv</code>, <code>basesz</code>, and
+<code>plot_args</code></td>
+<td><code>autoplot(pm, interval = , x = , group = , panel = , lines = , data = TRUE, jitter = ) + labs(title, x, y) + theme_bw(size)</code></td>
+</tr>
+<tr class="odd">
+<td><code>predictmeans()</code>, <code>Kmatrix()</code></td>
+<td><code>prtnum</code>, <code>ndecimal</code>, <code>prtplt</code></td>
+<td>removed: <code>print(pm, digits = )</code>;
+<code>autoplot(pm)</code></td>
+</tr>
+<tr class="even">
+<td><code>covariatemeans()</code></td>
+<td><code>trellis</code>, <code>plotord</code>, <code>mtitle</code>,
+<code>ci</code>, <code>point</code>, <code>jitterv</code></td>
+<td><code>autoplot(cm, panel = , group = , title = , interval = , data = , jitter = )</code>;
+<code>plot_args = list(...)</code> still works (superseded)</td>
+</tr>
+<tr class="odd">
+<td><code>covariatemeans()</code></td>
+<td><code>cm$pltdf</code></td>
+<td><code>cm$pred_df</code> (as <code>semipred()</code>);
+<code>cm$pltdf</code> still gives it, with a message once per
+session</td>
+</tr>
+<tr class="even">
+<td><code>semipred()</code></td>
+<td><code>semipred(semireg = fit)</code></td>
+<td><code>semipred(fit)</code> (<code>model =</code>, as in every
+function)</td>
+</tr>
+<tr class="odd">
+<td><code>semipred()</code></td>
+<td><code>trellis</code>, <code>scales</code>, <code>plotord</code>,
+<code>ci</code>, <code>point</code>, <code>jitterv</code>,
+<code>threeD</code></td>
+<td><code>autoplot(sp, panel = , scales = , group = , interval = , data = , jitter = , type = &quot;3d&quot;)</code>;
+<code>plot_args = list(...)</code> still works (superseded);
+<code>threeD</code> gives one plotly widget, not a list</td>
+</tr>
+<tr class="even">
+<td><code>semipred()</code>, <code>semireg()</code>,
+<code>semireg_tmb()</code>, <code>permmodels()</code>,
+<code>bootmodels()</code></td>
+<td><code>prt</code></td>
+<td>removed: <code>print(x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>predictmeans()</code>, <code>covariatemeans()</code>,
+<code>residplot()</code>, <code>CookD()</code>,
+<code>PMplot()</code></td>
+<td><code>newwd</code></td>
+<td>removed: ggplot2 draws in the current device</td>
+</tr>
+<tr class="even">
+<td><code>semireg()</code>, <code>semireg_tmb()</code></td>
+<td><code>smoothZ = list(sm = smZ(x))</code></td>
+<td>smooths in the formula: <code>s(x, bs = &quot;os&quot;)</code> (<a href="#smooth-models-smz-and-smoothz">below</a>)</td>
+</tr>
+<tr class="odd">
+<td><code>semireg()</code></td>
+<td><code>ncenter</code>, <code>nscale</code>,
+<code>resp_scale</code></td>
+<td>removed: variables are used as they are</td>
+</tr>
+<tr class="even">
+<td><code>semireg()</code></td>
+<td><code>ngbinomial = TRUE</code></td>
+<td><code>semireg_tmb(family = glmmTMB::nbinom2)</code></td>
+</tr>
+<tr class="odd">
+<td><code>semireg()</code>, <code>semireg_tmb()</code></td>
+<td><code>predict_info</code></td>
+<td>removed: always kept</td>
+</tr>
+<tr class="even">
+<td><code>permlmer()</code></td>
+<td><code>lmer0 =</code>, <code>lmer1 =</code></td>
+<td><code>model0 =</code>, <code>model1 =</code> (any class: lmer,
+glmer, glmmTMB)</td>
+</tr>
+<tr class="odd">
+<td><code>permmodels()</code></td>
+<td><code>fo = f</code> (the formula in a variable)</td>
+<td>removed: read from the model</td>
+</tr>
+<tr class="even">
+<td><code>residplot()</code></td>
+<td><code>level = 2</code> (the random-effect term); <code>newwd</code>,
+<code>ask</code></td>
+<td><code>re_level = 2</code>; removed</td>
+</tr>
+<tr class="odd">
+<td><code>CookD()</code></td>
+<td><code>idn = 5</code></td>
+<td><code>id = 5</code>, as <code>residplot()</code></td>
+</tr>
+<tr class="even">
+<td><code>PMplot()</code></td>
+<td><code>margin</code>, <code>legendx</code></td>
+<td>removed: ggplot2 sizes the margins and the legend</td>
+</tr>
+<tr class="odd">
+<td>every function</td>
+<td>dotted argument names: <code>conf.level</code>,
+<code>letterCI</code>, <code>as.is</code>, <code>test.statistic</code>,
+<code>max.degree</code>, <code>drop.unused.levels</code></td>
+<td><code>conf_level</code>, <code>letter_ci</code>, <code>as_is</code>,
+<code>test_statistic</code>, <code>max_degree</code>,
+<code>drop_unused_levels</code> (one style: snake_case)</td>
+</tr>
+<tr class="even">
+<td><code>smZ()</code></td>
+<td></td>
+<td>removed: smooths in the formula</td>
+</tr>
+<tr class="odd">
+<td><code>permglmer()</code>, <code>permglmmTMB()</code></td>
+<td></td>
+<td>removed: <code>permlmer()</code> (they were the same function)</td>
+</tr>
+<tr class="even">
+<td><code>permanova.lmer()</code></td>
+<td></td>
+<td>removed: <code>permmodels(model, type = )</code></td>
+</tr>
+<tr class="odd">
+<td><code>R2_glmm()</code></td>
+<td></td>
+<td>removed: <code>R2_model(model)</code></td>
+</tr>
+<tr class="even">
+<td><code>ci_mcp()</code></td>
+<td></td>
+<td>removed: <code>predictmeans(..., letter_ci = TRUE)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Every other argument of 1.1.1 is kept, with its meaning.</p>
+</div>
+<div id="smooth-models-smz-and-smoothz" class="section level2">
+<h2>Smooth models: <code>smZ()</code> and <code>smoothZ</code></h2>
+<p>Smooths are written in the formula. Their fixed terms (the covariate,
+and with <code>by = f</code> the factor and its slopes) are added
+automatically, so they need not be written, and cannot be forgotten.
+Each form below was fitted both ways on the last build that had
+<code>smZ()</code> (<code>dev/check-smz-migration.R</code> in the
+package sources): the REML log-likelihoods are equal and the fitted
+values and curves agree to 1e-5 or better, unless a note says
+otherwise.</p>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x, <span class="at">data =</span> d,</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>), <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x, <span class="at">data =</span> d,</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x, <span class="at">k =</span> <span class="dv">10</span>)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">10</span>),</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x<span class="sc">*</span>f, <span class="at">data =</span> d,</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x, <span class="at">by =</span> f,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                          <span class="at">group =</span> <span class="cn">TRUE</span>)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">by =</span> f, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>),</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x<span class="sc">*</span>f, <span class="at">data =</span> d,</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x, <span class="at">by =</span> f)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># one variance for all levels</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">by =</span> f, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">id =</span> <span class="dv">1</span>),</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x <span class="sc">+</span> z, <span class="at">data =</span> d,</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sx =</span> <span class="fu">smZ</span>(x), <span class="at">sz =</span> <span class="fu">smZ</span>(z)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>) <span class="sc">+</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  <span class="fu">s</span>(z, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>), <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id), <span class="at">data =</span> d,</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x <span class="sc">+</span> z, <span class="at">data =</span> d,</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(<span class="fu">cbind</span>(x, z),</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>                          <span class="at">type =</span> <span class="st">&quot;Ztps&quot;</span>)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, z, <span class="at">bs =</span> <span class="st">&quot;ztps&quot;</span>, <span class="at">k =</span> <span class="dv">6</span>),</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>  <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">semireg</span>(cnt <span class="sc">~</span> x<span class="sc">*</span>f, <span class="at">family =</span> poisson,</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>  <span class="at">data =</span> d,</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x, <span class="at">by =</span> f,</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>                          <span class="at">group =</span> <span class="cn">TRUE</span>)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="fu">semireg</span>(cnt <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">by =</span> f, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>),</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  <span class="at">family =</span> poisson, <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">semireg_tmb</span>(cnt <span class="sc">~</span> x<span class="sc">*</span>f, <span class="at">family =</span> poisson,</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>  <span class="at">data =</span> d,</span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x, <span class="at">by =</span> f,</span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>                          <span class="at">group =</span> <span class="cn">TRUE</span>)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="fu">semireg_tmb</span>(cnt <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">by =</span> f, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>),</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>  <span class="at">family =</span> poisson, <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> x, <span class="at">data =</span> d,</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">sm =</span> <span class="fu">smZ</span>(x, <span class="at">intKnots =</span> kn,</span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>                          <span class="at">range.x =</span> r)))</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a><span class="fu">semireg</span>(y <span class="sc">~</span> <span class="fu">s</span>(x, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>,</span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a>  <span class="at">xt =</span> <span class="fu">list</span>(<span class="at">knots =</span> kn, <span class="at">range =</span> r)),</span>
+<span id="cb30-3"><a href="#cb30-3" tabindex="-1"></a>  <span class="at">data =</span> d)</span></code></pre></div>
+</div>
+</div>
+<p>Notes:</p>
+<ul>
+<li><code>bs = &quot;os&quot;</code> is the O’Sullivan spline of
+<code>smZ()</code> (<code>k</code> interior knots, 6 by default as
+<code>smZ()</code>); <code>bs = &quot;ztps&quot;</code> is its thin-plate basis
+(<code>k = 6</code> knots per axis as <code>smZ()</code>; the default of
+<code>bs = &quot;ztps&quot;</code> is 10).</li>
+<li>Knots of your own (the last pair above): here the fits differ, and
+2.0 is right: 1.x centred <code>x</code> before <code>smZ()</code> saw
+it (<code>ncenter = TRUE</code>, the default), so knots given in the
+units of the data were in the wrong place (in the check: REML
+log-likelihood -398.53 against -389.12; 1.x with
+<code>ncenter = FALSE</code> gives -389.12).</li>
+<li>The Poisson fit through lme4 agrees to the optimizer’s tolerance
+(log-likelihood within 1e-6, fitted counts within 0.003); through
+glmmTMB to 1e-6.</li>
+<li><code>smZ(x, drv = 1)</code> (the derivative of the basis) is
+<code>semipred(fit, ..., deriv = 1)</code>.</li>
+<li>Any other basis:
+<code>s(x, bs = &quot;user&quot;, xt = list(basis = f))</code>, with
+<code>f(x)</code> returning the basis matrix; its columns must not be in
+the span of the constant and <code>x</code> (the fixed part). The other
+<code>smZ()</code> types (<code>&quot;bs&quot;</code>, <code>&quot;ns&quot;</code>, the
+splines2 types, <code>&quot;smspline&quot;</code>) gave their B-spline or
+natural-spline columns iid random coefficients, which shrinks the curve
+towards zero rather than towards a straight line; they have no formula
+form that gives the same fit. <code>bs = &quot;os&quot;</code> is the penalised
+B-spline that does the same job properly.</li>
+<li><code>fit$knots_lst</code>, <code>fit$range_lst</code>,
+<code>fit$type_lst</code> and <code>fit$smoothZ_call</code> are no
+longer in the result; a fit made with <code>smZ()</code> and saved
+before 2.0 cannot be used by <code>semipred()</code> (it says so): refit
+it.</li>
+</ul>
+<div id="the-models-of-the-overview-article" class="section level3">
+<h3>The models of the overview article</h3>
+<p>The smooth models of the overview article
+(<code>vignettes/articles/overview.Rmd</code>), in its 1.1.1 version and
+in 2.0:</p>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>mod1 <span class="ot">&lt;-</span> <span class="fu">semireg</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a>  apartment.price <span class="sc">~</span> construction.date,</span>
+<span id="cb31-3"><a href="#cb31-3" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">grp =</span> <span class="fu">smZ</span>(</span>
+<span id="cb31-4"><a href="#cb31-4" tabindex="-1"></a>    construction.date, <span class="at">k =</span> <span class="dv">25</span>)),</span>
+<span id="cb31-5"><a href="#cb31-5" tabindex="-1"></a>  <span class="at">data =</span> WarsawApts)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a>mod1 <span class="ot">&lt;-</span> <span class="fu">semireg</span>(</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>  apartment.price <span class="sc">~</span></span>
+<span id="cb32-3"><a href="#cb32-3" tabindex="-1"></a>    <span class="fu">s</span>(construction.date, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">25</span>),</span>
+<span id="cb32-4"><a href="#cb32-4" tabindex="-1"></a>  <span class="at">data =</span> WarsawApts)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a>mod2 <span class="ot">&lt;-</span> <span class="fu">semireg</span>(</span>
+<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>  apartment.price <span class="sc">~</span></span>
+<span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a>    construction.date<span class="sc">*</span>district,</span>
+<span id="cb33-4"><a href="#cb33-4" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">grp =</span> <span class="fu">smZ</span>(</span>
+<span id="cb33-5"><a href="#cb33-5" tabindex="-1"></a>    construction.date, <span class="at">k =</span> <span class="dv">10</span>,</span>
+<span id="cb33-6"><a href="#cb33-6" tabindex="-1"></a>    <span class="at">by =</span> district, <span class="at">group =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb33-7"><a href="#cb33-7" tabindex="-1"></a>  <span class="at">data =</span> WarsawApts)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a>mod2 <span class="ot">&lt;-</span> <span class="fu">semireg</span>(</span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a>  apartment.price <span class="sc">~</span></span>
+<span id="cb34-3"><a href="#cb34-3" tabindex="-1"></a>    <span class="fu">s</span>(construction.date, <span class="at">by =</span> district,</span>
+<span id="cb34-4"><a href="#cb34-4" tabindex="-1"></a>      <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">10</span>),</span>
+<span id="cb34-5"><a href="#cb34-5" tabindex="-1"></a>  <span class="at">data =</span> WarsawApts)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a>  mathscr <span class="sc">~</span> calwpct <span class="sc">+</span> log.avginc <span class="sc">+</span></span>
+<span id="cb35-3"><a href="#cb35-3" tabindex="-1"></a>    compstu <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>county) <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>grspan),</span>
+<span id="cb35-4"><a href="#cb35-4" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(</span>
+<span id="cb35-5"><a href="#cb35-5" tabindex="-1"></a>    <span class="at">cal_grp =</span> <span class="fu">smZ</span>(calwpct, <span class="at">k =</span> <span class="dv">12</span>),</span>
+<span id="cb35-6"><a href="#cb35-6" tabindex="-1"></a>    <span class="at">avg_grp =</span> <span class="fu">smZ</span>(log.avginc, <span class="at">k =</span> <span class="dv">5</span>),</span>
+<span id="cb35-7"><a href="#cb35-7" tabindex="-1"></a>    <span class="at">comp_grp =</span> <span class="fu">smZ</span>(compstu, <span class="at">k =</span> <span class="dv">12</span>)),</span>
+<span id="cb35-8"><a href="#cb35-8" tabindex="-1"></a>  <span class="at">data =</span> Caschool)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb36-2"><a href="#cb36-2" tabindex="-1"></a>  mathscr <span class="sc">~</span> <span class="fu">s</span>(calwpct, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb36-3"><a href="#cb36-3" tabindex="-1"></a>    <span class="fu">s</span>(log.avginc, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb36-4"><a href="#cb36-4" tabindex="-1"></a>    <span class="fu">s</span>(compstu, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb36-5"><a href="#cb36-5" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> county) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> grspan),</span>
+<span id="cb36-6"><a href="#cb36-6" tabindex="-1"></a>  <span class="at">data =</span> Caschool)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" tabindex="-1"></a>mod1 <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb37-2"><a href="#cb37-2" tabindex="-1"></a>  respirInfec <span class="sc">~</span> age <span class="sc">+</span> vitAdefic <span class="sc">+</span> sex <span class="sc">+</span></span>
+<span id="cb37-3"><a href="#cb37-3" tabindex="-1"></a>    height <span class="sc">+</span> stunted <span class="sc">+</span> visit2 <span class="sc">+</span> visit3 <span class="sc">+</span></span>
+<span id="cb37-4"><a href="#cb37-4" tabindex="-1"></a>    visit4 <span class="sc">+</span> visit5 <span class="sc">+</span> visit6 <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>idnum),</span>
+<span id="cb37-5"><a href="#cb37-5" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">grp =</span> <span class="fu">smZ</span>(age, <span class="at">k =</span> <span class="dv">25</span>)),</span>
+<span id="cb37-6"><a href="#cb37-6" tabindex="-1"></a>  <span class="at">family =</span> binomial, <span class="at">data =</span> indonRespir)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a>mod1 <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb38-2"><a href="#cb38-2" tabindex="-1"></a>  respirInfec <span class="sc">~</span> <span class="fu">s</span>(age, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">25</span>) <span class="sc">+</span></span>
+<span id="cb38-3"><a href="#cb38-3" tabindex="-1"></a>    vitAdefic <span class="sc">+</span> sex <span class="sc">+</span> height <span class="sc">+</span> stunted <span class="sc">+</span></span>
+<span id="cb38-4"><a href="#cb38-4" tabindex="-1"></a>    visit2 <span class="sc">+</span> visit3 <span class="sc">+</span> visit4 <span class="sc">+</span> visit5 <span class="sc">+</span></span>
+<span id="cb38-5"><a href="#cb38-5" tabindex="-1"></a>    visit6 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> idnum),</span>
+<span id="cb38-6"><a href="#cb38-6" tabindex="-1"></a>  <span class="at">family =</span> binomial, <span class="at">data =</span> indonRespir)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" tabindex="-1"></a>mod2 <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb39-2"><a href="#cb39-2" tabindex="-1"></a>  respirInfec <span class="sc">~</span> age <span class="sc">+</span> vitAdefic <span class="sc">+</span> sex <span class="sc">+</span></span>
+<span id="cb39-3"><a href="#cb39-3" tabindex="-1"></a>    height <span class="sc">+</span> stunted <span class="sc">+</span> visit2 <span class="sc">+</span> visit3 <span class="sc">+</span></span>
+<span id="cb39-4"><a href="#cb39-4" tabindex="-1"></a>    visit4 <span class="sc">+</span> visit5 <span class="sc">+</span> visit6 <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>idnum),</span>
+<span id="cb39-5"><a href="#cb39-5" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(<span class="at">grp =</span> <span class="fu">smZ</span>(age, <span class="at">k =</span> <span class="dv">25</span>,</span>
+<span id="cb39-6"><a href="#cb39-6" tabindex="-1"></a>    <span class="at">by =</span> sex, <span class="at">group =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb39-7"><a href="#cb39-7" tabindex="-1"></a>  <span class="at">family =</span> binomial, <span class="at">data =</span> indonRespir)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a>mod2 <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb40-2"><a href="#cb40-2" tabindex="-1"></a>  respirInfec <span class="sc">~</span></span>
+<span id="cb40-3"><a href="#cb40-3" tabindex="-1"></a>    <span class="fu">s</span>(age, <span class="at">by =</span> sex, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>, <span class="at">k =</span> <span class="dv">25</span>) <span class="sc">+</span></span>
+<span id="cb40-4"><a href="#cb40-4" tabindex="-1"></a>    vitAdefic <span class="sc">+</span> height <span class="sc">+</span> stunted <span class="sc">+</span></span>
+<span id="cb40-5"><a href="#cb40-5" tabindex="-1"></a>    visit2 <span class="sc">+</span> visit3 <span class="sc">+</span> visit4 <span class="sc">+</span> visit5 <span class="sc">+</span></span>
+<span id="cb40-6"><a href="#cb40-6" tabindex="-1"></a>    visit6 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> idnum),</span>
+<span id="cb40-7"><a href="#cb40-7" tabindex="-1"></a>  <span class="at">family =</span> binomial, <span class="at">data =</span> indonRespir)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb41-2"><a href="#cb41-2" tabindex="-1"></a>  pollenCount <span class="sc">~</span> rain <span class="sc">+</span> year <span class="sc">+</span></span>
+<span id="cb41-3"><a href="#cb41-3" tabindex="-1"></a>    temperatureResidual <span class="sc">+</span> dayInSeason <span class="sc">+</span></span>
+<span id="cb41-4"><a href="#cb41-4" tabindex="-1"></a>    windSpeed,</span>
+<span id="cb41-5"><a href="#cb41-5" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(</span>
+<span id="cb41-6"><a href="#cb41-6" tabindex="-1"></a>    <span class="at">s_day =</span> <span class="fu">smZ</span>(dayInSeason, <span class="at">by =</span> year,</span>
+<span id="cb41-7"><a href="#cb41-7" tabindex="-1"></a>                <span class="at">group =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb41-8"><a href="#cb41-8" tabindex="-1"></a>    <span class="at">s_temp =</span> <span class="fu">smZ</span>(temperatureResidual),</span>
+<span id="cb41-9"><a href="#cb41-9" tabindex="-1"></a>    <span class="at">s_wind =</span> <span class="fu">smZ</span>(windSpeed)),</span>
+<span id="cb41-10"><a href="#cb41-10" tabindex="-1"></a>  <span class="at">family =</span> nbinom1, <span class="at">data =</span> ragweed)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">semireg_tmb</span>(</span>
+<span id="cb42-2"><a href="#cb42-2" tabindex="-1"></a>  pollenCount <span class="sc">~</span> rain <span class="sc">+</span></span>
+<span id="cb42-3"><a href="#cb42-3" tabindex="-1"></a>    <span class="fu">s</span>(dayInSeason, <span class="at">by =</span> year, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>) <span class="sc">+</span></span>
+<span id="cb42-4"><a href="#cb42-4" tabindex="-1"></a>    <span class="fu">s</span>(temperatureResidual, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>) <span class="sc">+</span></span>
+<span id="cb42-5"><a href="#cb42-5" tabindex="-1"></a>    <span class="fu">s</span>(windSpeed, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>),</span>
+<span id="cb42-6"><a href="#cb42-6" tabindex="-1"></a>  <span class="at">family =</span> nbinom1, <span class="at">data =</span> ragweed)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">semireg</span>(</span>
+<span id="cb43-2"><a href="#cb43-2" tabindex="-1"></a>  <span class="fu">log</span>(grade) <span class="sc">~</span> (xcoord <span class="sc">+</span> ycoord <span class="sc">+</span> zcoord)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb43-3"><a href="#cb43-3" tabindex="-1"></a>  <span class="at">smoothZ =</span> <span class="fu">list</span>(</span>
+<span id="cb43-4"><a href="#cb43-4" tabindex="-1"></a>    <span class="at">grp_z =</span> <span class="fu">smZ</span>(zcoord),</span>
+<span id="cb43-5"><a href="#cb43-5" tabindex="-1"></a>    <span class="at">grp_geo =</span> <span class="fu">smZ</span>(<span class="fu">cbind</span>(xcoord, ycoord),</span>
+<span id="cb43-6"><a href="#cb43-6" tabindex="-1"></a>                  <span class="at">type =</span> <span class="st">&quot;Ztps&quot;</span>)),</span>
+<span id="cb43-7"><a href="#cb43-7" tabindex="-1"></a>  <span class="at">data =</span> copper)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">semireg</span>(</span>
+<span id="cb44-2"><a href="#cb44-2" tabindex="-1"></a>  <span class="fu">log</span>(grade) <span class="sc">~</span> <span class="fu">s</span>(zcoord, <span class="at">bs =</span> <span class="st">&quot;os&quot;</span>) <span class="sc">+</span></span>
+<span id="cb44-3"><a href="#cb44-3" tabindex="-1"></a>    <span class="fu">s</span>(xcoord, ycoord, <span class="at">bs =</span> <span class="st">&quot;ztps&quot;</span>, <span class="at">k =</span> <span class="dv">6</span>) <span class="sc">+</span></span>
+<span id="cb44-4"><a href="#cb44-4" tabindex="-1"></a>    xcoord<span class="sc">:</span>ycoord <span class="sc">+</span> xcoord<span class="sc">:</span>zcoord <span class="sc">+</span></span>
+<span id="cb44-5"><a href="#cb44-5" tabindex="-1"></a>    ycoord<span class="sc">:</span>zcoord,</span>
+<span id="cb44-6"><a href="#cb44-6" tabindex="-1"></a>  <span class="at">data =</span> copper)</span></code></pre></div>
+</div>
+</div>
+<div class="pm-cols">
+<div>
+<p>1.1.1</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">semipred</span>(mod,</span>
+<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a>  <span class="at">covariate =</span> <span class="fu">c</span>(<span class="st">&quot;xcoord&quot;</span>, <span class="st">&quot;ycoord&quot;</span>),</span>
+<span id="cb45-3"><a href="#cb45-3" tabindex="-1"></a>  <span class="at">threeD =</span> <span class="cn">TRUE</span>, <span class="at">point =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb45-4"><a href="#cb45-4" tabindex="-1"></a>  <span class="at">trans =</span> exp, <span class="at">prt =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+</div>
+<div>
+<p>2.0</p>
+<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">semipred</span>(mod,</span>
+<span id="cb46-2"><a href="#cb46-2" tabindex="-1"></a>  <span class="at">covariate =</span> <span class="fu">c</span>(<span class="st">&quot;xcoord&quot;</span>, <span class="st">&quot;ycoord&quot;</span>),</span>
+<span id="cb46-3"><a href="#cb46-3" tabindex="-1"></a>  <span class="at">trans =</span> exp,</span>
+<span id="cb46-4"><a href="#cb46-4" tabindex="-1"></a>  <span class="at">plot_args =</span> <span class="fu">list</span>(<span class="at">threeD =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb46-5"><a href="#cb46-5" tabindex="-1"></a>                   <span class="at">point =</span> <span class="cn">FALSE</span>))</span></code></pre></div>
+</div>
+</div>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Model</th>
+<th>REML / ML log-likelihood, 1.1.1 code</th>
+<th>2.0 code</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Warsaw, one curve</td>
+<td>-1772.452</td>
+<td>-1772.452</td>
+<td>the same fit</td>
+</tr>
+<tr class="even">
+<td>Warsaw, a curve per district</td>
+<td>-1751.525</td>
+<td>-1751.525</td>
+<td>the same fit</td>
+</tr>
+<tr class="odd">
+<td>California schools</td>
+<td>-1601.803</td>
+<td>-1601.803</td>
+<td>the same fit</td>
+</tr>
+<tr class="even">
+<td>Respiratory infection, one curve</td>
+<td>-323.509</td>
+<td>-323.509</td>
+<td>the same fit</td>
+</tr>
+<tr class="odd">
+<td>Respiratory infection, a curve per sex</td>
+<td>-322.806</td>
+<td>-322.788</td>
+<td>2.0 adds <code>sex:age</code>, the slope of each sex, which the
+1.1.1 formula left out</td>
+</tr>
+<tr class="even">
+<td>Pollen, a curve per year</td>
+<td>-1168.703</td>
+<td>-1164.093</td>
+<td>2.0 adds <code>year:dayInSeason</code>, the slope of each year,
+which the 1.1.1 formula left out</td>
+</tr>
+<tr class="odd">
+<td>Copper</td>
+<td>-159.428</td>
+<td>-159.203</td>
+<td>1.1.1 depended on the centring of the coordinates (-163.948 with
+<code>ncenter = FALSE</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>In the two models with a curve per group, the 1.1.1 formulas had the
+factor but not its interaction with the covariate. A smooth by a factor
+then has no unpenalised slope per group, so the groups’ straight-line
+trends are shrunk towards each other. The formula form adds the slopes
+itself, which is why the 2.0 fits are better.</p>
+</div>
+</div>
+<div id="defaults-that-change" class="section level2">
+<h2>Defaults that change</h2>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Setting</th>
+<th>1.1.1</th>
+<th>2.0</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>library(predictmeans)</code></td>
+<td>packages attached</td>
+<td>glmmTMB, lme4, nlme, lmerTest</td>
+<td>lme4, nlme: add <code>library(glmmTMB)</code> to call
+<code>glmmTMB()</code> or <code>nbinom1</code>, and
+<code>library(lmerTest)</code> for its <code>summary()</code> p-values
+and <code>ranova()</code></td>
+</tr>
+<tr class="even">
+<td><code>predictmeans()</code></td>
+<td>plots</td>
+<td>drawn</td>
+<td>none: <code>autoplot(pm)</code> or <code>plot(pm)</code></td>
+</tr>
+<tr class="odd">
+<td><code>covariatemeans()</code>, <code>semipred()</code></td>
+<td>plots</td>
+<td>drawn</td>
+<td><code>plot = FALSE</code>: <code>autoplot(x)</code>,
+<code>plot = TRUE</code>, or
+<code>options(predictmeans.plot = TRUE)</code> for a session</td>
+</tr>
+<tr class="even">
+<td>every function</td>
+<td>printing</td>
+<td>tables printed during the call</td>
+<td>nothing printed: <code>print(x)</code></td>
+</tr>
+<tr class="odd">
+<td><code>predictmeans()</code>, <code>contrastmeans()</code></td>
+<td>standard errors of REML <code>lmer</code> fits</td>
+<td>unadjusted, with Kenward–Roger df</td>
+<td>Kenward–Roger adjusted (below); <code>vcov_adjust = FALSE</code> for
+1.x</td>
+</tr>
+<tr class="even">
+<td><code>predictmeans()</code>, <code>contrastmeans()</code>,
+<code>covariatemeans()</code></td>
+<td>df</td>
+<td>per model class</td>
+<td><code>df_method = &quot;auto&quot;</code> (table in
+<code>vignette(&quot;predictmeans&quot;)</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>predictmeans()</code></td>
+<td><code>pairwise</code></td>
+<td><code>FALSE</code>: no comparisons unless <code>TRUE</code></td>
+<td><code>NULL</code>: comparisons are made when <code>adj</code>,
+<code>atvar</code>, <code>permlist</code>, <code>letter_ci</code> or
+<code>pairwise = TRUE</code> asks for them; <code>pairwise</code> only
+sets what is printed</td>
+</tr>
+<tr class="even">
+<td><code>predictmeans()</code>, <code>permlmer()</code>,
+<code>permmodels()</code></td>
+<td><code>ncore</code></td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td><code>semireg()</code></td>
+<td><code>control</code></td>
+<td><code>lmerControl(optimizer = &quot;bobyqa&quot;)</code></td>
+<td><code>lmerControl(optimizer = &quot;nloptwrap&quot;)</code>: the same fit to
+the optimizer’s tolerance</td>
+</tr>
+<tr class="even">
+<td><code>semireg()</code></td>
+<td>centring</td>
+<td><code>ncenter = TRUE</code> centred every covariate</td>
+<td>variables used as they are</td>
+</tr>
+<tr class="odd">
+<td><code>residplot()</code></td>
+<td><code>id</code></td>
+<td><code>FALSE</code></td>
+<td>3: the three largest residuals are labelled</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="results-that-change" class="section level2">
+<h2>Results that change</h2>
+<div id="kenwardroger-adjusted-standard-errors" class="section level3">
+<h3>Kenward–Roger adjusted standard errors</h3>
+<p>For <code>lmer</code> models fitted by REML, standard errors,
+confidence limits, LSDs and p-values use the Kenward–Roger adjusted
+covariance, as SAS <code>DDFM=KR</code> and emmeans do; 1.x used the
+unadjusted covariance with Kenward–Roger df. For balanced designs the
+two agree; for unbalanced ones the adjusted SEs are slightly larger.
+<code>vcov_adjust = FALSE</code> gives the 1.x numbers:</p>
+<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" tabindex="-1"></a>Om <span class="ot">&lt;-</span> Oats[<span class="sc">-</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">30</span>), ]   <span class="co"># unbalanced</span></span>
+<span id="cb47-2"><a href="#cb47-2" tabindex="-1"></a>fm_u <span class="ot">&lt;-</span> <span class="fu">lmer</span>(yield <span class="sc">~</span> nitro <span class="sc">*</span> Variety <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Block<span class="sc">/</span>Variety), <span class="at">data =</span> Om)</span>
+<span id="cb47-3"><a href="#cb47-3" tabindex="-1"></a>new <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm_u, <span class="st">&quot;Variety&quot;</span>)</span>
+<span id="cb47-4"><a href="#cb47-4" tabindex="-1"></a>old <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm_u, <span class="st">&quot;Variety&quot;</span>, <span class="at">vcov_adjust =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb47-5"><a href="#cb47-5" tabindex="-1"></a><span class="fu">cbind</span>(<span class="at">SE_2.0 =</span> new<span class="sc">$</span>means<span class="sc">$</span>std.error, <span class="at">SE_1.x =</span> old<span class="sc">$</span>means<span class="sc">$</span>std.error)</span>
+<span id="cb47-6"><a href="#cb47-6" tabindex="-1"></a><span class="co">#&gt;        SE_2.0   SE_1.x</span></span>
+<span id="cb47-7"><a href="#cb47-7" tabindex="-1"></a><span class="co">#&gt; [1,] 8.086340 8.085432</span></span>
+<span id="cb47-8"><a href="#cb47-8" tabindex="-1"></a><span class="co">#&gt; [2,] 8.057580 8.057580</span></span>
+<span id="cb47-9"><a href="#cb47-9" tabindex="-1"></a><span class="co">#&gt; [3,] 8.138192 8.132226</span></span></code></pre></div>
+</div>
+<div id="means-that-cannot-be-estimated-are-na" class="section level3">
+<h3>Means that cannot be estimated are NA</h3>
+<p>A mean that depends on aliased coefficients used to be a number that
+depended on which coefficient R dropped. It is now <code>NA</code>, with
+a message; estimable pairwise differences are still shown. Means over
+empty cells keep the 1.x rule: the average of the observed cells, with a
+warning.</p>
+</div>
+<div id="permutation-tests-1" class="section level3">
+<h3>Permutation tests</h3>
+<ul>
+<li><code>permmodels()</code> uses Freedman–Lane permutations
+(<code>method = &quot;auto&quot;</code>): each term, coefficient or pair is tested
+against the model without it, so the other terms keep their effects. It
+works for <code>glm</code>, <code>glmer</code> and <code>glmmTMB</code>
+too, without refits. <code>method = &quot;raw&quot;</code> is the 1.x scheme.</li>
+<li>Mixed-model residuals are decorrelated with the symmetric square
+root of their covariance; the Cholesky factor of 1.x gave results that
+depended on the order of the data. So <code>method = &quot;raw&quot;</code>
+p-values for mixed models also differ slightly from 1.x.</li>
+<li><code>permanova.lmer()</code> refitted each model with and without
+the term through <code>permlmer()</code>; <code>permmodels()</code>
+tests the same hypotheses, with other permutation p-values.</li>
+</ul>
+</div>
+<div id="other-changes-in-numbers" class="section level3">
+<h3>Other changes in numbers</h3>
+<ul>
+<li><code>trans = function(x) exp(x) - 1</code>: the pairs have no
+<code>ratio</code> columns. With an offset, 1.x gave ratios of
+<code>y + 1</code> labelled as ratios of <code>y</code>.</li>
+<li><code>semireg(ngbinomial = TRUE)</code> took theta from a Poisson
+fit, which is not the maximum-likelihood fit (on a test data set
+log-likelihood -1133.60 against -1132.98 for
+<code>semireg_tmb(family = glmmTMB::nbinom2)</code>; theta 3.31 against
+2.80, true value 3).</li>
+<li>Smooth models with knots given in the data’s units, or whose 1.x
+formula left out the slope of each group: see the <a href="#the-models-of-the-overview-article">table above</a>.</li>
+</ul>
+</div>
+<div id="bugs-fixed" class="section level3">
+<h3>Bugs fixed</h3>
+<p>Some 1.x results were wrong and are now right: <code>permlist</code>
+with <code>atvar</code>, a user-supplied <code>Df</code> for
+<code>lmer</code> models, factor levels containing <code>&quot;:&quot;</code>,
+several <code>Kmatrix()</code> cases with transformed covariates, and
+others listed in <code>NEWS.md</code>.</p>
+</div>
+</div>
+<div id="the-result-of-predictmeans" class="section level2">
+<h2>The result of <code>predictmeans()</code></h2>
+<p>The 1.x list elements are still there, so code that reads
+<code>pm$&quot;Predicted Means&quot;</code> or <code>pm$&quot;Pairwise p-value&quot;</code>
+keeps working. The tables <code>means</code>, <code>pairs</code> and
+<code>settings</code> hold the same numbers in one layout for every
+function (<code>as.data.frame()</code>, <code>tidy()</code>,
+<code>summary()</code>, <code>autoplot()</code>):</p>
+<div class="sourceCode" id="cb48"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" tabindex="-1"></a>pm <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm, <span class="st">&quot;nitro&quot;</span>, <span class="at">adj =</span> <span class="st">&quot;BH&quot;</span>)</span>
+<span id="cb48-2"><a href="#cb48-2" tabindex="-1"></a><span class="fu">names</span>(pm)</span>
+<span id="cb48-3"><a href="#cb48-3" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;Predicted Means&quot;               &quot;Standard Error of Means&quot;      </span></span>
+<span id="cb48-4"><a href="#cb48-4" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;Standard Error of Differences&quot; &quot;LSD&quot;                          </span></span>
+<span id="cb48-5"><a href="#cb48-5" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;Pairwise p-value&quot;              &quot;mean_table&quot;                   </span></span>
+<span id="cb48-6"><a href="#cb48-6" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;p_valueMatrix&quot;                 &quot;means&quot;                        </span></span>
+<span id="cb48-7"><a href="#cb48-7" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;pairs&quot;                         &quot;settings&quot;</span></span>
+<span id="cb48-8"><a href="#cb48-8" tabindex="-1"></a>pm<span class="sc">$</span><span class="st">`</span><span class="at">Predicted Means</span><span class="st">`</span></span>
+<span id="cb48-9"><a href="#cb48-9" tabindex="-1"></a><span class="co">#&gt; nitro</span></span>
+<span id="cb48-10"><a href="#cb48-10" tabindex="-1"></a><span class="co">#&gt;        0      0.2      0.4      0.6 </span></span>
+<span id="cb48-11"><a href="#cb48-11" tabindex="-1"></a><span class="co">#&gt;  79.3889  98.8889 114.2222 123.3889</span></span>
+<span id="cb48-12"><a href="#cb48-12" tabindex="-1"></a>pm<span class="sc">$</span>means</span>
+<span id="cb48-13"><a href="#cb48-13" tabindex="-1"></a><span class="co">#&gt;   nitro  estimate std.error       df  conf.low conf.high comparison.low</span></span>
+<span id="cb48-14"><a href="#cb48-14" tabindex="-1"></a><span class="co">#&gt; 1     0  79.38889  7.174754 6.791824  62.31730  96.46047       74.92186</span></span>
+<span id="cb48-15"><a href="#cb48-15" tabindex="-1"></a><span class="co">#&gt; 2   0.2  98.88889  7.174754 6.791824  81.81730 115.96047       94.42186</span></span>
+<span id="cb48-16"><a href="#cb48-16" tabindex="-1"></a><span class="co">#&gt; 3   0.4 114.22222  7.174754 6.791824  97.15064 131.29381      109.75519</span></span>
+<span id="cb48-17"><a href="#cb48-17" tabindex="-1"></a><span class="co">#&gt; 4   0.6 123.38889  7.174754 6.791824 106.31730 140.46047      118.92186</span></span>
+<span id="cb48-18"><a href="#cb48-18" tabindex="-1"></a><span class="co">#&gt;   comparison.high group  n estimable</span></span>
+<span id="cb48-19"><a href="#cb48-19" tabindex="-1"></a><span class="co">#&gt; 1        83.85592  A    18      TRUE</span></span>
+<span id="cb48-20"><a href="#cb48-20" tabindex="-1"></a><span class="co">#&gt; 2       103.35592   B   18      TRUE</span></span>
+<span id="cb48-21"><a href="#cb48-21" tabindex="-1"></a><span class="co">#&gt; 3       118.68925    C  18      TRUE</span></span>
+<span id="cb48-22"><a href="#cb48-22" tabindex="-1"></a><span class="co">#&gt; 4       127.85592     D 18      TRUE</span></span></code></pre></div>
+</div>
+<div id="new-in-2.0" class="section level2">
+<h2>New in 2.0</h2>
+<ul>
+<li><strong>Degrees of freedom</strong>:
+<code>df_method = &quot;Kenward-Roger&quot;</code>, <code>&quot;Satterthwaite&quot;</code>,
+<code>&quot;containment&quot;</code>, <code>&quot;between-within&quot;</code>,
+<code>&quot;inner-outer&quot;</code>, or a number.</li>
+<li><strong>Averaging weights</strong>:
+<code>weights = &quot;proportional&quot;</code> (SAS <code>OM</code>),
+<code>&quot;outer&quot;</code>, <code>&quot;cells&quot;</code>, <code>&quot;flat&quot;</code>.</li>
+<li><strong>Comparisons</strong>: <code>adj = &quot;sidak&quot;</code>,
+<code>&quot;scheffe&quot;</code>, <code>&quot;mvt&quot;</code> (exact single-step);
+<code>contrast_family()</code>, <code>specify_contrast()</code>,
+<code>pm_joint()</code>, <code>pm_slopes()</code>; comparison intervals
+and <code>letter_ci</code>. See <code>vignette(&quot;contrasts&quot;)</code>.</li>
+<li><strong>Response scale</strong>: back-transformation detected from
+the formula or the link, delta-method SEs, ratios and odds ratios.</li>
+<li><strong>Smooth models</strong>: smooths in the formula
+(<code>s()</code>, <code>t2()</code>, <code>by =</code>),
+<code>semipred()</code> with simultaneous bands, derivatives and curve
+differences, <code>anova()</code> of smooth terms.</li>
+<li><strong>Resampling</strong>: Freedman–Lane permutations for GLMs and
+GLMMs, restricted permutations (<code>permindex()</code>),
+<code>bootmodels()</code>. See <code>vignette(&quot;resampling&quot;)</code>.</li>
+<li><strong>Checks</strong>: <code>pm_check()</code>,
+<code>residplot()</code> and <code>CookD()</code> for every model class,
+<code>varcomp()</code> with intervals and tests,
+<code>R2_model()</code>.</li>
+<li><strong>Other model classes</strong> with a few methods
+(<code>?pm_coef</code>); fewer dependencies; faster Kenward–Roger and
+Satterthwaite.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

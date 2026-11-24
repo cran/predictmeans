@@ -1,0 +1,235 @@
+## Multiplicity adjustments, in one place for predictmeans() (the pairs table,
+## the printed p-value matrices and the letters), contrastmeans(),
+## pm_slopes() and the means of semireg fits.
+##
+## A family is the set of contrasts adjusted together: all the pairs, or with
+## 'atvar' the pairs within each of its levels. pm_families() gives each
+## family's contrasts and its size for each method; pm_adjust_p() the adjusted
+## p-values and pm_adjust_crit() the simultaneous limits that go with them.
+## Contrasts that cannot be estimated (NA) are left out of their family and
+## stay NA.
+##   tukey      Tukey-Kramer: |t| sqrt(2) against the studentized range of k
+##              means (those taking part in the family's estimable pairs),
+##              each pair with its own df (SAS ADJDFE=ROW)
+##   sidak      1 - (1 - p)^m for m contrasts
+##   scheffe    F = t^2/r on (r, df) df, r the rank of the family's contrasts
+##              (as emmeans; k - 1 for the pairs among k independent means)
+##   mvt        single-step multivariate t, P(max_j |T_j| >= |t_i|) with T
+##              multivariate t with the contrasts' correlation R and df. This
+##              is what SAS ADJUST=SIMULATE estimates by simulation; here it is
+##              computed by mvtnorm::pmvt() (error below about 1e-4). Each
+##              contrast uses its own df, rounded as emmeans does.
+##   with permutation p-values ('perm_T': observed and permuted |t|), "tukey",
+##              "mvt" and "westfall" use the family's permuted max |t|
+##              (single step; "westfall" step down)
+##   others     stats::p.adjust() (holm, hochberg, hommel, bonferroni, BH, BY)
+
+pm_adjust_extra_methods <- c("sidak", "scheffe", "mvt")
+
+## The families: 'fam' labels the family of each contrast (NA: in none),
+## 'est' marks the estimable ones. Sizes: m (estimable contrasts), k (means
+## in the estimable pairs, from 'ij', the two means of each pair; without
+## 'ij', from the number of pairs k(k-1)/2) and r (rank of the rows of 'L',
+## the estimable contrasts in coefficient space; or 'rank'; else k - 1).
+pm_families <- function(fam, est, ij = NULL, L = NULL, rank = NULL) {
+  lev <- unique(fam[!is.na(fam)])
+  lapply(stats::setNames(lev, lev), function(f) {
+    idx <- which(fam %in% f)
+    ok <- idx[est[idx]]
+    k <- if (!is.null(ij)) length(unique(c(ij[ok, 1], ij[ok, 2]))) else (1 + sqrt(1 + 8*length(idx)))/2
+    r <- if (!is.null(rank)) rank else if (!is.null(L) && length(ok)) qr(as.matrix(L[ok, , drop = FALSE]))$rank else k - 1
+    list(idx = idx, ok = ok, m = length(ok), k = k, r = max(r, 1))
+  })
+}
+
+## Adjusted p-values of contrasts with t statistics 't', p-values 'p' and df
+## 'df', within the families 'fams' (pm_families()). R: correlation of the
+## contrasts ("mvt"); perm_T: list(obs, T) of permutation p-values.
+pm_adjust_p <- function(adj, t, p, df, fams, R = NULL, perm_T = NULL) {
+  t <- as.vector(t)
+  p <- as.vector(p)
+  out <- rep(NA_real_, length(p))
+  df <- rep_len(as.numeric(df), length(p))
+  for (f in fams) {
+    ok <- f$ok
+    if (!length(ok)) next
+    out[ok] <- if (adj == "none" || f$m < 2) {
+      p[ok]
+    } else if (!is.null(perm_T) && adj %in% pm_perm_maxt_methods) {
+      pm_perm_maxT(perm_T$obs[ok], perm_T$T[ok, , drop = FALSE], stepdown = adj == "westfall", p_raw = p[ok])
+    } else switch(adj,
+      tukey = stats::ptukey(sqrt(2)*abs(t[ok]), f$k, df[ok], lower.tail = FALSE),
+      sidak = 1 - (1 - p[ok])^f$m,
+      scheffe = stats::pf(t[ok]^2/f$r, f$r, df[ok], lower.tail = FALSE),
+      mvt = pm_p_mvt(t[ok], df[ok], R[ok, ok, drop = FALSE]),
+      stats::p.adjust(p[ok], adj))
+  }
+  out
+}
+
+pm_p_mvt <- function(t, df, R) {
+  pm_need("mvtnorm", "adj = \"mvt\"")
+  if (length(t) > 1000) stop("adj = \"mvt\" handles at most 1000 contrasts in a family.", call. = FALSE)
+  R <- stats::cov2cor(as.matrix(R))
+  k <- length(t)
+  # pmvt() is a Monte Carlo integral: a fixed seed makes results repeat
+  alg <- mvtnorm::GenzBretz(maxpts = 5e4, abseps = 1e-4)
+  pm_with_seed(20240403, vapply(seq_len(k), function(i) {
+    a <- abs(t[i])
+    pr <- mvtnorm::pmvt(lower = rep(-a, k), upper = rep(a, k), df = pm_mvt_df(df[i]), corr = R, algorithm = alg)
+    min(1, max(0, 1 - as.numeric(pr)))
+  }, numeric(1)))
+}
+
+## Critical values c of simultaneous confidence limits (estimate +- c SE) that
+## agree with the adjusted p-values: a contrast's adjusted p-value is below
+## alpha exactly when its limits exclude 0 (as SAS AdjLower/AdjUpper and
+## emmeans), with the family sizes of pm_families():
+##   tukey       qtukey(1 - alpha, k, df)/sqrt(2), each pair's df
+##   bonferroni  qt(1 - alpha/(2m), df)
+##   sidak       qt(1 - (1 - (1 - alpha)^(1/m))/2, df)
+##   scheffe     sqrt(r qf(1 - alpha, r, df))
+##   mvt         the two-sided (1 - alpha) quantile of max |T| (mvtnorm::qmvt)
+## With a permlist ('T': permuted |t|, one row per contrast): "tukey", "mvt"
+## and "westfall" the (1 - alpha) quantile of the family's permuted max |t|
+## (single-step; Westfall-Young's step-down has no simultaneous limits),
+## "bonferroni" and "sidak" each contrast's permutation quantile at the
+## per-contrast level. NULL for the methods with no simultaneous limits
+## (holm, hochberg, hommel and the false discovery rate methods).
+pm_adjust_crit <- function(adj, alpha, df, fams, R = NULL, T = NULL) {
+  perm <- !is.null(T)
+  have <- if (perm) c("tukey", "mvt", "westfall", "bonferroni", "sidak") else
+    c("tukey", "bonferroni", "sidak", "scheffe", "mvt")
+  if (!adj %in% have) return(NULL)
+  n_all <- max(c(0, unlist(lapply(fams, `[[`, "idx"))), length(df))
+  df <- rep_len(as.numeric(df), n_all)
+  out <- rep(NA_real_, n_all)
+  for (f in fams) {
+    ok <- f$ok
+    m <- f$m
+    if (!m) next
+    a1 <- switch(adj, bonferroni = alpha/m, sidak = 1 - (1 - alpha)^(1/m), alpha)
+    out[ok] <- if (perm) {
+      if (adj %in% c("bonferroni", "sidak")) pm_perm_crit(T[ok, , drop = FALSE], a1) else
+        pm_perm_crit(T[ok, , drop = FALSE], alpha, family = rep("f", m))
+    } else switch(adj,
+      tukey = {                    # one quantile for each distinct df
+        du <- unique(df[ok])
+        (stats::qtukey(1 - alpha, max(f$k, 2), du)/sqrt(2))[match(df[ok], du)]
+      },
+      bonferroni = , sidak = stats::qt(1 - a1/2, df[ok]),
+      scheffe = sqrt(f$r*stats::qf(1 - alpha, f$r, df[ok])),
+      mvt = pm_q_mvt(alpha, df[ok], R[ok, ok, drop = FALSE]))
+  }
+  out
+}
+
+## The critical value of the printed LSDs (LSD = SED x this value, with the
+## one df 'Df' of the LSD tables): the half-width of the limits that agree
+## with the p-values shown, for the same families of pairs (pm_families():
+## all the pairs, or the pairs within a level of 'atvar').
+##   none        t
+##   tukey       studentized range of the k means compared, / sqrt(2) (the HSD)
+##   bonferroni, sidak   t at the level adjusted for the m pairs
+##   scheffe, mvt        their critical values (pm_adjust_crit())
+##   holm, hochberg, hommel, BH, BY: step-wise methods have no critical value
+##     for all pairs: t, and a note says the LSDs are not adjusted.
+## Families of different sizes (levels of 'atvar' with different numbers of
+## means): the largest value. Returns list(crit, adjusted, note).
+pm_lsd_crit <- function(adj, level, Df, fams = NULL, R = NULL) {
+  t0 <- stats::qt(1 - level/2, df = Df)
+  if (adj == "none" || !length(fams)) return(list(crit = t0, adjusted = FALSE, note = NULL))
+  n <- max(unlist(lapply(fams, `[[`, "idx")))
+  cr <- pm_adjust_crit(adj, level, rep(Df, n), fams, R = R)
+  if (is.null(cr) || all(is.na(cr))) {
+    return(list(crit = t0, adjusted = FALSE,
+                note = paste0("These LSDs are not adjusted: '", adj, "' is a step-wise method and has no critical ",
+                              "value for all pairs. Use the adjusted p-values for the comparisons.")))
+  }
+  list(crit = max(cr, na.rm = TRUE), adjusted = TRUE,
+       note = paste0("LSDs adjusted by the '", adj, "' method: the half-width of the simultaneous confidence limits ",
+                     "of a difference, which agree with the adjusted p-values."))
+}
+
+## mvtnorm's integer df, rounded as emmeans does (0: normal)
+pm_mvt_df <- function(d) {
+  if (d > 0) d <- max(1, d)
+  if (is.infinite(d) || d > 9999) d <- 0
+  as.integer(floor(d + 0.25))
+}
+
+## Two-sided multivariate t quantiles for each contrast's df (rounded by
+## pm_mvt_df()); mvtnorm::qmvt() with a fixed seed.
+pm_q_mvt <- function(alpha, df, R) {
+  pm_need("mvtnorm", "adj = \"mvt\"")
+  if (length(df) > 1000) stop("adj = \"mvt\" handles at most 1000 contrasts in a family.", call. = FALSE)
+  R <- stats::cov2cor(as.matrix(R))
+  d <- vapply(df, pm_mvt_df, integer(1))
+  alg <- mvtnorm::GenzBretz(maxpts = 5e4, abseps = 1e-4)
+  q <- vapply(unique(d), function(dd) pm_with_seed(20240403,
+    mvtnorm::qmvt(1 - alpha, tail = "both.tails", df = dd, corr = R, algorithm = alg)$quantile), numeric(1))
+  q[match(d, unique(d))]
+}
+
+## Evaluate 'expr' with a fixed random seed and leave the user's random
+## number stream as it was.
+pm_with_seed <- function(seed, expr) {
+  if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    old_seed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+    on.exit(assign(".Random.seed", old_seed, envir = globalenv()), add = TRUE)
+  } else {
+    on.exit(if (exists(".Random.seed", envir = globalenv(), inherits = FALSE))
+      rm(".Random.seed", envir = globalenv()), add = TRUE)
+  }
+  set.seed(seed)
+  expr
+}
+
+## Critical value for simultaneous bands over the rows of D (Ruppert, Wand
+## and Carroll): the (1 - level) quantile of max_g |D_g theta| / se_g for
+## theta ~ N(0, C), from 10000 draws.
+## With finite df (one per row, e.g. Satterthwaite df of a gaussian semireg
+## fit): a multivariate t, T_g = Z_g / sqrt(W_g/df_g), whose variance
+## estimates W_g move together (one draw per simulated set: they all come
+## from the same few variance parameters; with one df this is the exact
+## multivariate t). The rows are put on one scale by their probabilities,
+## max_g P(|t_df_g| < |T_g|), and the band of row g uses the t quantile of
+## its own df at the simulated (1 - level) quantile of that maximum. Returns
+## one value per row then; one value when every df is infinite.
+pm_sim_crit <- function(D, C, level, nsim = 10000, df = Inf, draws = FALSE) {
+  D <- as.matrix(D)
+  C <- as.matrix(C)
+  se <- sqrt(rowSums((D %*% C) * D))
+  ok <- is.finite(se) & se > 0
+  df <- rep_len(df, nrow(D))
+  df[is.na(df)] <- Inf
+  tdist <- any(is.finite(df[ok]))
+  if (!any(ok)) {
+    cr <- if (tdist) stats::qt(1 - level/2, df) else stats::qnorm(1 - level/2)
+    return(if (draws) list(crit = cr, M = NULL, tdist = tdist) else cr)
+  }
+  e <- eigen(C, symmetric = TRUE)
+  A <- e$vectors * rep(sqrt(pmax(e$values, 0)), each = nrow(e$vectors))   # columns scaled
+  DA <- D[ok, , drop = FALSE] %*% A
+  M <- pm_with_seed(20240403, {
+    Z <- matrix(stats::rnorm(ncol(A)*nsim), ncol(A))
+    if (!tdist) apply(abs(DA %*% Z)/se[ok], 2, max) else {
+      # W_g/df_g: one uniform per draw for all rows (comonotone), its exact
+      # chi-square quantile on each row's df (the Wilson-Hilferty cube-root
+      # approximation used before made the critical value up to 0.8% too large
+      # at df 8, against mvtnorm::qmvt()); in batches of 1000 draws (memory)
+      zu <- stats::rnorm(nsim)
+      d <- df[ok]
+      big <- !is.finite(d) | d > 1e8
+      unlist(lapply(split(seq_len(nsim), ceiling(seq_len(nsim)/1000)), function(j) {
+        T <- abs(DA %*% Z[, j, drop = FALSE])/se[ok]
+        u <- rep(stats::pnorm(zu[j]), each = length(d))
+        r <- matrix(stats::qchisq(u, rep(pmin(d, 1e8), length(j))) / rep(pmin(d, 1e8), length(j)), length(d))
+        r[big, ] <- 1
+        apply(matrix(stats::pt(T/sqrt(r), rep(d, length(j))), nrow(T)), 2, max)
+      }))
+    }
+  })
+  cr <- if (!tdist) as.numeric(stats::quantile(M, 1 - level)) else stats::qt(as.numeric(stats::quantile(M, 1 - level)), df)
+  if (draws) list(crit = cr, M = M, tdist = tdist) else cr
+}

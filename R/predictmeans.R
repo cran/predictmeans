@@ -1,700 +1,411 @@
-predictmeans <- function (model, modelterm, data=NULL, pairwise=FALSE, atvar=NULL, adj="none", Df=NULL, lsd_bar=TRUE,
-                          level=0.05, covariate=NULL, meandecr=NULL, letterCI=FALSE, trans = I, transOff=0, 
-                          responsen=NULL, count=FALSE, plotord=NULL, lineplot=TRUE, plottitle=NULL, plotxlab=NULL, 
-                          plotylab=NULL, mplot=TRUE, barplot=FALSE, pplot=TRUE, bkplot=TRUE, plot=TRUE, jitterv=0.2, 
-                          basesz=12L, prtnum=TRUE, prtplt=TRUE, newwd=FALSE, permlist=NULL, ncore=3L, ndecimal=4L) {
-  options(scipen=6) 
-  if(any(missing(model), missing(modelterm))) stop("The arguments 'model', and 'modelterm' must be provided!")
-  if (!(modelterm %in% attr(terms(model), "term.labels"))) stop(paste("The", modelterm, "must be exactly a term in the model (especially check the order of interaction)."))  
-  meanPlot <- ciPlot <- predictmeansBarPlot <- NULL
-  # if (inherits(model, "aovlist")) stop("Plese use model 'lme' instead of 'aov'!") 
-  if (inherits(model, "aovlist")) model <- aovlist_lmer(model)
-  if (inherits(model, "glm")) {
-    trans <- model$family$linkinv  # identical(trans, make.link("log")$linkinv)
-    if (model$family$family %in% c("poisson", "quasipoisson")) count=TRUE
+#' Predicted Means of a Linear Model
+#'
+#' @description
+#' Predicted means, their standard errors (SE), standard errors of differences (SED) and least significant
+#'   differences (LSD) for \code{aov}, \code{lm}, \code{glm}, \code{gls}, \code{lme}, \code{lmer}, \code{glmer},
+#'   \code{glmmTMB}, \code{gam} and \code{semireg} fits, with pairwise comparisons and permutation tests. Plots are
+#'   drawn from the result with \code{link{autoplot.predictmeans}}; \code{link{advice}} reads the notes made for
+#'   this fit and data.
+#' @usage
+#' predictmeans(model, modelterm, data=NULL, pairwise=NULL, atvar=NULL, adj="none",
+#'   conf_level=0.95, covariate=NULL, meandecr=NULL, letter_ci=FALSE, trans = I,
+#'   permlist=NULL,
+#'   ncore=1, cov_reduce=mean, exclude=NULL, vcov_adjust=TRUE,
+#'   weights=c("equal", "proportional", "outer", "cells", "flat"),
+#'   df_method=c("auto", "Kenward-Roger", "Satterthwaite", "containment",
+#'     "between-within", "KR-expected", "KR-average", "inner-outer", "residual"),
+#'   vcov=NULL,
+#'   equivalence=NULL, bias_adjust=FALSE, sigma=NULL, average=c("link", "response"),
+#'   mean_type=c("conditional", "overall"), ...)
+#' @param model Model object returned by \code{aov}, \code{lm}, \code{glm}, \code{gls}, \code{lme}, \code{lmer}, \code{glmer},
+#'   \code{glmmTMB} and \code{gam} (package \pkg{mgcv}), or a \code{\link{semireg}} fit. An \code{aov} model with
+#'   \code{Error()} strata is analysed by strata, as Genstat's ANOVA: each comparison uses the mean squares of the
+#'   strata it draws on, with Satterthwaite's df across strata (\code{settings$df_method} \code{"multistratum"});
+#'   standard errors of single means include the block stratum. With missing values in an orthogonal design (rows
+#'   whose response is \code{NA}, or a few combinations of the design factors absent) they are estimated as Genstat's
+#'   ANOVA does (the residual sum of squares of the lowest stratum made smallest; the residual df reduced) and the
+#'   completed design is analysed by strata, with exact standard errors (Genstat's are those of the complete design);
+#'   a message says that REML (\code{lmer()} with the \code{Error()} terms as random effects) uses the information in
+#'   all strata and is the better analysis when plots are missing. For a \code{semireg} fit the
+#'   means include the smooth terms (as \code{\link{semipred}}), at the covariates' means or at the values of
+#'   \code{covariate} (a named vector, e.g. \code{c(construction.date = 1980)}); the result holds only the
+#'   \code{means}, \code{pairs} and \code{settings} tables, with any \code{adj}. For gaussian fits the tests are t
+#'   tests with Satterthwaite df for the combination of fixed and smooth coefficients (the means include the smooths'
+#'   random effects; SAS gives such df to estimates that involve random effects), from the design's variance
+#'   components and the residual with the smoothing parameters held at their estimates (as \code{\link{semipred}});
+#'   for generalized fits the inner-outer df of the design's strata (the GLMM default; normal-based without random
+#'   terms besides the smooths).
+#' @param modelterm Name (in "quotes") for indicating which factor term's predicted mean to be calculated:
+#'   factors of the model joined by ":", e.g. "A" or "A:B". A combination of factors that is not a term of the
+#'   model can be asked for too (e.g. "A:B" for \code{y ~ A + B}): its means are the sums of the factors' effects
+#'   that the model implies (a note says so), which gives a table of predictions for every combination, also
+#'   those without data. Covariates are set with \code{covariate}.
+#' @param data The data used to fit the model; needed in some cases, e.g. when a variable is transformed in the
+#'   model formula.
+#' @param pairwise What is printed: \code{TRUE} shows the pairwise p-value matrices (t values above the diagonal)
+#'   and the letter groups; \code{FALSE} hides them; \code{NULL} (the default) shows them when comparisons are asked
+#'   for (\code{adj}, \code{atvar}, \code{permlist} or \code{letter_ci}), as before 2.0. It does not change what is
+#'   computed: the \code{pairs} table (every difference, SE, df, p-value, adjusted p-value and limits) is made
+#'   whenever comparisons are asked for, also with \code{pairwise = FALSE}, and otherwise for up to 100 means. With
+#'   more means (e.g. several hundred lines of a breeding trial) and no comparison asked for, the means, their SEs
+#'   and the SED and LSD summaries (maximum, minimum, average) are computed from the covariance of the means, without
+#'   a row per pair (300 means: about a second), and \code{pairs} is \code{NULL}; \code{pairwise = TRUE} or \code{adj}
+#'   compares all the pairs. No letter groups are made for more than 100 means.
+#'   \code{options(predictmeans.max_means = )} changes the limit of 100. (Before 2.0 the default was \code{FALSE}, and
+#'   \code{adj} or \code{atvar} turned it on.)
+#' @param atvar Factor(s) of \code{modelterm} within whose levels the pairs are compared (one or two names, or
+#'   \code{"A:B"}); each level is a family for \code{adj}, and the LSDs are those of the pairs within it.
+#' @param adj Name (in "quote") for indicating a method for adjusting p-values of pairwise comparisons. 
+#'   The choices are "none", "tukey", "holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "sidak", "scheffe"
+#'   and "mvt". "sidak", "scheffe" (rank of the family: number of means - 1) and "mvt" (single-step multivariate t, the exact
+#'   counterpart of SAS \code{ADJUST=SIMULATE}; needs package \pkg{mvtnorm}) are as in \pkg{emmeans}. Adjusted
+#'   p-values use each pair's own df (as SAS \code{ADJDFE=ROW}; SAS's default \code{ADJDFE=SOURCE} uses the df of the
+#'   term's F test instead, which differs when the pairs' df differ). With
+#'   \code{permlist}, "tukey" and "mvt" give the single-step max-|t| adjustment of the permutation p-values (the
+#'   permutation version of Tukey's test: each pair's |t| is compared with the largest |t| of the family in each
+#'   permuted data set), and "westfall" the step-down max-|t| of Westfall and Young (1993), which is uniformly more
+#'   powerful; both use the correlation between the comparisons. "westfall" needs \code{permlist}; "scheffe" is not
+#'   available with it. 
+#'   The default method is "none"; letter case does not matter ("Tukey" works). Confidence limits that agree with
+#'   the adjusted p-values are in the columns \code{adj.conf.low} and \code{adj.conf.high} of \code{pairs}.
+#'   The printed LSDs go with the p-values: the SED times the critical value of the method, for the same family
+#'   of pairs (all pairs, or the pairs within a level of \code{atvar}): \emph{t} for "none", the studentized range
+#'   divided by \eqn{\sqrt{2}} for "tukey" (the HSD), \emph{t} at the adjusted level for "bonferroni" and "sidak",
+#'   and the Scheffe and multivariate \emph{t} values. So a difference is beyond its LSD exactly when its adjusted
+#'   p-value is below \code{1 - conf_level}. The step-wise methods ("holm", "hochberg", "hommel", "BH", "BY", "fdr") have no
+#'   critical value for all pairs: their LSDs are not adjusted and a note with the LSDs says so. (Before 2.0 only
+#'   "bonferroni" adjusted the LSDs, with all the pairs as family also with \code{atvar}.)
+#' @param conf_level The confidence level of the confidence limits; the tests, LSDs and letters are at the
+#'   significance level \code{1 - conf_level}. The default is 0.95 (\code{level = 0.05} before 2.0).
+#' @param covariate The values of covariates at which the means are predicted: a named list or vector, e.g.
+#'   \code{list(x = 2, z = 0.3)} (covariates not named are at their means), or an unnamed numerical vector with one
+#'   value for each covariate of the model, in their order. The default values are the means of the covariates
+#'   (see \code{cov_reduce}). For means along the values of a covariate use \code{\link{covariatemeans}}.
+#' @param meandecr Logical: order the letters of \code{mean_table} by decreasing (\code{TRUE}) or increasing
+#'   (\code{FALSE}) means. The default \code{NULL} keeps the order of the factor levels.
+#' @param letter_ci A logical variable to indicate printed letters for multiple comparisons by whether or not the
+#'   comparison intervals of the means overlap (the default is FALSE). The comparison intervals are mean
+#'   \eqn{\pm c\,SE} with \eqn{c = t \times SED/(SE_1 + SE_2)}, averaged over the pairs compared, so that two means
+#'   differ at \code{1 - conf_level} when their intervals do not overlap: 83.4\% intervals for independent means with equal
+#'   SEs and a 5\% test, wider when the SEs differ, narrower when the means are correlated as in most mixed
+#'   models (Goldstein and Healy, 1995; Maghsoodloo and Huang, 2010; Afshartous and Preston, 2010). They are shown
+#'   as LL and UL in \code{mean_table}, labelled with their level, and the note under the table says how many
+#'   pairs are judged differently by their own tests when the SEDs differ. The comparisons are at the significance
+#'   level \code{1 - conf_level} (default 0.05), \code{adj} is "none", and with \code{atvar} the letters compare the means
+#'   within each \code{atvar} group. (Before 2.0 the intervals were 83.4\% confidence intervals whatever the
+#'   design, and \code{level} set their level, 0.166 by default.) The comparison intervals are in every result:
+#'   columns \code{comparison.low} and \code{comparison.high} of \code{means}, and
+#'   \code{autoplot(interval = "comparison")}.
+#' @param trans A function object for calculating the back transformed means, e.g. \code{trans=exp}. When it is
+#'   not given and the response is transformed in the model formula (\code{log(y)}, \code{log(y + c)},
+#'   \code{log10(y)}, \code{log2(y)}, \code{log1p(y)}, \code{sqrt(y)}, \code{y^p}, \code{1/y}, \code{qlogis(y)},
+#'   \code{asin(sqrt(y))}, \code{\link{pm_boxcox}(y, lambda)}, \code{pm_yeojohnson(y, lambda)}), the inverse is
+#'   used, constant included, and a message says so; \code{trans = I} keeps the model scale only. Models with a
+#'   link (\code{glm}, \code{glmer}, \code{glmmTMB}) are back-transformed with its inverse, unless \code{trans}
+#'   is given: then \code{trans} is used (with a message), and \code{trans = I} keeps the link scale, as in
+#'   \code{\link{covariatemeans}} (before 2.0 a given \code{trans} was silently replaced by the inverse link). What the
+#'   back-transformed mean is depends on the model: for a GLM the mean; for a GLMM the response of a typical
+#'   cluster (random effects at zero); for a transformed response the median of the original scale (the geometric
+#'   mean for a log). \code{bias_adjust = TRUE} gives the mean in the last two cases;
+#'   \code{settings$back_transform} and \code{summary()} say which it is.
+#' @param \dots Not used: arguments removed in 2.0 (e.g. \code{level}, \code{Df}, \code{plot}, \code{plot_args},
+#'   \code{plottitle} as an argument of its own) stop with their 2.0 spelling (see \code{vignette("migrating")});
+#'   other names are an error.
+#' @param permlist A list from \code{\link{permmodels}}: the pairs are then tested by permutation, with p-value
+#'   \eqn{(b + 1)/(B + 1)} (\eqn{b} of the \eqn{B} permuted statistics at least as extreme as the observed one), and
+#'   \code{df_method} is not used. With the result of \code{permmodels(method = "freedman-lane")} (\code{lm} and \code{aov}
+#'   models), each pair is tested by Freedman-Lane permutations of the model in which that pair's means are equal.
+#'   With a \code{permlist}, \code{vcov_adjust} is not used: the observed t statistics are compared with those of the
+#'   permuted refits, which use the unadjusted covariance. The confidence limits of each mean are the model's t
+#'   limits at \code{conf_level} (the permutation tests are of the comparisons; before 2.0, mean +/- 2 SE).
+#' @param ncore Number of cores for parallel computing when \code{permlist != NULL}, the default value is 1 (before predictmeans 2.0: 3). Results are the same for any \code{ncore}.
+#' @param cov_reduce How covariates that are not varied are handled when building the predicted means: a function such as
+#'   \code{mean} (the default) or \code{median}, or \code{"average"} to average the predictions over the
+#'   observed covariate values (e.g. means adjusted for a spatial smooth in a \code{gam}). See \code{\link{Kmatrix}}.
+#' @param exclude For \code{gam} models: smooth terms to leave out of the predictions. The default excludes random-effect
+#'   smooths. See \code{\link{Kmatrix}}.
+#' @param vcov_adjust For models fitted by REML (\code{lmer}, \code{lme}, \code{gls}) with Kenward-Roger df: if \code{TRUE} (the default), standard errors use the Kenward-Roger
+#'   adjusted covariance matrix of the fixed effects, as SAS \code{DDFM=KR} and \pkg{emmeans} do, to go with the
+#'   Kenward-Roger degrees of freedom. \code{FALSE} uses the unadjusted covariance and reproduces results of
+#'   predictmeans 1.x. It has no effect for other models.
+#' @param weights Passed to \code{\link{Kmatrix}}: how the cells of the factors that are not in \code{modelterm} are weighted when averaging over them:
+#'   \code{"equal"} (the default; equal weights), \code{"proportional"} (weights proportional to the frequencies of
+#'   those cells in the data, the same for every mean, as SAS \code{LSMEANS / OM}), \code{"outer"} (products of each
+#'   factor's own frequencies), \code{"cells"} (each mean weights the cells by their own frequencies) or
+#'   \code{"flat"} (equal weights over the non-empty cells). The definitions are those of \pkg{emmeans}.
+#'   Empty cells (combinations of interacting factors without data, not those absent by design, as for nested
+#'   factors): with \code{"equal"}, a mean that averages over them is the average of its observed cells (as
+#'   predictmeans 1.x, and ASReml and Genstat with \code{PRESENT}), with a warning naming those means. Two such means
+#'   average over different cells, so their difference would also carry the effects of the other factors; a pair
+#'   with such a mean is therefore compared on the cells both means have (column \code{over} of \code{pairs}; NA,
+#'   \code{over = "none"}, when they have none). Only factors whose effects the two means share are matched: with
+#'   \code{Sample_date/Farm} in the model, two dates are not matched on farms (each date has its own farm effects),
+#'   but two treatments at one date are. In simulations comparing the averages rejected 8-78\% of true
+#'   null hypotheses at the 5\% level when the other factor had an effect, the common cells 4-6\%
+#'   (\code{dev/review-defaults.md} in the package sources). \code{contrastmeans()} and \code{pm_joint()} do the same.
+#'   A cell is a combination of the factors of one interaction term: factors that do not interact do not make cells
+#'   together, and a combination of them without data is estimated by the (additive) model.
+#'   Confounded factors (two factors that share no term and do not occur in all combinations: a factor nested in
+#'   another only in the data, a spray volume used with one droplet size, each pasture on one farm) have no mean
+#'   over all their combinations; the means then average over the combinations that exist, with a warning that
+#'   names the two factors. Three ways say what is wanted: the nesting in the formula (\code{G/T}) or the model
+#'   without the factor that adds nothing give the same means (equal weights over the combinations that exist);
+#'   \code{weights = "cells"} weights the combinations by their numbers of observations. See
+#'   \code{vignette("missing-cells", package = "predictmeans")}.
+#' @param df_method Denominator degrees of freedom, by method or as one number (a fixed df, \code{Df} before
+#'   2.0), e.g. \code{df_method = 10}. For \code{lmer} models \code{"auto"} (the default) uses Kenward-Roger for
+#'   REML fits and Satterthwaite for ML fits. Kenward-Roger uses the observed information of the variance
+#'   parameters, as SAS PROC MIXED \code{DDFM=KR}; it stays valid with missing values, where the expected information
+#'   (\code{"KR-expected"}, as \pkg{pbkrtest} and \pkg{emmeans}) is not: in simulations (\code{dev/sim-df/} in the
+#'   package sources) F tests of repeated measures with missing values rejected 6\% of true hypotheses at the 5\%
+#'   level with the observed information and 8.5\% with the expected. The two agree in balanced designs.
+#'   \code{"KR-average"} uses the average information of the REML iterations of Genstat and ASReml (Gilmour, Thompson
+#'   and Cullis 1995) and gives Genstat's REML df; Genstat's SEDs are the unadjusted ones (\code{vcov_adjust = FALSE}).
+#'   \code{"containment"} gives the SAS \code{DDFM=CONTAIN} df: the
+#'   smallest rank contribution to \eqn{[X Z]} of the random effects that contain \code{modelterm}, or the
+#'   residual df when none does; all means and comparisons of the term then share that df, and the unadjusted
+#'   covariance is used unless \code{vcov_adjust = TRUE} is given. \code{"between-within"} gives the SAS \code{DDFM=BETWITHIN} df, for \code{lmer}, \code{lme} and
+#'   \code{gls} models: the subject is the coarsest random-effect grouping (\code{lmer}, \code{lme}) or the grouping of
+#'   the correlation structure (\code{gls}); an effect constant within subjects gets the between-subject df, and the
+#'   others the df of their subject-by-effect interaction (for example Block x Variety in a split plot); with an
+#'   unstructured covariance (\code{gls} with \code{corSymm}) and no random effects every effect gets the
+#'   between-subject df, as in SAS. Checked against SAS PROC MIXED. As for containment, the unadjusted covariance is
+#'   used unless \code{vcov_adjust = TRUE} is given.
+#'   For \code{lme} and \code{gls} models fitted by REML, \code{"auto"} is Kenward-Roger too (with adjusted standard
+#'   errors), for any correlation and variance structure: in simulations the residual df (\code{gls}) rejected 16\% of
+#'   true hypotheses in F tests of unstructured repeated measures (24\% with missing values), Kenward-Roger 4-6\%.
+#'   \code{"Satterthwaite"} is also available (the covariance of the variance parameters from the Hessian of the REML
+#'   log-likelihood, as SAS; its F tests are liberal when the covariance has several parameters), and
+#'   \code{"containment"} gives \pkg{nlme}'s df (\code{lme}) or the residual df (\code{gls}), as predictmeans 1.x.
+#'   All are checked against SAS PROC MIXED. ML fits of \code{lme} and \code{gls} use Satterthwaite from the ML
+#'   log-likelihood, as ML \code{lmer} fits (\pkg{lmerTest}); before 2.0 they used \pkg{nlme}'s or the residual df
+#'   (\code{df_method = "containment"}). In simulations of ML \code{gls} fits with an unstructured covariance the
+#'   residual df rejected 6.9\% (t) and 9.3-11.7\% (F) of true null hypotheses, Satterthwaite 5.5\% and 6.3-8.8\%; fit
+#'   by REML for Kenward-Roger, which held 5\%.
+#'   For GLMMs (\code{glmer}, \code{glmmTMB}) \code{"auto"} is \code{"inner-outer"}: the df of the level of the random
+#'   effects at which each effect varies, \pkg{nlme}'s rule (Pinheiro and Bates 2000), computed from the design and
+#'   extended to crossed random effects; a contrast gets the smallest df of the coefficients it uses, and the means of a
+#'   term the df of the term. In simulations it rejected 6-8\% of true hypotheses for effects that vary between
+#'   clusters, where the residual df (\code{"residual"}, predictmeans 1.x) rejected 8-15\%; \code{bootmodels()} is
+#'   the check with few clusters. \code{"containment"} and \code{"between-within"} are also available for \code{glmer},
+#'   and \code{"inner-outer"} for \code{lmer} and \code{lme}.
+#'   \code{glm} models with a known dispersion (Poisson, binomial, negative binomial) get z tests
+#'   (\code{"asymptotic (z)"}), as \pkg{emmeans} and SAS GLIMMIX; \code{"residual"} gives the t tests with the
+#'   residual df of predictmeans 1.x, which were conservative in simulations (0.3-4.5\% of true null hypotheses
+#'   rejected at the 5\% level, z tests 3.6-5.7\%). Other choices are ignored for other model classes.
+#' @param vcov Optional covariance of the coefficients to use instead of the model's. For \code{lm}, \code{aov}
+#'   and \code{glm} models: \code{"HC0"}, \code{"HC1"}, \code{"HC2"} or \code{"HC3"} (heteroscedasticity-consistent,
+#'   as \code{sandwich::vcovHC()}), or a one-sided formula naming a cluster variable of the data, e.g. \code{~ Block}
+#'   (cluster-robust CR1, as \code{sandwich::vcovCL()}). For any model: a covariance matrix of the coefficients, or
+#'   a function that returns one from the model (for mixed models e.g. from the \pkg{clubSandwich} package). The
+#'   degrees of freedom stay those of the model (the residual df; for \code{lmer} Kenward-Roger or Satterthwaite df
+#'   computed from the model), and \code{vcov_adjust} is not used. With a \code{permlist}, \code{vcov} is not used
+#'   (for robust permutation tests see \code{permmodels(robust = TRUE)}). The default \code{NULL} uses the model's
+#'   covariance.
+#' @param equivalence Optional equivalence margins for equivalence tests (two one-sided t tests, TOST) of the
+#'   differences: a positive number \eqn{d} (equivalence region \eqn{-d} to \eqn{d}) or \code{c(lower, upper)}, on the
+#'   scale of the comparisons (the link scale for GLMs: e.g. log ratios). The TOST p-value is the larger of the two
+#'   one-sided p-values; below \code{1 - conf_level}, the difference lies within the margins (as emmeans'
+#'   \code{test(..., side = "equivalence")}). Not adjusted for multiplicity; with a \code{permlist} it is t-based
+#'   (normal-based in \code{contrastmeans}).
+#' @param bias_adjust Adjust the back-transformed means (non-identity link or \code{trans}) to be means on the
+#'   response scale: \code{TRUE} gives \eqn{E\,h(\eta + u)}, \eqn{u \sim N(0, \sigma^2)}, the mean over the
+#'   random effects (and, for a transformed response of a linear model, the residual error), computed by
+#'   Gauss-Hermite quadrature: \eqn{\exp(\eta + \sigma^2/2)} for a log, \eqn{\eta^2 + \sigma^2} for a square
+#'   root. \code{"taylor"} gives the second-order approximation \eqn{h(\eta) + \sigma^2 h''(\eta)/2} (emmeans'
+#'   \code{bias.adjust}), which is too low for a log when \eqn{\sigma} is large and off for a logit. The
+#'   response-scale SEs follow by the delta method. \code{FALSE} (the default): the back-transformed mean is that
+#'   of a unit with all random effects zero, or the median for a transformed response.
+#' @param sigma With \code{bias_adjust = TRUE}: the SD to adjust for. The default is the square root of the summed
+#'   random-intercept variances (\code{glmer}, \code{glmmTMB}, \code{lme}), plus the residual variance for a
+#'   transformed response of a linear (mixed) model; models with random slopes need it given.
+#' @param average How means average over the other factors when they are back-transformed: \code{"link"} (the default;
+#'   average on the link scale, then back-transform) or \code{"response"} (back-transform each cell of the reference
+#'   grid, then average with the same weights, as emmeans' \code{regrid()}: the mean of the response, e.g. a mean
+#'   count). Both change only the \code{response} columns of \code{means}; the printed tables and the \code{pairs}
+#'   stay on the link scale.
+#' @param mean_type Only for \code{glmmTMB} fits with zero inflation (\code{ziformula}); for other models the two
+#'   are the same and the argument is ignored. \code{"conditional"} (default): the means of the count part,
+#'   \eqn{\mu}. \code{"overall"}: the overall means \eqn{(1 - \pi)\mu} (\eqn{\pi} the probability of an extra zero),
+#'   with SEs from the joint covariance of the conditional and zero-inflation coefficients (delta method),
+#'   averaged over the cells of the grid as \code{average = "response"} does; \code{estimate} is their log and the
+#'   pairs are their ratios. Equal to glmmTMB's \code{predict(type = "response")} and to emmeans with
+#'   \code{component = "response"}. For log-link count families (poisson, nbinom1, nbinom2, ...).
+#' @section Covariates aliased with a factor:
+#' A covariate that takes one value within each level of a factor (a site mean, a block-level measurement) is
+#' aliased with that factor: in \code{lm(ht ~ site + sitemean * seedlot)} the coefficient of \code{sitemean} is
+#' NA. A mean over sites is then estimable only if each site keeps its own value of the covariate; at a single
+#' value, such as the overall mean, the "means" depend on the coding of the factors (which level is the
+#' reference) and are not estimates. predictmeans finds such covariates and uses each level's own value, with a
+#' message. predictmeans 1.x, and Genstat \code{PREDICT} after the covariate is dropped as aliased, used the
+#' overall mean; SAS \code{LSMEANS} reports such means as non-estimable. For a seedlot measured at every site the
+#' equal-weight mean is then its raw mean; for one with missing sites, \code{weights = "equal"} extrapolates its
+#' regression line to the missing sites and \code{weights = "cells"} averages over the sites it was measured at.
+#' See \code{\link{DataExam5.2}}.
+#' @section Zero inflation (glmmTMB):
+#' For a \code{glmmTMB} fit with zero inflation (\code{ziformula}) the means are those of the conditional (count)
+#' part, \eqn{\mu}, as \code{emmeans} and \code{predict(type = "conditional")} give, not the overall mean
+#' \eqn{(1 - \pi)\mu} (\eqn{\pi} the probability of an extra zero); ratios are of these means, and equal the
+#' ratios of overall means only when \eqn{\pi} is the same. A message says so and \code{settings$component} is
+#' \code{"conditional"}. The two can order treatments differently when \eqn{\pi} differs between them.
+#' \code{predictmeans(mean_type = "overall")} gives the overall means and their ratios.
+#' @return
+#' \item{Predicted Means}{A table of predicted means.}
+#'  \item{Standard Error of Means}{A table of standard errors of predicted means.}
+#'  \item{Standard Error of Differences}{Standard errors of differences between predicted means.}
+#'  \item{LSD}{Least significant differences between predicted means (maximum, minimum and average), with the
+#'  critical value that goes with \code{adj} (see there); attribute \code{"Note"} says when they are adjusted,
+#'  or why not.}
+#'  \item{Pairwise p-value}{Only when the pairs are displayed (see \code{pairwise}): a matrix with t values above
+#'  the diagonal and p-values (adjusted by \code{adj}) below it; with \code{atvar} one matrix per level of
+#'  \code{atvar}, named by the level.}
+#'  \item{mean_table}{The means with SE, df and confidence limits (and letters when pairs are compared); for
+#'  back-transformed means also the response-scale means and limits.}
+#'  \item{p_valueMatrix}{Only when the pairs are displayed: the p-value matrix of the letters.}
+#'  \item{means}{A data frame with one row per predicted mean and fixed column names: the factor (and covariate)
+#'  columns, \code{over} (only when some mean averages over empty cells: the cells it averages, e.g.
+#'  \code{"N 0, 0.2, 0.4"}; NA for the means over all their cells), \code{estimate}, \code{std.error}, \code{df},
+#'  \code{conf.low}, \code{conf.high} (confidence limits
+#'  of each mean, not for comparing means), \code{comparison.low} and \code{comparison.high} (comparison
+#'  intervals: two means differ at \code{1 - conf_level}, with the adjustment of \code{adj} when it has a critical value,
+#'  when these do not overlap; see \code{letter_ci}; present when the pairs are tabulated; NA for a mean over empty
+#'  cells whose pairs are not the differences of the shown means (compared on common cells, or not estimable), which
+#'  no interval around it can show); when the means are
+#'  back-transformed also \code{response}, \code{response.std.error} (delta method, as \pkg{emmeans} with
+#'  \code{type = "response"}), \code{response.conf.low} and \code{response.conf.high}; \code{group}
+#'  (letters, when pairwise comparisons are made), \code{n} (number of observations) and \code{estimable}. Values are
+#'  not rounded. Also returned by \code{tidy()} and \code{as.data.frame()}.}
+#'  \item{pairs}{A data frame with one row per pairwise comparison (\code{NULL} with one mean, or with more than
+#'  100 means when no comparison was asked for; see \code{pairwise}): \code{level1}, \code{level2}, \code{by} (the
+#'  level of \code{atvar}, when given; \code{NA} for pairs across levels), \code{estimate} (mean of \code{level1}
+#'  minus mean of \code{level2}), \code{std.error}, \code{df}, \code{statistic} (t), \code{p.value}, \code{p.adj}
+#'  (adjusted by \code{adj}, within each level of \code{atvar} when given), \code{p.equiv} (with
+#'  \code{equivalence}: the TOST p-value), \code{conf.low} and \code{conf.high} (limits of
+#'  each difference at \code{conf_level}, not adjusted), \code{lsd} (the half-width of those limits),
+#'  \code{adj.conf.low} and \code{adj.conf.high} (simultaneous limits within each family, which exclude 0 exactly
+#'  when \code{p.adj} is below \code{1 - conf_level}, as SAS \code{AdjLower} and \code{AdjUpper} and \pkg{emmeans}; for
+#'  \code{adj} "tukey" (each pair's own df, as SAS \code{ADJDFE=ROW}), "bonferroni", "sidak", "scheffe" and "mvt";
+#'  the step-down and false discovery rate methods have none) and \code{p.method}; with \code{permlist}
+#'  the limits are permutation-t limits (estimate +- c SE, c the critical value of the permutation test), and the
+#'  adjusted limits use the permutation distribution of the family's largest |t| ("tukey", "mvt", "westfall") or
+#'  each pair's at level/m ("bonferroni", "sidak"); for a log
+#'  link or \code{trans = exp} also \code{ratio} (of the back-transformed means, \code{exp(estimate)}),
+#'  \code{ratio.conf.low} and \code{ratio.conf.high}, and for a logit link \code{odds.ratio} with its limits.}
+#'  \item{settings}{A list with the options used: model term, significance level, adjustment method, \code{atvar},
+#'  degrees-of-freedom method, \code{vcov_adjust}, \code{vcov} (\code{"model"}, \code{"HC3"}, ...), \code{singular} (a
+#'  singular lmer/glmer fit; a message says so too), number of permutations, covariate values, model class and
+#'  package version; \code{comparison}, the comparison intervals: the multiplier \code{mult} of the SE, its
+#'  confidence level, the number of pairs and how many of them are judged differently by their own tests, from the
+#'  means shown (\code{disagree}; 0 and \code{exact = TRUE} when all SEDs are equal), and \code{left_out}, the means
+#'  over empty cells that have none.}
+#'  The result has class \code{c("predictmeans", "pdmlist")}. Printing shows the legacy tables;
+#'  the \code{means}, \code{pairs} and \code{settings} elements are not printed. Plots come from
+#'  \code{autoplot()}; notes for this fit are in \code{attr(, "advice")}, read with \code{\link{advice}}.
+#' @seealso \code{\link{autoplot.predictmeans}}, \code{\link{tidy.predictmeans}}, \code{\link{advice}},
+#'   \code{\link{pm_check}}, \code{\link{contrastmeans}}, \code{\link{pm_joint}}, \code{\link{covariatemeans}}
+#' @note
+#' The \code{predictmeans} function becomes confused if a factor or covariate is changed to the other
+#'   in a model formula. Consequently, formulae that include calls \code{as.factor}, \code{factor}, or \code{numeric}
+#'   (e.g. \code{as.factor(income)}) will cause errors. Instead, create the modified variables outside of the model
+#'   formula (e.g., \code{fincome <- as.factor(income)}) and then use them in the model formula.
+#'   
+#'   Factors cannot have colons in level names (e.g., \code{"level:A"}) for the legacy tables; the \code{predictmeans}
+#'   function will confuse the colons with interactions; rename levels to avoid colons. The \code{means} and
+#'   \code{pairs} tables are not affected.
+#'   
+#'   For \code{predictmeans} function, it is assumed that methods \code{coef}, \code{vcov}, \code{model.matrix}, \code{model.frame} and \code{terms} are available for \code{model}.
+#' @references
+#' Torsten Hothorn, Frank Bretz and Peter Westfall (2008),
+#'     \emph{Simultaneous Inference in General Parametric Models. Biometrical}, Journal 50(3), 346--363.
+#'   
+#' 	Gilmour, A. R., Thompson, R. and Cullis, B. R. (1995), \emph{Average information REML: an efficient algorithm for
+#' 	variance parameter estimation in linear mixed models}, Biometrics, 51(4), 1440-1450.
+#'
+#' 	Welham, S., Cullis, B., Gogel, B., Gilmour, A., & Thompson, R. (2004),
+#' 	\emph{Prediction in linear mixed models}, Australian and New Zealand Journal of Statistics, 46(3), 325-347. 
+#' 	
+#' 	Vanessa, C. (05 October 2022),
+#' 	\emph{Confidence tricks: the 83.4\% confidence interval for comparing means}, https://vsni.co.uk/blogs/confidence_trick.
+#' 
+#' 	Maghsoodloo, S. and Huang, C.-Y. (2010), \emph{Comparing the overlapping of two independent confidence intervals
+#' 	with a single confidence interval for two normal population parameters}, Journal of Statistical Planning and
+#' 	Inference, 140(11), 3295-3305.
+#'
+#' 	Goldstein, H. and Healy, M. J. R. (1995), \emph{The graphical presentation of a collection of means}, Journal
+#' 	of the Royal Statistical Society A, 158(1), 175-177.
+#'
+#' 	Austin, P. C. and Hux, J. E. (2002), \emph{A brief note on overlapping confidence intervals}, Journal of
+#' 	Vascular Surgery, 36(1), 194-195.
+#'
+#' 	Afshartous, D. and Preston, R. A. (2010), \emph{Confidence intervals for dependent data: equating non-overlap
+#' 	with statistical significance}, Computational Statistics and Data Analysis, 54(10), 2296-2305.
+#' @author
+#' Dongwen Luo, Siva Ganesh and John Koolaard
+#' @examples
+#'   library(predictmeans)
+#'   Oats$nitro <- factor(Oats$nitro)
+#'   fm <- lmer(yield ~ nitro*Variety + (1|Block/Variety), data=Oats)
+#'   ## The results as tables (columns described under Value)
+#'   pm <- predictmeans(fm, "nitro")
+#'   pm$means
+#'   pm$pairs
+#'   pm$settings
+#'   summary(pm)
+#'   ## Means within each variety, Tukey-adjusted pairs; plots from the result
+#'   predictout <- predictmeans(fm, "nitro:Variety", atvar="Variety", adj="tukey")
+#'   names(predictout)
+#'   ggplot2::autoplot(predictout)                   # means, one LSD bar per variety
+#'   ggplot2::autoplot(predictout, type = "bar")
+#'   ## lme fits work the same way
+#'   fl <- lme(yield ~ nitro*Variety, random=~1|Block/Variety, data=Oats)
+#'   predictmeans(fl, "nitro", adj="BH")$pairs
+#' @name predictmeans
+NULL
+
+#' @export
+predictmeans <- function (model, modelterm, data=NULL, pairwise=NULL, atvar=NULL, adj="none", conf_level=0.95,
+                          covariate=NULL, meandecr=NULL, letter_ci=FALSE, trans = I,
+                          permlist=NULL, ncore=1, cov_reduce=mean, exclude=NULL, vcov_adjust=TRUE,
+                          weights=c("equal", "proportional", "outer", "cells", "flat"),
+                          df_method=c("auto", "Kenward-Roger", "Satterthwaite", "containment", "between-within", "KR-expected", "KR-average", "inner-outer", "residual"), vcov=NULL,
+                          equivalence=NULL, bias_adjust=FALSE, sigma=NULL, average=c("link", "response"),
+                          mean_type=c("conditional", "overall"), ...) {
+  # arguments removed in 2.0 stop with their 2.0 spelling (R/defunct.R)
+  pm_defunct("predictmeans", match.call(), strict = TRUE, formals_of = formals(sys.function()))
+  level <- pm_conf_alpha(conf_level)
+  average <- match.arg(average)
+  mean_type <- match.arg(mean_type)
+  pm_equiv_margins(equivalence)                  # check early
+  pm_note_singular(model)
+
+  ## Bias output towards fixed notation. See ?options for more info
+  op <- options(scipen = 6)
+  on.exit(options(op), add = TRUE)
+
+  if(any(missing(model), missing(modelterm))){
+    stop("The arguments 'model', and 'modelterm' must be provided!")
   }
-  if (inherits(model, "glmerMod")) {
-    trans <- slot(model, "resp")$family$linkinv
+
+  # semireg() fits: means with the smooth terms included (see semireg-means.R)
+  if (inherits(model, "semireg")) {
+    return(pm_semireg_means(model, modelterm, covariate = covariate, level = level, adj = adj, atvar = atvar))
   }
-  if (inherits(model, "glmmTMB")) {
-    trans <- model$modelInfo$family$linkinv
-    if (model$modelInfo$family$family %in% c("poisson", "quasipoisson")) count=TRUE
-  }
-  vars <- unlist(strsplit(modelterm, "\\:"))
-  mdf <- model.frame(model)
-  if(any(!base::is.element(vars, names(mdf)[sapply(mdf,is.factor)])))
-    stop(paste(vars, "must be factor(s)!"))
-  # option checking
-  if (length(vars)==1) atvar <- NULL
-  if (!is.null(permlist) && !unique(permlist%in%c("NULL", ""))) {pairwise <- TRUE; if (adj=="tukey") stop("The p-value can't be adjusted by Tukey methd!")}
-  if (!is.null(atvar) && !unique(atvar%in%c("NULL", ""))) pairwise <- TRUE
-  if (adj != "none") pairwise <- TRUE
-  # if (letterCI) {pairwise <- TRUE; adj <- "none"; if (is.null(level)) slevel <- level <- 0.166 else slevel <- level}
-  # if (is.null(level)) slevel <- level <- 0.05 else slevel <- level
-  
-  if (letterCI) {pairwise <- TRUE; slevel <- round(2*(1-pnorm(sqrt(2)*qnorm(1-level/2)/2)), 3); level <- pmlevel <- 0.05} else pmlevel <- slevel <- level
-  if (!is.null(plotord) && !unique(plotord%in%c("NULL", ""))) {
-    plot <- mplot <- TRUE
-    if(length(plotord) != length(vars)){
-      stop(paste("plotord must be a vector of length", length(vars)))
-    }
-    if(is.character(plotord)){      
-      i = match(plotord, vars)
-      if(any(is.na(i))){
-        stop(paste("The entries", paste0(plotord[is.na(i)], sep = ", "), "do not match any term in ", modelterm))
-      }else{
-        plotord = i
-      }
-    }	
-  }
-  if (!is.logical(meandecr)) meandecr <- NULL
-  if (!prtplt) newwd <- FALSE
-  
-  ctr.matrix <- Kmatrix(model, modelterm, covariate, data=data, prtnum=prtnum) 
-  KK <- ctr.matrix$K
-  label <- ctr.matrix$fctnames
-  rownames(label) <- rownames(KK)
-  response <- ctr.matrix$response
-  mp <- mymodelparm(model) 
-  n.table <- table(mdf[, vars, drop = FALSE])
-  ndf <- data.frame(n.table)       ## To obtain info from model
-  
-  if (inherits(model, "glmmTMB")) K <- KK else K <- KK[, mp$estimable, drop = FALSE]          # To match coef names
-  if (any(ndf$Freq==0)) {    
-    rnTrt <- do.call("paste", c(ndf[, vars, drop=FALSE], sep=":"))
-    rnTrt <- rnTrt[ndf$Freq!=0]      # To delete any missing level in factor
-    K <- K[rownames(K)%in%rnTrt,]
-    label <- label[rownames(label)%in%rnTrt,]
-  }
-  pm <- K %*% mp$coef
-  vcovm <- mp$vcov
-  # ses <- sqrt(diag(K %*% tcrossprod(vcovm, K)))
-  ses <- as.numeric(apply(K, 1, function(x) {y <- matrix(x, nrow=1);sqrt(y %*% tcrossprod(mp$vcov, y))}))
-  mt <- data.frame(pm, ses, label)
-  LL <- UL <- NULL
-  bkmt <- mt  # for back transformed  
-  
-  mean.table <- round(xtabs(pm ~ ., mt[, c("pm", vars)], drop.unused.levels = TRUE), ndecimal)
-  se.table <- round(xtabs(ses ~ ., mt[, c("ses", vars)], drop.unused.levels = TRUE), ndecimal+1)
-  mean.table[!(n.table)] <- NA
-  se.table[!(n.table)] <- NA
-  if (length(vars) > 1) {
-    varsnlevel <- numeric(0)
-    for (i in vars) varsnlevel[i] <- nlevels(mdf[, i])
-    tbvars <- names(sort(varsnlevel, decreasing = TRUE))
-    mean.table <- ftable(mean.table, row.vars =tbvars[1], col.var=tbvars[-1])
-    se.table <- ftable(se.table, row.vars =tbvars[1], col.var=tbvars[-1])
-  }
-  if (length(na.omit(unique(se.table)))==1) {
-    se.table <- min(se.table, na.rm=TRUE)
-    names(se.table) <- "All means have the same SE"
-  }
-  
-  nK <- nrow(K)          # To setup various matrix and row, col names
-  rnK <- rownames(K)
-  
-  if (nK == 1) {
-    SED.out <- NA
-    LSD <- NA
-  }else {
-    K_indices <- t(utils::combn(nK, 2)) 
-    K_indices <- K_indices[order(K_indices[ , 2]), ,drop=FALSE]
-    Knum_pairs <- nrow(K_indices)
-    rows <- rep(1:Knum_pairs, 2)  # The rows are the same for each pair of indices
-    cols <- c(K_indices[, 1], K_indices[, 2])  # Indices of the pairs
-    values <- c(rep(1, Knum_pairs), rep(-1, Knum_pairs))  # Corrected to 1 for the second species and -1 for the first
-    # Create the sparse matrix CM
-    CM <- Matrix::sparseMatrix(i = rows, j = cols, x = values, dims = c(Knum_pairs, nK))
-    rK <- as.matrix(CM %*% K)
-    varn1 <- rnK[K_indices[, 2]]
-    varn2 <- rnK[K_indices[, 1]]
-    
-    nKK <- nrow(KK)          # To setup various matrix and row, col names
-    rnKK <- rownames(KK)
-    KK_indices <- t(utils::combn(nKK, 2)) 
-    KK_indices <- KK_indices[order(KK_indices[ , 2]), , drop=FALSE]
-    KKvarn1 <- rnKK[KK_indices[, 2]]
-    KKvarn2 <- rnKK[KK_indices[, 1]]	
-    
-    KKvarndiff <- data.frame(matrix(unlist(strsplit(KKvarn1, "\\:")), byrow=T, nrow=length(KKvarn1)),
-                             matrix(unlist(strsplit(KKvarn2, "\\:")), byrow=T, nrow=length(KKvarn2)))
-    
-    cm <- rK%*%mp$coef
-    vcov.contr <- rK %*% tcrossprod(vcovm, rK)
-    dses <- sqrt(diag(vcov.contr))
-    if (adj == "bonferroni") level <- level/length(dses) # The reson we need slevel
-    
-    SED.out <- c(Max.SED = max(dses[!is.nan(dses)]), Min.SED = min(dses[!is.nan(dses)]), Aveg.SED = mean(dses[!is.nan(dses)]))
-    dses.df <- data.frame(matrix(unlist(strsplit(varn1, "\\:")), byrow=T, nrow=length(varn1)),
-                          matrix(unlist(strsplit(varn2, "\\:")), byrow=T, nrow=length(varn2)), dses)
-    
-    if (length(vars) > 1) { # all(length(vars) > 1, SED.out[1]!=SED.out[2])
-      dses.m <- matrix(0, nrow=3, ncol=length(vars))
-      colnames(dses.m) <- vars
-      rownames(dses.m) <- c("Aveg.SED", "Min.SED", "Max.SED")
-      for (i in 1:length(vars)) {
-        varsindx <- as.character(dses.df[,i])==as.character(dses.df[, length(vars)+i])
-        if(any(varsindx))  # in case of A/B
-          dses.m[,i] <- summary.default(dses.df[varsindx,"dses"])[c(4,1,6)]  else {dses.m[,i] <- NA; atvar <- NULL}
-      }
-      attr(SED.out, "For the Same Level of Factor") <- dses.m
-    }
-    
-    if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {
-      if (length(Df) == 0) {
-        if (inherits(model, "lme")) {
-          Df <- terms(model$fixDF)[modelterm]
-          names(Df) <- NULL
-          mt$Df <- round(Df, 2)
-          pairDf <- Df
-          Df_diff <- Df
-        }else if (inherits(model, "lmerMod")) {
-          #  Df <- median(df_term(model, modelterm), na.rm=TRUE)
-          L_term <- get_contrasts_type1(model)[[modelterm]]
-          Df <- mean(df_term(model, ctrmatrix=L_term))
-          if (is.nan(Df)) stop("You need provide Df for this model term!")
-          # terms_df <- round(df_term(model, modelterm), 2)
-          terms_df <- round(df_term(model, ctrmatrix=K), 2)
-          terms_df <- terms_df[!is.na(terms_df)]
-          terms_df[terms_df <= 0] <- Df
-          mt$Df <- terms_df
-          Df_diff <- df_term(model, ctrmatrix=rK)
-          Df_diff <- round(Df_diff[!is.na(Df_diff)], 2)
-          Df_diff[Df_diff <= 0] <- Df 
-          pairDf <- round(mean(Df_diff), 2)
-          # Df_diff[Df_diff <= 0] <- 1
-        }else{
-          Df <- mp$df
-          mt$Df <- round(Df, 2)
-          pairDf <- Df
-          Df_diff <- Df
-        }
-        
-        if (Df==0) stop("You need provide Df for this model term!")
-      }else {
-        mt$Df <- Df
-        Df_diff <- Df
-        pairDf <- Df
-      }
-      
-      bkmt <- mt  # update bkmt
-      
-      LSD <- round(qt(1 - level/2, df = Df) * SED.out, ndecimal+1)
-      names(LSD) <- c("Max.LSD", "Min.LSD", "Aveg.LSD")
-      attr(LSD, "For the Same Level of Factor") <- NULL
-      if (length(vars) > 1) {
-        rownames(dses.m) <- c("Aveg.LSD", "Min.LSD", "Max.LSD")
-        attr(LSD, "For the Same Level of Factor") <- round(qt(1 - level/2, df = Df) * dses.m, ndecimal+1)
-      } # end of if LSD
-      attr(LSD, "Significant level") <- pmlevel
-      attr(LSD, "Degree of freedom") <- round(Df, 2)
-    }else{
-      LSD <- round(2 * SED.out[1:3], ndecimal+1)
-      names(LSD) <- c("Max.LSD", "Min.LSD", "Aveg.LSD")        
-      if (length(vars) > 1) {
-        rownames(dses.m) <- c("Aveg.LSD", "Min.LSD", "Max.LSD")
-        attr(LSD, "For the Same Level of Factor") <- round(2 * dses.m, ndecimal+1)
-      }
-      attr(LSD, "Note") <- "This is a approximate LSD (i.e. 2*SED) at 0.05 level."	  
-    }
-	
-    if (pairwise) {
-      p_valueMatrix <- NULL
-      tvm <- t.p.valuem <- LSDm <- Diffm <- matrix(0, ncol = nK, nrow = nK)
-      rownames(tvm) <- colnames(tvm) <- rownames(t.p.valuem) <- colnames(t.p.valuem) <- rownames(LSDm) <- colnames(LSDm) <- rnK
-      t.v <- cm/dses
-      if (all(is.null(permlist) || all(permlist%in%c("NULL", "")), adj=="tukey")) {
-        if (inherits(model, "lmerMod")) {
-          if (length(Df_diff)==1) Df_diff <- rep(Df_diff, length(t.v))
-          p.tukey <- sapply(1:length(t.v), function(m) ptukey(sqrt(2)*abs(t.v[m]), nK, Df_diff[m], lower.tail=FALSE))
-        }else{
-          p.tukey <- ptukey(sqrt(2)*abs(t.v), nK, Df, lower.tail=FALSE)
-        }		
-      }
-      tvm[upper.tri(tvm)] <- t.v
-      if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {
-        if (inherits(model, "lmerMod")) {
-          if (length(Df_diff)==1) Df_diff <- rep(Df_diff, length(t.v))
-          t.p.values <- sapply(1:length(t.v), function(m) 2 * pt(-abs(t.v[m]), Df_diff[m])) 
-        }else{
-          t.p.values <- 2 * pt(-abs(t.v), Df)
-        }
-      }else{      
-        nsim <- length(permlist[[1]])
-        tValue <- function(x, rK){
-          cm <- rK%*%x$coef
-          vcovm <- x$vcov
-          vcov.contr <- rK %*% tcrossprod(vcovm, rK)
-          ses <- sqrt(diag(vcov.contr))
-          t.v <- cm/ses
-          return(t.v)	
-        }
-        
-        if (.Platform$OS.type=="windows") {
-          cl <- makeCluster(ncore)	  
-          clusterExport(cl, c("tValue", "rK", "t.v"), envir = environment())       
-          t.TableL <- parLapplyLB(cl, permlist[[1]], function(x) round(abs(tValue(x, rK)),6) >= round(abs(t.v), 6)) 
-          stopCluster(cl)
-        }else{  
-          t.TableL <- mclapply(permlist[[1]], function(x) {
-            round(abs(tValue(x, rK)),6) >= round(abs(t.v), 6)
-          }, mc.cores=ncore)
-        }		
-        
-        t.TableL <- matrix(unlist(t.TableL), ncol = length(t.TableL))
-        t.p.values <-  (rowSums(t.TableL)+1)/(nsim+1)	
-        
-      } # end of if (is.null(permlist))
-      
-      if (is.null(atvar) || all(atvar%in%c("NULL", ""))) {
-        if (adj=="tukey") t.p.valuem[upper.tri(t.p.valuem)] <- p.tukey else
-          t.p.valuem[upper.tri(t.p.valuem)] <- p.adjust(t.p.values, adj)
-        t.p.valuep <- t.p.valuem    # for plot
-        t.p.valuem <- t(t.p.valuem) + tvm
-        names(t.p.valuem) <- NULL
-        diag(t.p.valuem) <- 1
-        if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {
-          if (!inherits(model, "lmerMod")) attr(t.p.valuem, "Degree of freedom") <- pairDf
-          attr(t.p.valuem, "Note") <- paste("The matrix has t-value above the diagonal, p-value (adjusted by '",
-                                            adj, "' method) below the diagonal", sep="")
-          LSDm.up <- qt(1-level/2, df = Df)*dses
-          LSDm[upper.tri(LSDm)] <- LSDm.up
-          Diffm[upper.tri(Diffm)] <- cm
-          LSDm <- t(LSDm)+Diffm
-          names(LSDm) <- NULL
-          attr(LSDm,"Significant level") <- pmlevel
-          attr(LSDm,"Degree of freedom") <- Df
-          attr(LSDm,"Note") <- paste("LSDs matrix has mean differences (row-col) above the diagonal, LSDs (adjusted by '",
-                                     adj, "' method) below the diagonal", sep="")
-        }else{
-          attr(t.p.valuem, "Note") <- paste("The matrix has t-value above the diagonal, and ", nsim, " times permutation p-value (adjusted by '", adj, "' method) below the diagonal", sep="")       
-        } # end of if (is.null(permlist)) 
-        
-        if (!is.null(meandecr) && is.logical(meandecr)) groupRn <- rnK[order(mt$pm, decreasing = meandecr)] else groupRn <- NULL
-        t.p.valuemGrp <- t.p.valuem
-        t.p.valuemGrp[upper.tri(t.p.valuemGrp)] <- t(t.p.valuemGrp)[upper.tri(t.p.valuemGrp)]
-        if (!is.null(groupRn))  t.p.valuemGrp <- t.p.valuemGrp[groupRn, groupRn]
-        if (nrow(t.p.valuep) > 2) p_valueMatrix <- round(t(t.p.valuep), 4)
-        if (all(nrow(t.p.valuep) > 2, pplot, plot, prtplt)) {
-          mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Level Plot of p-value (adjusted by '", adj, "' method)\n for Pairwise Comparison", sep="")		
-          PMplot(t(t.p.valuep), level=pmlevel, legendx=0.69, mtitle=mtitle, newwd=newwd)          
-        } 
-      }else{
-        dses.df$tvalue <- t.v
-        dses.df$pvalue <- t.p.values 
-        for (i in which(vars%in%atvar)) { # To find rows relating atvar
-          KKvarndiff <- KKvarndiff[which(as.character(KKvarndiff[, i]) == as.character(KKvarndiff[, length(vars) + i])), ]
-        }			
-        
-        atvar.df <- f_loj_krc(KKvarndiff, dses.df, by.x=names(KKvarndiff), by.y=names(KKvarndiff))            
-        names(atvar.df)[1:length(vars)] <- vars		
-        for (i in vars) {       # To ensure factor vars  have the same level as original
-          atvar.df[,i] <- factor(atvar.df[,i], levels=levels(mdf[, i][[1]]))
-        }
-        atvar.df$adj.pvalue <- unlist(lapply(split(atvar.df, atvar.df[, atvar]), function(x) {
-          t_value <- x$tvalue
-          t_valueN <- length(na.omit(t_value)) 
-          if (t_valueN < 2) x$adj.pvalue <- x$pvalue
-          else{
-            if (adj=="tukey") x$adj.pvalue <- ptukey(sqrt(2)*abs(x$tvalue), t_valueN, Df, lower.tail=FALSE) # Df need to be updated
-            else x$adj.pvalue <- p.adjust(x$pvalue, adj)
-          }
-        }))
-        
-        rnK.df <- as.data.frame(matrix(unlist(strsplit(rnKK, "\\:")), byrow=T, nrow=nKK)) # To find the suitable names for pm
-        colnames(rnK.df) <- vars
-        for (i in vars) {       # To ensure factor vars  have the same level as original
-          rnK.df[,i] <- factor(rnK.df[,i], levels=levels(mdf[, i][[1]]))
-        }
-        rnK.df  <- rnK.df [do.call(order, rnK.df[, atvar, drop=FALSE]),]   
-        resvar <- vars[!vars%in%atvar]   # The rest of vars rather than at var		
-        rnK.df <- rnK.df[, c(atvar, resvar)]   # To ensure the right matrix name later
-        atvar.levels <- unique(do.call("paste", c(rnK.df[, atvar, drop=FALSE], sep=" : ")))
-        resvar.levels <- unique(do.call("paste", c(rnK.df[, resvar, drop=FALSE], sep=" : "))) 
-        rcnplotm <- do.call("paste", c(rnK.df[, , drop=FALSE], sep=" : ")) # row col names of image plot 
-        
-        # mean table arrange by atvar
-        mt.atvar <- mt[do.call(order, mt[, atvar, drop=FALSE]),]	
-        if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {		
-          bkmt <- mt.atvar[, c(atvar, resvar, "pm", "ses", "Df")]
-		}else  bkmt <- mt.atvar[, c(atvar, resvar, "pm", "ses")]
-        listlength <- length(atvar.levels)
-        pmlist <- pmlistTab <- pmlistLetter <- vector("list", listlength)
-        indexlength <- nrow(atvar.df)/listlength
-        nrow.pm <- length(resvar.levels)
-        
-        for (i in 1:listlength) {           # extract pvalues for each factor level
-          atvar.pm <- matrix(0, nrow=nrow.pm, ncol=nrow.pm)
-          atvar.pm[upper.tri(atvar.pm)] <- atvar.df$adj.pvalue[(indexlength*i-(indexlength-1)):(indexlength*i)]
-          rownames(atvar.pm) <- colnames(atvar.pm) <- resvar.levels
-          pmlist[[i]] <- t(atvar.pm)
-          outtab <- round(as.table(t(atvar.pm)), 4)
-          outtab[outtab < 0.0001] <- "0.0001"
-          outtab[col(outtab)==row(outtab)] <- 1.0000
-          outtab[upper.tri(outtab)] <-""
-          Grpatvar.pm <- t(atvar.pm)+ atvar.pm		  
-          if (all(!is.na(outtab))) {
-            Grpatvar.pm[is.nan(Grpatvar.pm)] <- -1
-            Grpatvar.letter <- multcompLetters(Grpatvar.pm, Letters=LETTERS, threshold=slevel)[resvar.levels] 
-            Grpatvar.letter[Grpatvar.pm[,1]==-1] <- ""
-            outtab <- as.table(cbind(outtab, Group=Grpatvar.letter))
-          }else{
-            Grpatvar.letterM <- rep(NA, nrow.pm)
-            names(Grpatvar.letterM) <- resvar.levels	
-            for (col_i in 1:nrow.pm) { # in case of missing levels 
-              atvar.rowname <- resvar.levels[!is.na(Grpatvar.pm[, col_i])]
-              if (length(atvar.rowname) > 1) break
-            }
-            Grpatvar.pm[is.nan(Grpatvar.pm)] <- -1
-            if (length(atvar.rowname)==1) Grpatvar.letterM[atvar.rowname] <- "" else {
-              Grpatvar.letterM[atvar.rowname] <- multcompLetters(Grpatvar.pm[atvar.rowname, atvar.rowname], Letters=LETTERS, threshold=slevel)[atvar.rowname]
-            }
-            Grpatvar.letterM[Grpatvar.pm[,1]==-1] <- ""
-            outtab <- as.table(cbind(outtab, Group=Grpatvar.letterM))
-            Grpatvar.letter <- Grpatvar.letterM[atvar.rowname]
-          }
-          
-          pmlistLetter[[i]] <- Grpatvar.letter
-          pmlistTab[[i]] <- outtab  
-        }         
-        
-        if (nrow.pm > 2) p_valueMatrix <- pmlist
-        if (all(nrow.pm > 2, pplot, plot, prtplt)) { 
-          mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", ""))  mtitle <- paste("Adjusted p-value (by '", adj, 
-                                                                                 "' method)\n for Pairwise Comparison at Each Level of '",paste(atvar, collapse =" and "), "'", sep="")
-          PMplot(pmlist, level=pmlevel, xylabel=rcnplotm, legendx=0.69, mtitle=mtitle, newwd=newwd)          
-        }    
-      } # if (is.null(atvar))
-    }# end of if(pairwise)    
-    
-    meanTable <- mt    
-    if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {    
-      meanTable$LL <- meanTable$pm - qt(1 - slevel/2, df = meanTable$Df) * meanTable$ses
-      meanTable$UL <- meanTable$pm + qt(1 - slevel/2, df = meanTable$Df) * meanTable$ses
-    }else{
-      meanTable$LL <- meanTable$pm - 2 * meanTable$ses
-      meanTable$UL <- meanTable$pm + 2 * meanTable$ses
-      slevel <- 0.05
-      meanTable$Df <- NA
-    }
-    
-    rownames(meanTable) <- NULL
-    meanTable <- meanTable[c(vars, "pm", "ses", "Df", "LL", "UL")]	
-    meanTable[c("pm", "LL", "UL")] <- round(meanTable[c("pm", "LL", "UL")], ndecimal)
-    meanTable$ses <- round(meanTable$ses, ndecimal+1)    
-    colnames(meanTable) <- c(vars, "Mean", "SE", "Df", paste("LL(", (1 - slevel) * 100, "%)", sep = ""),
-                             paste("UL(", (1 - slevel) * 100, "%)", sep = ""))
-    
-    if (plot) {
-      if (length(vars) > 3)
-        cat("\n", "There is no plot for more than three-way interaction! \n\n")
-      plotmt <- na.omit(mt)	  
-      yMin <- min(plotmt[, "pm"])
-      yMax <- max(plotmt[, "pm"])
-      offSet <- 0.25 * (yMax - yMin)     
-      
-      if (is.null(atvar) || all(atvar%in%c("NULL", ""))) {
-        if (lsd_bar) LSD_value <- LSD[3] else LSD_value <- SED.out[3] 	  
-      }else{
-        if (lsd_bar)  LSD_value <- mean(attr(LSD,"For the Same Level of Factor")[1, atvar])
-        else LSD_value <- mean(attr(SED.out, "For the Same Level of Factor")[1, atvar])
-      }
-      if (lsd_bar)  bar_label <- "Aveg.LSD" else bar_label <- "Aveg.SED"
-      up <- yMin + LSD_value
-      lsdBar <- cbind(plotmt[, vars, drop=FALSE], up=up, yMin=yMin)
-      limits <- aes(ymax = (pm + ses)*(pm > 0) + pmin(pm + ses, 0)*(pm <= 0), ymin=(pm - ses)*(pm < 0) + pmax(pm - ses, 0)*(pm >= 0))
-      
-      if (length(vars) == 1) {
-        mxlab <- plotxlab
-        if (is.null(plotxlab) || plotxlab%in%c("NULL", "")) mxlab <- paste("\n", vars, sep="")
-        mylab <- plotylab
-        if (is.null(plotylab) || plotylab%in%c("NULL", "")) mylab <- paste(response, "\n", sep="")		  
-        if (mplot) {
-          if (newwd) dev.new()
-          mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Predicted means for \"", vars, "\" with ", bar_label, " (", pmlevel * 100, "%) Bar", sep="") 
-          p1 <- ggplot(plotmt, aes(eval(parse(text = vars)), pm, group=1))+
-            labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
-            lims(x= c(bar_label, levels(plotmt[, vars])), y = c(yMin - offSet, max(yMax + offSet, yMin + LSD_value + offSet))) +
-            geom_point(colour="red", size=2)+
-            #  geom_line(linewidth=0.5)+
-            geom_errorbar(aes(ymax=up, ymin=yMin, x=bar_label), width=0.15, linewidth=0.8, colour="blue") +  #data=lsdBar, 
-            theme_bw(basesz)
-          if (lineplot) p1 <- p1 + geom_line(linewidth=0.5)
-          meanPlot <- p1
-          if (prtplt) print(p1)		  
-        } # end of if mplot	   
-        if (barplot) {
-          if (newwd) dev.new()
-          mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Predicted means for \"", modelterm, "\" with SE Bars", sep = "")
-          dodge <- position_dodge(width=0.9)
-          bp1 <- ggplot(plotmt, aes(eval(parse(text = vars)), pm))+
-            labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
-            ylim(c(min(0, (min(pm) - max(ses)) * 1.2), max(0, (max(pm) + max(ses)) * 1.2))) +
-            geom_bar(position=dodge, stat="identity", fill="papayawhip", colour="darkgreen") +
-            geom_errorbar(limits, position=dodge, width=0.25, colour="blue")+theme_bw(basesz)+
-            theme(panel.border = element_blank(), axis.line = element_line(), panel.grid = element_blank())
-          predictmeansBarPlot <- bp1
-          if (prtplt) print(bp1)
-        }
-      }
-      if (length(vars) == 2) {
-        if (is.null(plotord) || all(plotord%in%c("NULL", ""))) {
-          plotord <- 1:2
-          if (!(is.null(atvar) || all(atvar%in%c("NULL", "")))){
-            atvar_num <- which(vars %in% atvar)
-            plotord <- c(atvar_num, setdiff(1:length(vars), atvar_num))
-          }
-        }
-        
-        fact1 <- (vars[plotord])[1]
-        fact2 <- (vars[plotord])[2]
-        mxlab <- plotxlab
-        if (is.null(plotxlab) || plotxlab%in%c("NULL", "")) mxlab <- paste("\n", fact1, sep="")
-        mylab <- plotylab
-        if (is.null(plotylab) || plotylab%in%c("NULL", "")) mylab <- paste(response, "\n", sep="")
-        
-        if (mplot) {     
-          if (newwd) dev.new()
-          mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", ""))  mtitle <- paste("Predicted means for \"", fact1, "\" by \"", fact2, "\" with ", paste(atvar, collapse=" "), " ", bar_label, " (", pmlevel * 100, "%) Bar", sep = "")
-          plotmt[, fact1] <- factor(plotmt[, fact1], levels = c(bar_label, levels(plotmt[, fact1])))
-          p2 <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=eval(parse(text = fact2)), col=eval(parse(text = fact2))))+
-            labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
-            lims(x= levels(plotmt[, fact1]), y = c(yMin - offSet, max(yMax + offSet, yMin + LSD_value + offSet))) +
-            geom_point(size=2)+
-            # geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.96)+
-            geom_errorbar(aes(ymax=up, ymin=yMin, x=bar_label), width=0.15, linewidth=0.8, colour="blue")+
-            #  guides(linetype = guide_legend(title = fact2))+
-            guides(col = guide_legend(title = fact2))+
-            theme_bw(basesz)
-          if (lineplot) p2 <- p2 + geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.96)+guides(linetype = guide_legend(title = fact2))		
-          meanPlot <- p2
-          if (prtplt) print(p2)
-        } # end if mplot
-        if (barplot) {
-          if (newwd) dev.new()
-          mtitle <- plottitle
-          if (is.null(plottitle) || plottitle%in%c("NULL", ""))  mtitle <- paste("Predicted means for \"", modelterm, "\" with SE Bars", sep = "")
-          dodge <- position_dodge(width=0.9)
-          bp2 <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=eval(parse(text = fact2)), fill=  eval(parse(text = fact2))))+
-            geom_point(position=dodge) +
-            geom_bar(stat = "identity", position=dodge)+
-            labs( x = mxlab, y = mylab, title =mtitle)+
-            ylim(c(min(0, (min(pm) - max(ses)) * 1.1), max(0, (max(pm) + max(ses)) * 1.1))) +
-            geom_errorbar(limits, position=dodge, width=0.25, colour="blue")+theme_bw(basesz)+
-            scale_fill_brewer()+
-            theme(panel.border = element_blank(), axis.line = element_line(), panel.grid = element_blank())+            
-            theme(legend.position = "top")+guides(fill = guide_legend(title = fact2))
-          predictmeansBarPlot <- bp2
-          if (prtplt) print(bp2)
-        }
-      }
-      
-      if (all(length(vars) == 3, mplot)) {
-        if (newwd) dev.new()
-        mtitle <- plottitle
-        if (is.null(plotord) || all(plotord%in%c("NULL", ""))) {
-          plotord <- 1:3
-          if (!(is.null(atvar) || all(atvar%in%c("NULL", ""))) && length(atvar)==1){
-            atvar_num <- which(vars %in% atvar)
-            plotord <- c(atvar_num, setdiff(1:length(vars), atvar_num))
-          }
-        }
-        fact1 <- (vars[plotord])[1]
-        fact2 <- (vars[plotord])[2]
-        fact3 <- (vars[plotord])[3]
-        plotmt[, fact1] <- factor(plotmt[, fact1], levels = c(bar_label, levels(plotmt[, fact1])))
-        if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Predicted means for '", fact1, "' by '", fact2, "' for each '",
-                                                                              fact3, "'\n with ", paste(atvar, collapse=" "), " ", bar_label, " (", pmlevel * 100, "%) Bar\n", sep = "")
-        mxlab <- plotxlab
-        if (is.null(plotxlab) || plotxlab%in%c("NULL", "")) mxlab <- paste("\n", fact1, sep="")
-        mylab <- plotylab
-        if (is.null(plotylab) || plotylab%in%c("NULL", "")) mylab <- paste(response, "\n", sep="") 
-        p3 <- ggplot(plotmt, aes(eval(parse(text = fact1)), pm, group=factor(eval(parse(text = fact2))), col=factor(eval(parse(text = fact2)))))+
-          labs(title=paste(mtitle, "\n", sep=""), x=mxlab, y=mylab)+
-          lims(x= levels(plotmt[, fact1]), y = c(yMin-0.5*offSet, max(yMax+0.5*offSet, yMin+LSD_value+0.5*offSet))) +
-          geom_errorbar(aes(ymax=up, ymin=yMin, x=bar_label), width=0.15, linewidth=0.8, colour="blue")+
-          geom_point(size=2)+
-          # geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.8)+
-          facet_grid(eval(parse(text = paste("~",fact3, sep=""))))+
-          guides(group = guide_legend(fact2))+
-          # guides(linetype = guide_legend(fact2))+
-          guides(col = guide_legend(fact2))+
-          theme_bw(basesz)
-        if (lineplot) p3 <- p3 + geom_line(aes(linetype=eval(parse(text = fact2)), col=eval(parse(text = fact2))), linewidth=0.8) + guides(linetype = guide_legend(title = fact2))
-        meanPlot <- p3
-        if (prtplt) print(p3)
-      }
-      
-    }
-  }
-  
-  if (!is.null(trans)) {    
-    Mean <- Trt <- ciPlot <- NULL
-    bkmt$Mean <- trans(bkmt$pm)-transOff
-    if (identical(trans, make.link("log")$linkinv) || identical(trans, exp)) bkmt$Mean <- exp(bkmt$pm)-transOff
-    if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {    
-      bkmt$LL <- trans(bkmt$pm - qt(1 - slevel/2, df = bkmt$Df) * bkmt$ses)-transOff
-      bkmt$UL <- trans(bkmt$pm + qt(1 - slevel/2, df = bkmt$Df) * bkmt$ses)-transOff
-    }else{
-      bkmt$LL <- trans(bkmt$pm - 2 * bkmt$ses)-transOff
-      bkmt$UL <- trans(bkmt$pm + 2 * bkmt$ses)-transOff
-    }
-    
-    bkmt$pm <- bkmt$ses <- bkmt$Df <- NULL
-    nc <- ncol(bkmt)    
-    bkmt[, (nc - 2):nc] <- round(bkmt[, (nc - 2):nc], ndecimal)
-    if (count) {
-      bkmt[, (nc - 2):nc] <- round(bkmt[, (nc - 2):nc], 0)
-      bkmt[, (nc - 2):nc][bkmt[, (nc - 2):nc] < 0] <- 0
-    }	
-    
-    if (plot && bkplot) {
-      
-      if (!is.null(atvar) && !unique(atvar%in%c("NULL", ""))) mdf <- mdf[do.call(order, mdf[, c(atvar, resvar), drop=FALSE]),]	  
-      
-      if (response %in% names(mdf)) {    ## Transformed y before modelling
-        if (inherits(mdf[, response], "factor")){
-          bky <- as.numeric(mdf[, response])-1
-        }else{
-          if (inherits(model, "glm") || inherits(model, "glmerMod") || inherits(model, "glmmTMB")) {
-            bky <- mdf[, response]
-            if (!is.null(dim(mdf[, response]))) bky <- mdf[, response][,1]/rowSums(mdf[, response])
-          }else{
-            bky <- trans(mdf[, response])
-          }# end of if glm or glmer
-        }# end of if factor
-      }else{       ## Transformed y within modelling
-        nresponse <- regmatches(response, regexec("\\(([^<]+)\\)", response))[[1]][2]
-        if (!(nresponse %in% names(mdf))) {	
-          if (is.null(responsen) || all(responsen%in%c("NULL", "")))  stop(paste("Please provide suitable name for response variable using option responsen='", names(mdf)[1], "'!", sep=""))
-          nresponse <- responsen
-        }
-        bky <- mdf[, nresponse]
-      }
-      if (is.list(bky)) bky <- bky[[1]]	  
-      
-      if (is.null(atvar) || all(atvar%in%c("NULL", ""))) { 
-        Trtn <- do.call("paste", c(mdf[, vars, drop=FALSE], sep=":"))  	  
-        newdata2 <- data.frame(bky=bky, Trtn=Trtn)
-        bkmt$Trt <- do.call("paste", c(bkmt[, vars, drop=FALSE], sep=":"))
-      }else{
-        Trtn <- do.call("paste", c(mdf[, c(atvar, resvar), drop=FALSE], sep=":"))  	  
-        newdata2 <- data.frame(bky=bky, Trtn=Trtn)
-        bkmt$Trt <- do.call("paste", c(bkmt[, c(atvar, resvar), drop=FALSE], sep=":"))
-      }	  
-      
-      xMax <- max(max(bkmt[, nc], na.rm=TRUE), bky, na.rm=TRUE)
-      xMin <- min(min(bkmt[, nc - 1], na.rm=TRUE), bky, na.rm=TRUE)
-      xoffSet <- 0.15 * (xMax - xMin)
-      mtitle <- plottitle
-      if (is.null(plottitle) || plottitle%in%c("NULL", "")) mtitle <- paste("Back Transformed Means with ", (1 - slevel) * 100, "% CIs\n for '", modelterm, "'", "\n", sep = "")
-      if (newwd) dev.new()
-      xlimv <- c(xMin - xoffSet, xMax + xoffSet)
-      bkmt[, c("Mean", "LL", "UL")] <- lapply(bkmt[, c("Mean", "LL", "UL")], as.numeric)
-      newdata2$bky <- as.numeric(newdata2$bky)
-      p <- ggplot(bkmt, aes(Mean, Trt))+
-        labs(title=mtitle, x="", y="")+
-        xlim(xlimv) +
-        geom_point(colour="red") + geom_errorbarh(aes(xmax = UL, xmin=LL ), height=0.2, linewidth=0.8, colour="red") +
-        scale_y_discrete(limits = rev(unique(bkmt$Trt)))+
-        geom_point(aes(x=bky, y=Trtn), shape=1, position = position_jitter(width = jitterv, height = jitterv), colour="blue", alpha=0.6, data=newdata2)+
-        theme_bw(basesz)
-      ciPlot <- p
-      if (prtplt) print(p)
-    }
-    rownames(bkmt) <- NULL
-    bkmt$Trt <- NULL
-    if (!(is.null(atvar) || all(atvar%in%c("NULL", "")))) {
-      all_var_names <- colnames(meanTable)
-      meanTable <- meanTable[c(atvar, resvar, setdiff(all_var_names, vars))]
-      meanTable <- with(meanTable, meanTable[order(eval(parse(text=c(atvar, resvar)[length(vars):1]))),])
-    }
-    
-    # if (all(!identical(trans, function(x) x, ignore.environment=TRUE), !identical(trans, I, ignore.environment=TRUE))) {
-    if (any(meanTable$Mean!=bkmt$Mean)) {
-      meanTable <- cbind(meanTable, round(bkmt[, (ncol(bkmt)-2):ncol(bkmt)], ndecimal))
-      colnames(meanTable)[(ncol(meanTable)-2):ncol(meanTable)] <-  c("Bk_Mean", paste("Bk_LL(", (1 - slevel) * 100, "%)", sep = ""),
-                                                                     paste("Bk_UL(", (1 - slevel) * 100, "%)", sep = ""))
-    }															   
-    
-    if (pairwise) {
-      if ((is.null(atvar) || all(atvar%in%c("NULL", "")))) {        
-        if (!is.null(meandecr) && is.logical(meandecr)) meanTable <- meanTable[order(meanTable$Mean, decreasing = meandecr), ]
-        if (letterCI) {
-          meanTable$LetterGrp <- ci_mcp(meanTable[, grepl("^LL", names(meanTable))], meanTable[, grepl("^UL", names(meanTable))]) 
-          meanTable <- list(Table=meanTable, Note=paste("Letter-based representation of pairwise comparisons based on (", (1 - slevel) * 100, "%) CI", sep=""))
-        }else{ 
-          t.p.valuemGrp[is.nan(t.p.valuemGrp)] <- -1
-          meanTable$LetterGrp <- na.omit(multcompLetters(t.p.valuemGrp, Letters=LETTERS, threshold=slevel))  
-          meanTable$LetterGrp[is.nan(meanTable$SE)] <- ""
-          meanTable <- list(Table=meanTable, Note=paste("Letter-based representation of pairwise comparisons at significant level '", slevel, "'", sep=""))
-        }
-      }else{
-        if (letterCI) {
-          meanTable$LetterGrp <- unlist(lapply(split(meanTable, meanTable[, atvar]), function (x) ci_mcp(x[,grepl("^LL", names(meanTable))], x[,grepl("^UL", names(meanTable))]))) 
-          meanTable <- list(Table=meanTable, Note=paste("Letter-based representation of pairwise comparisons based on (", (1 - slevel) * 100, "%) CI", sep=""))
-        }else{ 
-		  pmlistLetter <- pmlistLetter[unlist(lapply(pmlistLetter, function(x) !all(x=="")))]
-          meanTable$LetterGrp <- unlist(pmlistLetter)[!is.na(unlist(pmlistLetter))]
-          meanTable <- list(Table=meanTable, Note=paste("Letter-based representation of pairwise comparisons at significant level '", slevel, "' at each level of ", atvar, sep=""))
-        }	  
-      }
-    }
-    predictmeansPlot <- list(meanPlot=meanPlot, ciPlot=ciPlot)
-  }   
-  
-  if (pairwise) {
-    if (is.null(atvar) || all(atvar%in%c("NULL", ""))) {
-      if (all(is.null(permlist) || all(permlist%in%c("NULL", "")), adj %in% c("none", "bonferroni"))) {
-        outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                           "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise LSDs"=round(LSDm,ndecimal+1), 
-                           "Pairwise p-value" = round(t.p.valuem, 4), predictmeansPlot=predictmeansPlot,
-                           predictmeansBarPlot=predictmeansBarPlot, mean_table=meanTable, p_valueMatrix=p_valueMatrix)
-        class(outputlist) = "pdmlist"
-        return(outputlist)			  
-      }else{
-        outputlist <- list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                           "Standard Error of Differences" = SED.out, LSD = LSD, "Pairwise p-value" = round(t.p.valuem, 4), 
-                           predictmeansPlot=predictmeansPlot, predictmeansBarPlot=predictmeansBarPlot, mean_table=meanTable,
-                           p_valueMatrix=p_valueMatrix)
-        class(outputlist) = "pdmlist"
-        return(outputlist)
-      }        
-    }else{             
-      outputlist <- vector("list", listlength+8)
-      outputlist[[1]] <- mean.table
-      outputlist[[2]] <- se.table
-      outputlist[[3]] <- SED.out
-      outputlist[[4]] <- LSD
-      outputlist[[5]] <- paste("For variable '", paste(resvar, collapse =" and "), "' at each level of '", paste(atvar, collapse =" and "), "'", sep="")                   
-      for (i in 6: (listlength+5))  outputlist[[i]] <- pmlistTab[[i-5]]
-      outputlist[[listlength+6]] <- meanTable
-      outputlist[[listlength+7]] <- predictmeansPlot
-      outputlist[[listlength+8]] <- predictmeansBarPlot
-      outputlist[[listlength+9]] <- p_valueMatrix		
-      if (is.null(permlist) || all(permlist%in%c("NULL", ""))) {
-        names(outputlist)<- c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
-                              "LSD", paste("Pairwise comparison p-value (adjusted by '", adj, "' method)", sep=""), 
-                              atvar.levels, "mean_table", "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]								   
-      }else{
-        names(outputlist) <- c(c("Predicted Means", "Standard Error of Means", "Standard Error of Differences",
-                                 "Approximated LSD"), paste("Pairwise '", nsim, "' times permuted p-value (adjusted by '", adj, "' method)", sep=""), 
-                               atvar.levels, "mean_table", "predictmeansPlot", "predictmeansBarPlot", "p_valueMatrix")[1:length(outputlist)]                     
-      }
-      class(outputlist) <- "pdmlist"
-      return(outputlist)      
-    }
-  }else {
-    outputlist=list("Predicted Means" = mean.table, "Standard Error of Means" = se.table,
-                    "Standard Error of Differences" = SED.out, LSD = LSD, predictmeansPlot=predictmeansPlot,
-                    predictmeansBarPlot=predictmeansBarPlot, mean_table=meanTable)
-    class(outputlist) <- "pdmlist"
-    return(outputlist)
-  }
-  #  }
+
+  weights <- match.arg(weights)
+  dfa <- pm_df_arg(df_method, eval(formals(sys.function())$df_method))
+
+  # The stages (R/predictmeans-stages.R): each takes the results of those
+  # before it and returns a named list.
+  opt <- pm_setup(list(model = model, modelterm = modelterm, data = data, pairwise = pairwise, atvar = atvar,
+                       adj = adj, Df = dfa$Df, level = level, covariate = covariate, meandecr = meandecr,
+                       letter_ci = letter_ci, trans = trans, trans_default = missing(trans),
+                       permlist = permlist, ncore = ncore, cov_reduce = cov_reduce,
+                       exclude = exclude, vcov_adjust = vcov_adjust, vcov_adjust_default = missing(vcov_adjust),
+                       weights = weights, df_method = dfa$method, vcov = vcov, equivalence = equivalence,
+                       bias_adjust = bias_adjust, sigma = sigma, average = average, mean_type = mean_type))
+  est <- pm_estimate(opt)                        # K matrix, means, SEs
+  cmp <- pm_compare(opt, est)                    # SEDs, df, LSDs, pairs, comparison intervals
+  tab <- pm_tables(opt, est, cmp)                # mean table, response scale, letters
+  v <- pm_flat(opt, est, cmp, tab)
+  pm_assemble(v)
 }

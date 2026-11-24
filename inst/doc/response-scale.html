@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Link and response scale</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Link and response scale</h1>
+
+
+
+<p>For generalized linear (mixed) models, and for models of a
+transformed response such as <code>log(y)</code>, the means are
+estimated on the scale of the model, the <em>link scale</em>, and then
+back-transformed to the scale of the data, the <em>response scale</em>.
+predictmeans does the tests on the link scale, where the model is
+linear, and reports both scales:</p>
+<ul>
+<li><code>means</code>: <code>estimate</code>, <code>std.error</code>,
+<code>conf.low</code>, <code>conf.high</code> on the link scale, and
+<code>response</code>, <code>response.std.error</code>,
+<code>response.conf.low</code>, <code>response.conf.high</code> on the
+response scale;</li>
+<li><code>pairs</code>: differences on the link scale and, for a log
+link (or <code>trans = exp</code>), the <strong>ratio</strong> of the
+two means with its confidence limits; for a logit link, the <strong>odds
+ratio</strong>.</li>
+</ul>
+<p>The response-scale standard error comes from the delta method, as
+emmeans gives with <code>type = &quot;response&quot;</code>. The confidence limits
+are the back-transformed link-scale limits, so they are not symmetric
+around the mean.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(predictmeans)</span></code></pre></div>
+<div id="binomial-glm-probabilities-and-odds-ratios" class="section level2">
+<h2>Binomial GLM: probabilities and odds ratios</h2>
+<p>The <code>Drug</code> data give the number of mice responding
+(<code>R</code>) out of <code>N</code> for four drugs at several
+doses.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">data</span>(Drug)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>fm_drug <span class="ot">&lt;-</span> <span class="fu">glm</span>(<span class="fu">cbind</span>(R, N <span class="sc">-</span> R) <span class="sc">~</span> Drug <span class="sc">+</span> log10Dose, <span class="at">family =</span> binomial, <span class="at">data =</span> Drug)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>pm_drug <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm_drug, <span class="st">&quot;Drug&quot;</span>, <span class="at">pairwise =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>pm_drug<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;Drug&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;response&quot;</span>, <span class="st">&quot;response.std.error&quot;</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>                  <span class="st">&quot;response.conf.low&quot;</span>, <span class="st">&quot;response.conf.high&quot;</span>)]</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;          Drug   estimate  response response.std.error response.conf.low</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; 1    Morphine  0.1739917 0.5433885         0.03034579         0.4835759</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; 2     Amidone  0.5660805 0.6378583         0.03166332         0.5738120</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; 3 Phenadoxone  2.4185555 0.9182314         0.01536127         0.8826288</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; 4   Pethidine -1.7574624 0.1471084         0.02125403         0.1101238</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;   response.conf.high</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; 1          0.6019756</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; 2          0.6973562</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; 3          0.9437231</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; 4          0.1938091</span></span></code></pre></div>
+<p><code>estimate</code> is the log odds of a response at the mean log
+dose; <code>response</code> is the probability. The comparisons are
+tested on the log-odds scale, and each difference is the log of an odds
+ratio:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>pm_drug<span class="sc">$</span>pairs[, <span class="fu">c</span>(<span class="st">&quot;level1&quot;</span>, <span class="st">&quot;level2&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;p.value&quot;</span>,</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                  <span class="st">&quot;odds.ratio&quot;</span>, <span class="st">&quot;odds.ratio.conf.low&quot;</span>, <span class="st">&quot;odds.ratio.conf.high&quot;</span>)]</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;        level1      level2   estimate      p.value odds.ratio</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; 1    Morphine     Amidone -0.3920888 2.951890e-02  0.6756441</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 2    Morphine Phenadoxone -2.2445638 9.302021e-24  0.1059738</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 3     Amidone Phenadoxone -1.8524750 6.799382e-16  0.1568485</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 4    Morphine   Pethidine  1.9314541 4.069093e-18  6.8995356</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 5     Amidone   Pethidine  2.3235429 2.042589e-23 10.2117898</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 6 Phenadoxone   Pethidine  4.1760179 2.573901e-37 65.1060753</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;   odds.ratio.conf.low odds.ratio.conf.high</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; 1          0.47465285            0.9617449</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; 2          0.06840188            0.1641832</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; 3          0.10004256            0.2459098</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; 4          4.46008846           10.6732394</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; 5          6.46763307           16.1234642</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt; 6         34.28884136          123.6204222</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>ggplot2<span class="sc">::</span><span class="fu">autoplot</span>(pm_drug, <span class="at">type =</span> <span class="st">&quot;ci&quot;</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAqAAAAGACAMAAABFpiBcAAABdFBMVEUAAAAAADoAAGYAOjoAOmYAOpAAZpAAZrYzMzM6AAA6ADo6AGY6OgA6OmY6OpA6ZmY6ZpA6ZrY6kLY6kNtNTU1NTW5NTY5Nbo5NbqtNjshmAABmADpmOgBmOmZmZmZmkJBmkLZmkNtmtpBmtrZmtttmtv9uTU1uTW5uTY5ubo5ubqtujqtujshuq+SOTU2OTW6OTY6Obk2Obm6ObquOjk2Ojm6Ojo6OjsiOyP+QOgCQZgCQZjqQZmaQkDqQkGaQkLaQtmaQtpCQttuQ27aQ2/+rbk2rbm6rbo6rjk2rjqurq26rq46ryKur5Mir5OSr5P+2ZgC2Zjq2kDq2tpC2ttu229u22/+2/7a2/9u2///Ijk3Ijm7IyI7I5KvI/8jI/+TI///bkDrbkGbbtmbbtpDb27bb29vb/7bb/9vb///kq27kq47k/8jk/+Tk///r6+v/AAD/tmb/yI7/25D/27b/29v/5Kv//7b//8j//9v//+T///82cr3bAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAY5UlEQVR4nO2di3/b1nmGIV/CMUnbpKIdS/XWtYsU1ZtsZUszapd2SW0n601Mu7ixtnSi3a2Rt9mk6FIX/PM7d+CA4E0CPr6U3u9nmwQIPngJPDwHBwSSJGWxgCtZdAAWa1JRUBZ0UVAWdFFQFnRRUBZ0UVAWdFFQFnRRUBZ01ShoNzF149PRl47XGxPmne7ePPR/08GfPzUzZlnjF0nSOMytOvnWk9HXCtVfeegXzy1dVnpJn/V7D2fNNKbGvT185jAVL5ltpc7qBVa/PFW/oEmyMfLSHIJ2r80saF+tqxGv+trTkdeKb8oELUtaWNKVkqNOQbvXZhB08ObDkXdfwqpTULuZnyeju2KyoLrCbgk7a3r1g2DuTadfJKsjrxXfpAU1i58+a65M2ueZoP3ZM42riX5HgsYv5bZSp/QLd9mqfkHTzrWnp7uNbnLtSfr6ruryn5jN3G+aZ0rgt5Nk5Qf5ebkW9Jtd1a6t2v2k32x64dN/VO94P6zHQztZi+lXfbzuBHWv+UV9HlWDt56GxfvJqnvpS7NG9VwHbCYrf6me6SVNmdku4G/fNuEtwdjjY7p1ZGFDfsvwH8ltBbeS8JnDUvGKzCqO7+rVXY0mVErQ603VkCoBVamG6Hj9etM+893rRm5euaAD/+bT3ag7DtBRQf/USSJB+xnC5NGv5AW1K9UvfZMJ6gLmBB00N/yyPryZZZrpQbyOb0LY8EJYVRY9W8k4QbOtpJcx3y379bnsJdHF602qt7j69329L24eHq8n3z08/U3iN/ag2Ujz80qOQU93dTv0B7XgoPnuoXmHqQya7+JLjkE3covaPMWk7rtko3pBj9dXPk1f7+YPYM3izhs18OqayA3/dh/TgkLY7AUX27w9bA+/kvJj0GxFSlBFeujTVr7T4EpgkGRaE9Mn2b3TWXl4vG73v9nC//3bf2qaTe/nlQo6aBql1OSgef37X4a1ZNBRQVfeDUdwtnHzi7o1h6SRoF4/K2jfqBy+D2Yp+5oOqJc1vW7X9Av62+Nj+s/swmYvGIb9SD5PtpJxgvoVqb8d3wp3Jx4yX5KqX9BvPfH72/aDerDhjg31FrY9nxHUzysVtJ/prvvr5B13NJdBi4Ok5813shFGP/TDetHC4CMW1OtnBbUW5LvTbIlsKeOfXkcW063Dh83l95AsT7aScYJmDXro/8cP/C5TCRyDppMEVRv8Oz/9tz+uzyNo+oe7We89XlA1fbPQgk4RNO/CnILqp7rLHRHUh61M0JX3ffNPQS9WJYJmXXwjtd253Un2GNTPG9PFR3vjv/7B7Z3yLt6uupMdaRa7+FJB7SjeNny+Tx3t4ksFVSL/bL0Rvi9hsRC2kH/eLj4TtBHCUNCL1Yig0SBJqaAHRGpjH+qzLfl5saBhWK/GEWogodui7x6qBUNTVDZIsqs+Xh87SCoR9PRZM/tRoJP8QC9fOkjqlAk6aP5FYgb3PqZ9MYTNXghbZPwgKT/WHxVUhTMflMegF6sRQdPcaabvNG0v7U+g6J2UzcsL6k8zuT5y1b/FK5adqxkR1Ix73VL6tdxpplhQP+jfyKLqyRt386eZssX1yoqCqlTuuCLEdF9KFza8kG2R8tNM9jOHpUoEteNJjuIvWKOCpoNwon5V7Zxv63GOOVf9qdrW2bxotxzfTRr2rKR+83V9ytuc+84G6B5aIqjSw82yrw3CifoSQVfeeZKL+qyZvPNNOFH/w/zPXLnzoJmg4cvgYzpQFjbkz7bIIDpR/8N1J6j+zId+qRJB1bpW4+Piy1u8mmmmCj9J6arLjGgl04u/JLFS3Vy+oQ4iO9F4pF/1wV/ZSqYWf4tnpfmDyFxVfalb6Uqm1NVoQCno1Coc8Zo6/l7FcpStZErxelAWa/FFQVnQJSSovWCu7O4N/Uug/c28488Tqv7OXkHZnfmg7IskeeOuX3reUXZ2Iqc0MmuRJSlo2d0b/XBVnBsorJpfasw4+Xh91lGtpryxW4Ogc1zPz6qlJLv4EkH1tQ/uKsnwY7U+HWhOCc7egMa/Sp9H0AmRWYus2gS1e93/5HGauzj+j3fNzQumcldJhpOLWk77o0nUgD5vJjfMEtl9G/4+CHO9/FdmhXqpL42g2a0XfrECI7r9wl1y+rypFuw39UFHiJwWbjFhSVZ9Laj5xbqT2Gslc4LeuOt+9dblBTV3rv2L1ed017ag8YnofvjFvXDrh0JlgnbDT+jFO0TMb/GeMXr7hRVUXw2w8kkziW6+KNxiwhKt+gTVXfbxemLbxtwxqD4d/cxfe2Eu41FdvL8M2Xhgj0HjE9HmPofn9lKR7L4Ndx+Eu1Ypviood+tFuC8jMEpuv9CCKvRz3WYOmrmL/eJbTFiyVZ+g5srFNz9RmnWiSzvDXRKm/M0Z7nI0c4+yHcWrBlS9+K5bzjW1aVq8b8OgvKB2qUFz9NaL3O0YpbdfhOszzZVC0dWo8S0mLNmqcZCkG8Jrv1vfsMeU0Sg+N4zRl/G8n13ZGG64UQ2oakZfrwenNqIn4bJ4g/KC2sGSvZUovrJdzwuMkqvbg972u5P/TsW3mLBkq0ZBlUMdNTpqaC/GC2oqu7KxG6RZNRcGd9wAe5GCRreYsGSrRkEHzb9SlnVv/sZ7OVZQ3a26bterqv/jHbGgJV38iKB2Kdudx7deWEGLzXG2xERB09wtJizZqlHQ093r6gC0v/J2w5/1DteyB0HNbfGvd/3AxdzxYefbE/ZBUDPAGazn75MoEdScVj11g6To1gt7Q1pglNx+US6oudUpf4sJS7bqPFHf1d2iGsj7GynC3Ru5FrQbrjPr53td818/yh+DupdH79uIBM3dqTFy60Ujzxi5/WKcoNlpprmuhWNVVXUK2k8arulLC3dvFAZJ74b7Qb5thyLuHP2zZhjFu9GUXy67byMWVB8u3vjK3sUW3XqR/WeWAiO6/WKMoObmi3NcC8eqqng1Ewu6KCgLuigoC7ooKAu6KCgLuigoC7ooKAu6KCgLuigoC7ooKAu66hP0z1isC1T9gs6wzKtK11gtDTrc5f+oFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQYh0xDDEdBhXHINMRwFFQC1+tVRcuRKqAVC3A/UFAJHAU9d1FQCRwFPXdRUAkcBT13zSzocHNN/bt/+6Dkpa2D3MO4NUwqwA1TKW4mQXsF+aaRJtPOVYD7YXZBP/jrl+nJ35ZJOMbMwhomFeCGqRQ3i6C93iyGUtBxNdz68V46/Fi5eHK/pdrR4Y8+vP37nZ+3bqm5Wx+1Wm3t6fDe5/qZWyRew6QC3DCV4noVVtXZ6sNJC/of7fR/fqkE3d9Oj+68HG62lYd3Xh7dPhhu2jlb/ple5MWawat6xapS0EV/FuGaQ9Cv/+bss6+3Dk52VCP6YG9o2tJ2evbYPNV2mj/6mXo51YtFX4FJBfjNrRQ3Qxdf1j5OJk2inbMA98Mcgv7nv/7v3zsJnZVaxHS/PSro/VZL9/3RGiYV4IapFMdj0HPXHIIe/PsvtodxC6oELW1Bd3KjJgrKUfwFah5Bj24ZF/f9Eafq4tf800hQt0i8hkkFuGEqxfE86LlrHkGdgW4Ub1rQH9tRfFFQtYjv4SloSkEvUBf6Jckcg866hkkFuGEqxVHQcxcFFcYh0xDD8bd4YRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYRwyDTEcBRXGIdMQw1FQYdxctF5PlIa4HyioMI6CzlcUVBhHQecrCiqMo6Dz1VyCnjzYi6aHWwf64exRe4Y1TCrADVMXrhZBe9Pdm4WGuB/mEvTo4+2y2RS0LtqMgvZ6Mxl66QU9e/yrv3up/v1Fq7V9pP6aFvTkfuu9D9v64fZBOrz3eaulbLVT8RomFeCGqQs3p6DVVqXhppa4oMN7L/fbqr1cS4eba9pOLej+dnqknNQPd14ON82DnnqxZvCqXrHOW1ULuujPc46aR9AXyr411YLumb/qgFQJerJzoLt4/WBnaHH1saqeE30FJhXgN7cuXA1d/IzN46Xv4s8etVqq544FNeOk/bZ+UDO9oPfVkrf24jVMKsANUxeOx6Dz1RyCqh5euzhLC+pbz/waJhXghqkLx1H8fDWHoC/0WP1oLRa0cAxqBXVT8RomFeCGqQvH86Dz1eyCnn2mm8WTB7+OBVUdf24U7wRVU76Hp6AXoFFQ/pIkjaOg8xUFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh0xDDUVBhHDINMRwFFcYh02oI1+vNsuSEpSioMA6ZRkHH1RXba6g0CjqurtheQ6Utg6DDzZaq7XS4dTARefaoPcuaUwq6RDQxQXuF2fMIqsU8ebBHQWvCIdOkBO31CobOK6iyb7j1UaulHDy537p9kA7vfW6mdPtqZ773Ydu9tr+dvlgrLGen4jVM+yjVFfxeQ6XVIuhsNRZSKujwg73h5nZ6dOel089NqZbVLKBmHikP9+3Mnd/vHLjn8bs0XtUr1tWtWQUdCyg/Bm0bD9VfreTJzoGb0guoKfVHN7L6Qb/+Qh2yuufxu+KvwLTvWnUF36yg0oS6+NFGc94W1D1q1e4rXW/tBUH3W6rvts/a+uHs8Z5ub1P3PH5XvIZpH6W6gt9rqLSlOQZNM0FtOxjEa/uZuRZ0/+O1Ygu6czC6hmkfpbqC32uotKUZxadBSX9saafMg2ovo2PQ4b3/e7wXL+em4jVM+yjVFfxeQ6UtxXnQgqCqt761F6ZetMzw/exRNorX55v0UMmO4qN3xWuY9lGqK/i9hkpbBkGrLwq6NDQKOq6u2F5DpSGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGo6DCOGQaYjgKKoxDpiGGW6SgvZ5/NvtHyd4zvi7/XquJhhiOggrjkGmI4SioMA6ZhhiOggrjkGmI4WYVdLjZUrUdJrcO1B/3TD+cPWq7Z+PWMFpjBO1NkpCC1khDDDezoNq+kwd72WTsoxJ0yhpGq1zQXm+SoRS0RhpiuLkE1Rae3G/dPtD/fL31UavVNi+oyfc+1C3o8N7nep5dqLCG0eqdq6Z/psu/12qiIYabS9DhB3vp/nb6Ys20oJvb6dGdl/oFNe+o1c7muYU0XtWrcXU+QcfiWJex5jsGbZte/mTnwHXx9kFNu2NQN88tFH8FRqu0i5/STrIFrZGGGG6uFjQ1nXerdWsvEtS8tp8X1C4Ur2G0eAwKRkMMN7egO37sPqkF3cmNnziKXxoaYrh5BTXHm+bIMxM0dwxq57mF4jWMFs+DgtEQw80tqOq+Ved99kiN4oOgZ4/8KN4JaheK1zBaFBSMhhiOvyQJ45BpiOF4uZ0wDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhKKgwDpmGGI6CCuOQaYjhBARlsS5QtQsqX7O02QsrhjtfUVChYrjzFQUVKoY7X10mQVmXsCgoC7ooKAu6KCgLuigoC7qWXtCT+y33/1cebrZa7TR90Wq1bh9MeZdQZeFcqmzG4itk0dn0pkPacqGWXdCzR2rDrulnJw/20uEHe+l+e9GZQmXhXKrcjIVXnEX/X9SBtlxWyy7oyc6B+1+GH+mNvd8+e7y36EyhsnAuVTZj8RVl0d9upC2X1bILOrz30mxdW+qZ6rhMT49QWTiXKk672Iqy6KYUactlteyC6q4pbOazR9uml0dpC7JwLlWUdsGVz2IekbZcVssuaL4dOLm/7eaCHE0VGsz9NmoLehRGbiBbLqtlFzR3JDXcDBsXZDMXDjn326jHoPv+m42y5bJadkF1r27Hos5P3RicfYbhQBbOpcpmLL5yWWzHjrTlslp2Qd3ZPNUU5M7m3cLoRHPhfCq886A6nOvpkbZcqKUXlHW5i4KyoIuCsqCLgrKgi4KyoIuCsqCLglZUp7uJrpWH8ezBmw9Lp9Wj/ZO+flLK61qUwyardWRehqKgFdXprnGoe+1pNHucoOFpcQFXx+sbeeyguVFl2CUqClpROZO8WL7OK6if7bBpp1Fh1mUqClpRZYIO3vrn5NpT3Tc3tGg/SZKbh7oNNB21n/Zd/Cdq9qqxr9twHP0+vXQjh6WgrAuWM6lz7emg2dCTDfN30Lx5qB9Ny9rVL9rpcAyqm8q+Oi443d2wGPe+uAXtJ+ziWRcqN5pRqpnjRe2c/sdMKNv+pBpRY6WbjgTV9g7eMgev4X1BUDtIuqp+UtCqyvfF7vCxb7p15Z/2zjSffTPG99ORoLp7dz18eF++BR00r+wgnoJWVVMEPV5feZifjgUdvPWV7eHLBb3CPTwFraqKguqzmL6rVv8Y8dRMPx0Lerr7fdvDx+9L84e2C/lUiy8KWlEVBC0OkrR4g6YStDhIsueluknDY0oHSWbgdSWLglZUBUHT/GkmLVdHHYH+THftP3HzffPZMZPhRHx4X3wetHtVf0uioBDlxvCskaKgENW9ou3j9KKgAKUPTBedAbUoKAu6KCgLuigoC7ooKAu6KCgLuigoC7ooKAu6/h9P8evtqO3gFgAAAABJRU5ErkJggg==" /><!-- --></p>
+</div>
+<div id="poisson-glmm-counts-and-rate-ratios" class="section level2">
+<h2>Poisson GLMM: counts and rate ratios</h2>
+<p>Egg counts of individual females, in containers within populations;
+the innermost random effect (one level per female) models
+overdispersion.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">data</span>(Poisson_ind)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>fm_egg <span class="ot">&lt;-</span> <span class="fu">glmer</span>(Egg <span class="sc">~</span> Treatment <span class="sc">+</span> Habitat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Population<span class="sc">/</span>Container<span class="sc">/</span>individual),</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                <span class="at">family =</span> poisson, <span class="at">data =</span> Poisson_ind)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>pm_egg <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm_egg, <span class="st">&quot;Treatment&quot;</span>, <span class="at">pairwise =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>pm_egg<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;Treatment&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;response&quot;</span>, <span class="st">&quot;response.std.error&quot;</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>                 <span class="st">&quot;response.conf.low&quot;</span>, <span class="st">&quot;response.conf.high&quot;</span>)]</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   Treatment estimate response response.std.error response.conf.low</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 1       Exp 1.790797 5.994228          0.9834858          4.341795</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 2      Cont 1.282349 3.605100          0.5964930          2.604175</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt;   response.conf.high</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; 1           8.275558</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt; 2           4.990734</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>pm_egg<span class="sc">$</span>pairs[, <span class="fu">c</span>(<span class="st">&quot;level1&quot;</span>, <span class="st">&quot;level2&quot;</span>, <span class="st">&quot;p.value&quot;</span>, <span class="st">&quot;ratio&quot;</span>, <span class="st">&quot;ratio.conf.low&quot;</span>, <span class="st">&quot;ratio.conf.high&quot;</span>)]</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;   level1 level2      p.value    ratio ratio.conf.low ratio.conf.high</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; 1    Exp   Cont 1.593578e-21 1.662708       1.505713        1.836072</span></span></code></pre></div>
+<p>The <code>ratio</code> is the expected count under <code>Exp</code>
+divided by that under <code>Cont</code>.</p>
+<p>For a GLMM the back-transformed mean is the response of a
+<em>typical</em> unit, one whose random effects are all zero. With a log
+link this is smaller than the average count over all units, which is
+<code>exp(estimate + v/2)</code>, <code>v</code> being the total
+variance of the random effects. Ratios are the same on both definitions,
+which is one reason to report them.</p>
+<p><code>bias_adjust = TRUE</code> gives that population mean instead
+(to second order, as emmeans’ <code>bias.adjust</code>), with the
+random-effect variance as default <code>sigma</code>;
+<code>average = &quot;response&quot;</code> averages the back-transformed cells
+over the other factors (here Habitat), rather than back-transforming the
+average on the link scale:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>pm_pop <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm_egg, <span class="st">&quot;Treatment&quot;</span>, <span class="at">bias_adjust =</span> <span class="cn">TRUE</span>, <span class="at">average =</span> <span class="st">&quot;response&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>pm_pop<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;Treatment&quot;</span>, <span class="st">&quot;response&quot;</span>, <span class="st">&quot;response.std.error&quot;</span>)]</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt;   Treatment response response.std.error</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; 1       Exp 7.428835          1.2188564</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; 2      Cont 4.467913          0.7392425</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>pm_pop<span class="sc">$</span>settings[<span class="fu">c</span>(<span class="st">&quot;bias_adjust&quot;</span>, <span class="st">&quot;average&quot;</span>)]</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; $bias_adjust</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; [1] 0.6532439</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; $average</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;response&quot;</span></span></code></pre></div>
+</div>
+<div id="a-transformed-response-trans-exp" class="section level2">
+<h2>A transformed response: <code>trans = exp</code></h2>
+<p>When the response is transformed before modelling, give the
+back-transformation with <code>trans</code> (and <code>transOff</code>
+for, e.g., <code>log(y + 1)</code>). Differences of log means are logs
+of ratios of geometric means:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">data</span>(Body_length)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>fm_len <span class="ot">&lt;-</span> <span class="fu">lmer</span>(<span class="fu">log</span>(BodyL) <span class="sc">~</span> Treatment <span class="sc">+</span> Habitat <span class="sc">+</span> Sex <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Population<span class="sc">/</span>Container),</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>               <span class="at">data =</span> Body_length)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>pm_len <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm_len, <span class="st">&quot;Treatment&quot;</span>, <span class="at">pairwise =</span> <span class="cn">TRUE</span>, <span class="at">trans =</span> exp)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>pm_len<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;Treatment&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;response&quot;</span>, <span class="st">&quot;response.std.error&quot;</span>)]</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   Treatment estimate response response.std.error</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; 1      Cont 2.621319 13.75386          0.3655397</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; 2       Exp 2.644563 14.07730          0.3741359</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>pm_len<span class="sc">$</span>pairs[, <span class="fu">c</span>(<span class="st">&quot;level1&quot;</span>, <span class="st">&quot;level2&quot;</span>, <span class="st">&quot;p.value&quot;</span>, <span class="st">&quot;ratio&quot;</span>, <span class="st">&quot;ratio.conf.low&quot;</span>, <span class="st">&quot;ratio.conf.high&quot;</span>)]</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;   level1 level2      p.value    ratio ratio.conf.low ratio.conf.high</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; 1   Cont    Exp 9.949753e-06 0.977024      0.9670482       0.9871028</span></span></code></pre></div>
+</div>
+<div id="binomial-glmm-odds-ratio-and-r²" class="section level2">
+<h2>Binomial GLMM: odds ratio and R²</h2>
+<p>The <code>Clinical</code> data give the number of favourable
+responses out of the patients in each treatment group at each of eight
+clinics.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">data</span>(Clinical)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>fm_clin <span class="ot">&lt;-</span> <span class="fu">glmer</span>(<span class="fu">cbind</span>(Favorable, Total <span class="sc">-</span> Favorable) <span class="sc">~</span> Treatment <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Clinic),</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                 <span class="at">family =</span> binomial, <span class="at">data =</span> Clinical)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>pm_clin <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm_clin, <span class="st">&quot;Treatment&quot;</span>, <span class="at">pairwise =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>pm_clin<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;Treatment&quot;</span>, <span class="st">&quot;response&quot;</span>, <span class="st">&quot;response.conf.low&quot;</span>, <span class="st">&quot;response.conf.high&quot;</span>)]</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;   Treatment  response response.conf.low response.conf.high</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; 1   control 0.2321034        0.07559056          0.5276915</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; 2      drug 0.3873968        0.14775967          0.6975684</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>pm_clin<span class="sc">$</span>pairs[, <span class="fu">c</span>(<span class="st">&quot;level1&quot;</span>, <span class="st">&quot;level2&quot;</span>, <span class="st">&quot;p.value&quot;</span>, <span class="st">&quot;odds.ratio&quot;</span>,</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>                  <span class="st">&quot;odds.ratio.conf.low&quot;</span>, <span class="st">&quot;odds.ratio.conf.high&quot;</span>)]</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;    level1 level2    p.value odds.ratio odds.ratio.conf.low odds.ratio.conf.high</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; 1 control   drug 0.04362227  0.4779715            0.234923            0.9724752</span></span></code></pre></div>
+<p><code>R2_model()</code> gives the share of the variance explained, as
+numbers: Piepho’s R² (the default) or Nakagawa and Schielzeth’s marginal
+and conditional R².</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">R2_model</span>(fm_clin)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt; # Adjusted R2 for mixed models (Piepho)</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt;  Total  Fixed Random Clinic </span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; 75.71%  4.77% 70.94% 70.94% </span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="fu">R2_model</span>(fm_clin, <span class="at">method =</span> <span class="st">&quot;nakagawa&quot;</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; # R2 for mixed models (Nakagawa and Schielzeth)</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt;    Marginal Conditional </span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt;       2.71%      38.70% </span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt; i For a non-gaussian model the R2 is on the link (latent) scale: not</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt;   comparable with an lm R2 or across families and links; use it to compare</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt;   models of the same family.</span></span></code></pre></div>
+<p>The two need not agree. For counts out of totals, as here, Piepho’s
+R² takes the residual variance from the model’s working weights: with up
+to 37 patients per group a proportion is measured precisely, so the
+random clinic effects explain most of the rest. Nakagawa’s R² uses the
+variance of the latent scale of a single yes/no response, π²/3 for the
+logit link, whatever the group sizes. For binary (0/1) data both use the
+same latent variance.</p>
+</div>
+<div id="comparing-two-lines-along-a-covariate" class="section level2">
+<h2>Comparing two lines along a covariate</h2>
+<p><code>covariatemeans(contr = )</code> gives the difference between
+two levels of a factor along a covariate. Three points decide how it is
+reported.</p>
+<p><strong>The test is on the model scale.</strong> On the link (or
+transformed) scale the model is additive, the estimates are closest to
+normal and the standard error does not depend on the mean. With a log
+the difference back-transforms exactly to a ratio, with a logit to an
+odds ratio: the limits leave out 1 exactly when those of the difference
+leave out 0. This is what is plotted by default.</p>
+<p><strong>Back-transforming is for reading the size, not for
+testing.</strong> The difference in the units of the response
+(<code>contr_scale = &quot;response&quot;</code>) is another quantity: its band is
+an approximation (the delta method), it depends on the values of the
+other variables, and lines that are parallel on the model scale are not
+parallel on the response scale. The values where the lines differ are
+still taken from the model scale, and marked.</p>
+<p><strong>“Significant at 0.05” has three meanings.</strong></p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Do the lines differ at one covariate value chosen beforehand?</td>
+<td>the pointwise band (<code>band = &quot;pointwise&quot;</code>)</td>
+</tr>
+<tr class="even">
+<td>Over which range of the covariate do they differ?</td>
+<td>the simultaneous band (<code>band = &quot;simultaneous&quot;</code>, Scheffé;
+for straight lines the Working–Hotelling band)</td>
+</tr>
+<tr class="odd">
+<td>Do they differ anywhere?</td>
+<td>the joint F test (<code>settings$test</code> in the result)</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>dose <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">trt =</span> <span class="fu">gl</span>(<span class="dv">2</span>, <span class="dv">40</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;control&quot;</span>, <span class="st">&quot;treated&quot;</span>)), <span class="at">x =</span> <span class="fu">runif</span>(<span class="dv">80</span>, <span class="dv">0</span>, <span class="dv">2</span>))</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>dose<span class="sc">$</span>count <span class="ot">&lt;-</span> <span class="fu">rpois</span>(<span class="dv">80</span>, <span class="fu">exp</span>(<span class="dv">1</span> <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>dose<span class="sc">$</span>x <span class="sc">+</span> <span class="fl">0.6</span><span class="sc">*</span>dose<span class="sc">$</span>x<span class="sc">*</span>(dose<span class="sc">$</span>trt <span class="sc">==</span> <span class="st">&quot;treated&quot;</span>)))</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>fm_dose <span class="ot">&lt;-</span> <span class="fu">glm</span>(count <span class="sc">~</span> trt<span class="sc">*</span>x, <span class="at">family =</span> poisson, <span class="at">data =</span> dose)</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>cmp <span class="ot">&lt;-</span> <span class="fu">covariatemeans</span>(fm_dose, <span class="st">&quot;trt&quot;</span>, <span class="at">covariate =</span> <span class="st">&quot;x&quot;</span>, <span class="at">contr =</span> <span class="fu">c</span>(<span class="st">&quot;treated&quot;</span>, <span class="st">&quot;control&quot;</span>),</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>                      <span class="at">band =</span> <span class="st">&quot;simultaneous&quot;</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>cmp</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; Difference treated - control of &#39;trt&#39; along x</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 95% limits; adj.conf.*: 95% simultaneous band; asymptotic (z) df</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; Curves equal: F(2, Inf) = 28.353, p = 4.86e-13</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; They differ (simultaneous band) for x: 0.5859 to 1.984 (&gt;)</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; response: back-transformed by the inverse link; mean</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt;        x estimate std.error  df statistic p.value  p.adj conf.low conf.high</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt;  0.02678  0.05425    0.2532 Inf    0.2142  0.8304 0.9773  -0.4421    0.5506</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt;  0.04666  0.06624    0.2496 Inf    0.2654  0.7907 0.9654  -0.4230    0.5555</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt;  0.06672  0.07834    0.2460 Inf    0.3185  0.7501 0.9505  -0.4037    0.5604</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt;  0.10666  0.10242    0.2387 Inf    0.4290  0.6679 0.9121  -0.3655    0.5703</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt;  0.12357  0.11262    0.2357 Inf    0.4778  0.6328 0.8921  -0.3493    0.5746</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt;  0.14136  0.12335    0.2325 Inf    0.5305  0.5957 0.8687  -0.3323    0.5790</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="co">#&gt;  0.14660  0.12651    0.2316 Inf    0.5463  0.5848 0.8614  -0.3273    0.5804</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt;  0.16849  0.13971    0.2277 Inf    0.6137  0.5394 0.8284  -0.3065    0.5859</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt;  0.18654  0.15059    0.2245 Inf    0.6709  0.5023 0.7985  -0.2893    0.5905</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt;  0.19893  0.15807    0.2223 Inf    0.7112  0.4770 0.7765  -0.2776    0.5937</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt;  adj.conf.low adj.conf.high ratio ratio.conf.low ratio.conf.high response</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="co">#&gt;       -0.5656        0.6741 1.056         0.6427           1.734   0.1462</span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="co">#&gt;       -0.5447        0.6772 1.068         0.6551           1.743   0.1804</span></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="co">#&gt;       -0.5237        0.6804 1.081         0.6678           1.751   0.2155</span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="co">#&gt;       -0.4819        0.6868 1.108         0.6939           1.769   0.2877</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="co">#&gt;       -0.4643        0.6895 1.119         0.7052           1.776   0.3192</span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="co">#&gt;       -0.4458        0.6925 1.131         0.7172           1.784   0.3528</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="co">#&gt;       -0.4403        0.6933 1.135         0.7208           1.787   0.3628</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="co">#&gt;       -0.4175        0.6970 1.150         0.7360           1.797   0.4053</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co">#&gt;       -0.3988        0.7000 1.163         0.7488           1.805   0.4410</span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="co">#&gt;       -0.3860        0.7021 1.171         0.7576           1.811   0.4659</span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="co">#&gt;  response.std.error response.conf.low response.conf.high response.adj.conf.low</span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a><span class="co">#&gt;              0.6803           -1.1872              1.480                -1.519</span></span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a><span class="co">#&gt;              0.6772           -1.1470              1.508                -1.477</span></span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a><span class="co">#&gt;              0.6740           -1.1056              1.537                -1.434</span></span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a><span class="co">#&gt;              0.6676           -1.0208              1.596                -1.346</span></span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a><span class="co">#&gt;              0.6648           -0.9839              1.622                -1.308</span></span>
+<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a><span class="co">#&gt;              0.6619           -0.9444              1.650                -1.267</span></span>
+<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a><span class="co">#&gt;              0.6610           -0.9327              1.658                -1.255</span></span>
+<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a><span class="co">#&gt;              0.6573           -0.8829              1.694                -1.204</span></span>
+<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a><span class="co">#&gt;              0.6542           -0.8411              1.723                -1.160</span></span>
+<span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a><span class="co">#&gt;              0.6520           -0.8120              1.744                -1.130</span></span>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a><span class="co">#&gt;  response.adj.conf.high</span></span>
+<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a><span class="co">#&gt;                   1.811</span></span>
+<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a><span class="co">#&gt;                   1.838</span></span>
+<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a><span class="co">#&gt;                   1.865</span></span>
+<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a><span class="co">#&gt;                   1.922</span></span>
+<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a><span class="co">#&gt;                   1.946</span></span>
+<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a><span class="co">#&gt;                   1.973</span></span>
+<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a><span class="co">#&gt;                   1.981</span></span>
+<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a><span class="co">#&gt;                   2.014</span></span>
+<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a><span class="co">#&gt;                   2.042</span></span>
+<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a><span class="co">#&gt;                   2.062</span></span>
+<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a><span class="co">#&gt; ... 118 more rows: as.data.frame(x) gives the table.</span></span>
+<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a><span class="co">#&gt; autoplot(x) draws the plot (layouts: ?autoplot.pm_curves).</span></span>
+<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a>ggplot2<span class="sc">::</span><span class="fu">autoplot</span>(cmp)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>The table has the columns of <code>predictmeans()$pairs</code>:
+<code>estimate</code> (the log ratio),
+<code>conf.low</code>/<code>conf.high</code> (pointwise),
+<code>p.adj</code> with
+<code>adj.conf.low</code>/<code>adj.conf.high</code> (the simultaneous
+band), <code>ratio</code> with its limits, and the response-scale
+difference (<code>response</code>, …); <code>as.data.frame(cmp)</code>
+returns it.</p>
+<p>The pointwise band is narrower and would call a longer range
+significant; it is right only for a single value of the covariate chosen
+before seeing the data.</p>
+</div>
+<div id="more" class="section level2">
+<h2>More</h2>
+<ul>
+<li><code>vignette(&quot;R2_glmm&quot;, package = &quot;predictmeans&quot;)</code>: adjusted
+R² for mixed models.</li>
+<li><code>vignette(&quot;contrasts&quot;, package = &quot;predictmeans&quot;)</code>:
+contrasts, joint tests and slopes; they are on the link scale too.</li>
+<li><code>?predictmeans</code> (arguments <code>trans</code>,
+<code>transOff</code>, <code>count</code>), <code>?R2_model</code>,
+<code>?covariatemeans</code> (section “Comparing two lines”).</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

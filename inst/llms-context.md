@@ -1,0 +1,285 @@
+# predictmeans: context for AI assistants and scripted use
+
+Package version 2.0 (development). Compact reference to the result tables, defaults and
+common recipes. Full documentation: the help pages and vignettes
+(`browseVignettes("predictmeans")`) and https://dongwenluo.github.io/predictmeans/.
+
+## What it does
+
+Predicted (least-squares, "marginal") means of model terms, their standard errors,
+confidence limits, pairwise comparisons, LSDs, contrasts, joint tests and slopes, for
+`aov`, `lm`, `glm`, `gls`, `lme`, `lmer`, `glmer`, `glmmTMB`, `gam` (mgcv) and
+`semireg()` fits. Means average over the other factors of the model (equal weights by
+default) with covariates at their means. Results match SAS `LSMEANS` and emmeans.
+
+## Core call
+
+```r
+pm <- predictmeans(model, modelterm, atvar = NULL, adj = "none", conf_level = 0.95,
+                   pairwise = NULL, trans = I)
+```
+
+- `modelterm`: a fixed-effect term written as in the model, e.g. `"A"` or `"A:B"`; its
+  variables must be factors. A wrong order or case gives an error naming the right term.
+- `atvar`: compare the levels of the other factor(s) within each level of `atvar`.
+- `adj`: `"none"`, `"tukey"`, `"holm"`, `"hochberg"`, `"hommel"`, `"bonferroni"`, `"BH"`,
+  `"BY"`, `"fdr"`, `"sidak"`, `"scheffe"`, `"mvt"` (exact single-step, = SAS
+  `ADJUST=SIMULATE`; needs mvtnorm). Any letter case. `adj`, `atvar`, `permlist` or `pairwise = TRUE` ask for
+  comparisons; `pairwise` only sets printing (NULL: shown when asked for; FALSE: hidden, results unchanged).
+  One LSD is printed only when all LSDs are equal (`attr(pm$LSD, "equal")`); otherwise the range and advice `lsd_varies`.
+- `conf_level`: confidence level, default 0.95; tests, LSDs and letters are at the significance
+  level `level = 1 - conf_level` (stored as `settings$level`). `df_method` takes a method name or
+  one number (a fixed df). 1.1.1 arguments (`level`, `Df`, `which.plots`, `prtnum`, `ndecimal`,
+  `transOff`, `count`, plot settings as arguments) stop with their 2.0 spelling.
+- No `plot` or `plot_args` (removed; `plot = FALSE` is accepted): `autoplot(pm)` / `plot(pm)` draw from the
+  result (`type = "means"` with one average LSD bar, `"bar"`, `"ci"`, `"pvalue"`; `data = TRUE` adds the observations).
+  Nothing is printed or drawn during the call.
+- `generics::glance(pm)`: one row describing the result (term, numbers of means and pairs, df
+  method, adjustment, SED range, mean LSD).
+- `df_method`: `"auto"` (Kenward-Roger for REML `lmer`, `lme`, `gls`; Satterthwaite for ML fits;
+  `"inner-outer"` for GLMMs: df of the grouping level at which each effect varies; z tests,
+  `"asymptotic (z)"`, for Poisson/binomial/negative binomial `glm`; `"residual"` = 1.x for both),
+  `"Kenward-Roger"`, `"Satterthwaite"`, `"containment"` (SAS `DDFM=CONTAIN`), `"between-within"`
+  (SAS `DDFM=BETWITHIN`; also for `lme` and `gls`), `"KR-expected"` (Kenward-Roger with the expected
+  information, as pbkrtest/emmeans; `"Kenward-Roger"` uses the observed information, as SAS `DDFM=KR`),
+  `"KR-average"` (the average information: Genstat's df).
+  For `lme` and `gls`, `"Satterthwaite"`, `"Kenward-Roger"`, `"KR-expected"` and `"KR-average"` work with any
+  correlation/variance structure (defaults: Kenward-Roger for REML fits, Satterthwaite for ML fits;
+  `"containment"`: nlme's or the residual df, as 1.x).
+- `vcov_adjust = TRUE` (default): Kenward-Roger adjusted covariance for REML `lmer`, as SAS
+  `DDFM=KR` and emmeans; `FALSE` reproduces predictmeans 1.x standard errors.
+- `weights`: `"equal"` (default), `"proportional"` (= SAS `OM`), `"outer"`, `"cells"`,
+  `"flat"`, as in emmeans.
+- `covariate`, `cov_reduce`, `exclude`: covariate values, how covariates are reduced
+  (function or `"average"`), smooth terms to leave out (`gam`).
+
+## Result: stable tables
+
+`pm` has class `c("predictmeans", "pdmlist")`. Use these slots (fixed names, unrounded):
+
+`pm$means`, one row per mean:
+
+| column | meaning |
+|---|---|
+| factor (and covariate) columns | the level of each variable of `modelterm` |
+| `estimate`, `std.error`, `df` | mean on the model (link) scale, SE, denominator df |
+| `conf.low`, `conf.high` | confidence limits at `1 - level` (of each mean; not for comparing means) |
+| `over` | only when some mean averages over empty cells: the cells it averages (e.g. `"N 0, 0.2, 0.4"`); NA for the others |
+| `comparison.low`, `comparison.high` | comparison intervals (when the pairs are tabulated): two means differ at `level` when these do not overlap; NA for a mean over empty cells whose pairs are not the differences of the shown means (`settings$comparison$left_out`; `letter_ci` then takes the letters from the p-values) |
+| `response`, `response.std.error`, `response.conf.low`, `response.conf.high` | only when the means are back-transformed (non-identity link or `trans`); SE by the delta method |
+| `group` | letters (only with pairwise comparisons); means sharing a letter do not differ |
+| `n` | number of observations in the cell |
+| `estimable` | FALSE when the mean cannot be estimated (then `estimate` is NA) |
+
+`pm$pairs`, one row per pair (NULL when there is only one mean, or more than 100 means and no
+comparison asked for: then only the SED and LSD summaries are computed, fast for several hundred means):
+
+| column | meaning |
+|---|---|
+| `level1`, `level2` | the two means, labels `"a:b"` for several factors |
+| `by` | the `atvar` level (only with `atvar`; NA for pairs across levels) |
+| `over` | only when a mean averages over empty cells: the cells of the other factors the pair is compared on (those both means have; `"none"`: NA pair); NA for the other pairs |
+| `estimate` | mean of `level1` minus mean of `level2` (link scale; with `over`: on the common cells) |
+| `std.error`, `df`, `statistic`, `p.value` | t test of the difference |
+| `p.adj` | p-value adjusted by `adj` (within each `by` level with `atvar`) |
+| `p.equiv` | with `equivalence = d` or `c(lower, upper)`: TOST p-value (difference within the margins) |
+| `conf.low`, `conf.high` | limits of each difference at `level` (not adjusted) |
+| `lsd` | least significant difference at `level` (half-width of those limits) |
+| `adj.conf.low`, `adj.conf.high` | with `adj` "tukey", "bonferroni", "sidak", "scheffe", "mvt" (with a `permlist` also "westfall"): simultaneous limits within each family; exclude 0 exactly when `p.adj` < `level` (SAS AdjLower/AdjUpper) |
+| `p.method` | `"t"`, `"tukey"`, `"permutation"` or `"bootstrap"` |
+| `ratio`, `ratio.conf.low`, `ratio.conf.high` | log link or `trans = exp`: ratio of the means |
+| `odds.ratio`, `odds.ratio.conf.low`, `odds.ratio.conf.high` | logit link: odds ratio |
+
+`pm$settings`: list with `modelterm`, `level`, `adjust`, `atvar`, `df_method`,
+`vcov_adjust`, `vcov` (`"model"`, or the covariance given by `vcov =`: `"HC0"`-`"HC3"`, `"CR1, clusters: ..."`,
+`"user matrix"`, `"user function"`), `equivalence` (the TOST margins, or NULL), `comparison` (the comparison intervals: `mult`, `conf_level`, `pairs`,
+`disagree`, `exact`; NULL without pairs), `back_transform` (what the back-transformed means are: `by` the
+inverse link, `trans` or the response transformation found in the formula; `estimate` mean, typical cluster,
+median or bias-adjusted mean; NULL when not back-transformed), `bias_adjust` (the SD
+used with `bias_adjust = TRUE`, else NA), `average` (`"link"` or `"response"`), `singular` (TRUE when
+the lmer/glmer fit is singular; NA for other classes), `nperm`, `covariates`, `component`
+(glmmTMB fits with zero inflation: `"conditional"`, the means of the count part, mu, the default, or
+`"overall"`, the overall means (1 - pi) mu with `predictmeans(mean_type = "overall")`; NA otherwise), `model_class`, `version`.
+
+Also: `as.data.frame(pm)` / `as.data.frame(pm, what = "pairs")`, `generics::tidy(pm)`,
+`summary(pm)`, `ggplot2::autoplot(pm, type = c("means", "bar", "ci", "pvalue"), interval = c("lsd", "sed", "ci", "comparison", "none"), data = FALSE, x, group, panel)` (one average LSD bar per panel; atvar levels are panels), `plot(pm)`,
+`coef(pm)` and `vcov(pm)` (means and their covariance, named `"a:b"`).
+
+The 1.x slots (`"Predicted Means"`, `"Standard Error of Means"`, `"LSD"`, `mean_table`,
+`"Pairwise p-value"`, ...) are still there, with names that vary with the options;
+prefer the stable tables.
+
+## Recipes
+
+```r
+library(predictmeans)
+Oats <- as.data.frame(nlme::Oats); Oats$nitro <- factor(Oats$nitro)
+fm <- lmer(yield ~ nitro * Variety + (1 | Block/Variety), data = Oats)
+
+# means of one factor, all pairs, Tukey; letters in pm$means$group
+pm <- predictmeans(fm, "nitro", adj = "tukey", plot = FALSE)
+
+# nitrogen compared within each variety
+pm2 <- predictmeans(fm, "nitro:Variety", atvar = "Variety", adj = "tukey", plot = FALSE)
+
+# contrasts by level names; standard families (Dunnett, polynomial, ...)
+K <- Kmatrix(fm, "nitro:Variety")
+cm <- specify_contrast(K, N_Victory = `0.6:Victory` - `0:Victory`)
+as.data.frame(contrastmeans(fm, "nitro:Variety", ctrmatrix = cm))
+contrastmeans(fm, "nitro", ctrmatrix = contrast_family(Kmatrix(fm, "nitro"), "trt.vs.ctrl"),
+              adj = "mvt")$contrasts
+
+# joint F tests: nitrogen within each variety (SAS SLICE)
+pm_joint(fm, "nitro:Variety", by = "Variety")
+
+# slopes of a numeric covariate by group (fit with nitro numeric)
+Oats2 <- as.data.frame(nlme::Oats)
+fm2 <- lmer(yield ~ nitro * Variety + (1 | Block/Variety), data = Oats2)
+sl <- pm_slopes(fm2, "nitro", "Variety", adj = "tukey")
+sl$slopes; sl$pairs                     # as.data.frame(sl, what = "pairs")
+
+# GLM / GLMM: response-scale means, ratios or odds ratios in pm$pairs
+data(Drug)
+g <- glm(cbind(R, N - R) ~ Drug + log10Dose, family = binomial, data = Drug)
+predictmeans(g, "Drug", pairwise = TRUE, plot = FALSE)$pairs
+
+# transformed response
+# predictmeans(lmer(log(y) ~ ...), "A", trans = exp, plot = FALSE)   # ratios of geometric means
+
+# permutation p-values for terms and pairs (Freedman-Lane by default, any model class:
+# lm, aov, glm, lme, gls, lmer, glmer, glmmTMB; mixed models refitted, refit = FALSE is faster)
+perm <- permmodels(fm, nperm = 999, seed = 1)
+predictmeans(fm, "nitro", permlist = perm, plot = FALSE, ncore = 1)$pairs
+# unequal error variances in lm/glm: HC3 statistics with sign flips (wild bootstrap)
+# permmodels(lm_fit, nperm = 999, seed = 1, robust = TRUE)
+# effect sizes and a check of the parametric test; several responses combined
+permstats(perm)
+# permcombine(y1 = perm1, y2 = perm2)   # same rows, same seed and nperm
+# the 1.x scheme (response / fitted values permuted, refits kept in permlist)
+perm_raw <- permmodels(fm, nperm = 999, ncore = 1, seed = 1, method = "raw")
+# random effects or any two nested mixed models (lmer, glmer, glmmTMB)
+# permlmer(fm0, fm1, nperm = 999, ncore = 1, seed = 1)    # also glmer and glmmTMB fits
+# randomisation test: permutations within blocks
+idx <- permindex(Oats, block = "Block", nsim = 999, seed = 1)
+permmodels(lm(yield ~ Block + nitro, data = Oats), perms = idx)$ANOVA
+
+# R2 as numbers; variance components
+R2_model(fm); R2_model(fm, method = "nakagawa"); varcomp(fm)
+```
+
+## Things to know
+
+- Kenward-Roger standard errors are the default for REML `lmer` fits, so SEs differ
+  slightly from predictmeans 1.x; use `vcov_adjust = FALSE` for the 1.x values.
+- Tests and letters are on the link scale for GLMs/GLMMs; back-transformed GLMM means are
+  those of a unit with all random effects zero (not population averages); ratios do not
+  depend on this.
+- Empty cells: cell means of unobserved combinations are not shown; a mean averaging over
+  an empty cell follows the 1.x rule (average of the observed cells, with a warning naming
+  it), and its pairs are compared on the cells both means have (column `over`), not as
+  the difference of the two averages (since 2.0). A cell is a combination of the factors of one
+  interaction term. Factors that do not interact but are confounded in the data (each pasture on one
+  farm; a spray volume with one droplet size): the means average over the combinations that exist,
+  with a warning naming the two factors; write the nesting (`A/B`) or drop the aliased factor for the
+  same means without it, `weights = "cells"` for frequency-weighted means. Means that still cannot be
+  estimated are NA, with their estimable differences kept. Check `estimable` and `n`.
+- `pm_check(model)`: a table of model checks (outliers, normality, equal variances, overdispersion,
+  interactions, straight line for numeric-level factors); `residplot(model)`: ggplot2 diagnostic plots
+  (`interactive = TRUE`: plotly); see `vignette("checking")`.
+- Comparison intervals (`means$comparison.low/high`, `settings$comparison`,
+  `autoplot(pm, interval = "comparison")`): mean +/- c SE with c = crit x SED/(SE1 + SE2)
+  averaged over the pairs, so two means differ at `level` when their intervals do not
+  overlap (83.4% intervals for independent means with equal SEs; narrower for correlated
+  means). Confidence limits of means are not for comparing means.
+- `letter_ci = TRUE`: letters from the overlap of the comparison intervals, shown as LL/UL
+  in `mean_table`, at the significance level `1 - conf_level`.
+- `permmodels()`, `permlmer()` and `predictmeans(permlist = )` use
+  `ncore = 1` by default since 2.0 (3 before); set `ncore` for parallel refits. With `permlist`,
+  `adj = "tukey"`/`"mvt"` is the single-step and `adj = "westfall"` the step-down
+  permutation max-|t| (Westfall-Young); `"scheffe"` is not available.
+- `permmodels()` defaults to Freedman-Lane since 2.0 (`method = "auto"`); `method =
+  "raw"` reproduces 1.x. For GLMs/GLMMs it works on the link (working) scale.
+  `permlmer()` for GLMMs uses the working scale, and randomised quantile residuals for
+  0/1 responses. With a `permlist`, `vcov_adjust` (Kenward-Roger) is not used.
+- `vcov = "HC3"` (or `"HC0"`-`"HC2"`, `~ cluster`) gives robust SEs for lm/glm in `predictmeans()`,
+  `contrastmeans()`, `pm_slopes()` and `pm_joint()`; a matrix or a function works for any model (e.g.
+  clubSandwich for mixed models). The df stay the model's.
+- Back-transformed means (`response` columns) are those of a unit with random effects zero, averaged on
+  the link scale. `bias_adjust = TRUE` (with `sigma`) gives population means (emmeans' `bias.adjust`);
+  `average = "response"` averages the back-transformed cells (emmeans' `regrid()`).
+- `permstats()` gives standardised effect sizes and `param.size`, the rejection rate of the
+  parametric test in the permuted data sets (near `level` when the parametric test suits
+  the data). `permcombine()` combines tests of several responses made with the same
+  permutations (Fisher or Tippett) and gives min-p adjusted p-values over the responses.
+- `semipred()` limits are two-sided at `level` (95% by default) since 2.0; 1.x gave 90%.
+- `anova(lmer_fit)`: Type III F tests with Kenward-Roger df (package's own code, no lmerTest needed);
+  `ddf = "Satterthwaite"`, `type = "I"`/`"II"`; `anova(m1, m2)` is lme4's comparison. `anova(semireg_fit)`:
+  fixed effects + likelihood ratio test of each smooth term (variance = 0).
+- `semireg(y ~ A + s(x, by = A) + (1 | Block), data = d)`: smooths in the formula (mgcv bases; fixed
+  terms `A + A:x` added automatically; `bs = "os"` = the O'Sullivan basis (1.x `smZ()`), `xt = list(knots =,
+  range =)`; numeric `by`, `bs = "fs"`, `s(x1, x2)`, `bs = "ztps"`; `bs = "user", xt = list(basis = f)` (own basis
+  function, iid coefficients, fixed part 1 + x / `null = "constant"` / `"none"`; checked before the fit: a row
+  per value, finite, repeatable, rows independent of the data given, full rank); `s(x, f)` / `s(x, f1*f2)` = common
+  curve + deviation curves, a variance per factor term; `(s(x, k = 10) | id)` = subject curves
+  `(x | id)` + spline deviation (HRW's group-specific curves); `t2(x1, x2)` tensor product, a variance per
+  penalty, fixed `x1 + x2 + x1:x2` (no sum-to-zero constraint; `te()` fitted as `t2()`, `ti()` refused)). Equal to
+  `gam(method = "REML")` and to HRW's / Wand's `lme` fits; then `semipred()`, `predictmeans()`,
+  `varcomp()`, `R2_model()`. `smZ()` / `smoothZ = list(smZ())` were removed in 2.0 (they
+  stop with the formula form; table in `vignette("migrating")`; `smZ(type = "Ztps")` is
+  `s(x1, x2, bs = "ztps", k = 6)`). Data sets of Wand's examples: `growthIndiana`,
+  `SBMDfem`, `ozoneCalif`, `scallop` (+ `scallopKnots`, `scallopBdry`), `wageTUnion`, `copper`
+  (+ `copperKnots`); their help pages show the analyses in the formula syntax. Optimizer `nloptwrap` (1.x: `bobyqa`). `simultaneous = TRUE` gives
+  simultaneous bands. `predictmeans()` on a gaussian `semireg()` fit gives means with the smooth
+  included and t tests with Satterthwaite df for fixed + smooth coefficients (design variance components
+  and residual; smoothing parameters held at their estimates; generalized: inner-outer df of the design's
+  strata, z without strata); `semipred()` bands use the same df (column `df`; simultaneous: multivariate t);
+  `semipred(deriv = 1)` / `deriv = 2`: slopes / curvatures of the curves with bands (any basis; for
+  `bs = "os"` the exact `ZOSull(drv = )` derivatives), `contr` + `deriv` compares slopes, ranges where a
+  slope is above / below zero in `attr(pred_df, "significant")`; link scale for GLMMs;
+  `anova(fit)` tests each smooth variance (as `varcomp(fit, test = TRUE)`).
+- `varcomp(model, test = TRUE)` (lmer, glmer, glmmTMB, semireg): an LRT per row, each row's model refitted
+  (term dropped; `(x | g)` -> `(1 | g)`; covariances 0 by `||` / `diag()`; ar1/ou/cs correlation 0 by
+  `homdiag()`). Boundary mixtures (0.5 chi2(0) + 0.5 chi2(1); 0.5 chi2(k-1) + 0.5 chi2(k)) as SAS GLIMMIX
+  COVTEST; the exact restricted LRT (Crainiceanu & Ruppert) when the tested variance is the only random
+  effect of a gaussian REML fit. A warning names rows whose reference may be inaccurate (< 6 levels; binary
+  data, small clusters). `test_method = "bootstrap"` (`nboot = 999`, `ncore`): parametric bootstrap of each
+  LRT, stops after 20 exceedances. In simulation the default was never liberal (<= 4.5% at 5%) but
+  conservative for GLMMs (0-4%), where the bootstrap was nearer 5% with more power: use the default for
+  gaussian models, the bootstrap for GLMMs, small data and flagged rows.
+- `covariatemeans(model, "A", covariate = "x")` returns class `c("covariatemeans", "pm_curves")` and draws
+  nothing (`plot = TRUE` or `ggplot2::autoplot(cm)` for the plot). `cm$means` (= `as.data.frame(cm)`,
+  `generics::tidy(cm)`): factor columns, the covariate under its own name, `estimate`, `std.error`, `df`,
+  `conf.low`, `conf.high` (model scale), `response`, `response.std.error`, `response.conf.low`,
+  `response.conf.high` when back-transformed; `cm$settings` as for `predictmeans()` (plus `covariate`,
+  `contrast`, `band`, `test`). `level` is alpha here too.
+- `covariatemeans(model, "A", covariate = "x", contr = c("a1", "a3"))` (level names or numbers) gives the
+  difference between two curves along a covariate in `cm$pairs` (the default table of `as.data.frame()`):
+  `level1`, `level2`, the covariate, `estimate` (`a1` - `a3`, model scale, where the test is), `std.error`,
+  `df`, `statistic`, `p.value`, `conf.low`, `conf.high` (pointwise); with `band = "simultaneous"` also
+  `p.adj`, `adj.conf.low`, `adj.conf.high` (Scheffé over the covariate values, "over which range do the
+  curves differ"); `ratio` (log) or `odds.ratio` (logit) with limits; `response`, ... the delta-method
+  difference on the response scale. `cm$settings$test` is the joint F test, `cm$significant` the ranges
+  where the band asked for leaves out 0.
+  `covariatemeans(bias_adjust = TRUE)`: the mean of the response instead of the median / typical cluster.
+- `semipred(fit, "A", "x")` returns class `c("semipred", "pm_curves")` with the same tables and methods and
+  draws nothing unless `plot = TRUE`: `$means` (the
+  curves or surfaces; `NULL` with `contr` or `deriv`), `$slopes` (`deriv = 1, 2`: the same columns plus
+  `statistic`, `p.value` of slope = 0), `$pairs` (`contr`: the difference of two curves). In every table
+  `conf.low`/`conf.high` are pointwise t limits; with `band = "simultaneous"` the simulated band is
+  `adj.conf.low`/`adj.conf.high` (and `response.adj.conf.*`), with `p.adj` = share of simulated maxima
+  >= |t| (agrees with the band; smallest 1e-4). Generalized fits and `trans` add `response` columns (the
+  curves at random effects zero; `settings$back_transform`). `$settings` adds `deriv`, `unconditional`,
+  `boundary`; `$significant` the ranges. The 1.x `$pred_df` (`LL`/`UL` = the band asked for, `SE`,
+  `SE_mu`, `diff`, `ratio`, `response.diff`, ...) and `$plt` are still there.
+- One layout for every comparison table: `predictmeans()$pairs`, `contrastmeans()$contrasts` (first column
+  `contrast`), `pm_slopes()$slopes` / `$pairs`, `covariatemeans()` / `semipred()` `$pairs`, and the pairs of
+  `predictmeans()` on `semireg` fits all use `estimate`, `std.error`, `df`, `statistic`, `p.value`
+  (unadjusted), `p.adj`, `conf.low`, `conf.high` (each row on its own) and, with an adjustment that has them
+  (tukey, bonferroni, sidak, scheffe, mvt; simultaneous bands), `adj.conf.low`, `adj.conf.high`; `ratio` or
+  `odds.ratio` with `.conf.low` / `.conf.high` on a log or logit scale. F tests (`pm_joint()`,
+  `contrastmeans(joint = TRUE)$joint`, `covariatemeans()$settings$test`) use `df1`, `df2`, `F.ratio`,
+  `p.value`. `contrastmeans()[[1]]` is still the rounded 1.x table (adjusted p in `Pr(>|t|)`).
+- `marginaleffects::hypotheses()` works on `predictmeans()` results after
+  `options(marginaleffects_model_classes = "predictmeans")`.
+- Data must be available when `predictmeans()` runs: it re-reads the model's `data`
+  argument, so fit models with a named data frame (not an expression).

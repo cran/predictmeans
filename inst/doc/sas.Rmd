@@ -1,0 +1,81 @@
+---
+title: "Matching SAS PROC MIXED"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Matching SAS PROC MIXED}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE)
+```
+
+predictmeans can give the numbers SAS PROC MIXED gives for the same model; its defaults are chosen on evidence, not to match SAS. This page
+shows which arguments correspond to which SAS options, and what has been checked.
+
+## Options
+
+| SAS PROC MIXED | predictmeans |
+|---|---|
+| `METHOD=REML` | `lmer(..., REML = TRUE)`, `lme()`, `gls()` (the defaults) |
+| `LSMEANS / DIFF CL` | `predictmeans()`: `$means`, `$pairs` |
+| `LSMEANS / OM` | `weights = "proportional"` |
+| `LSMEANS / ADJUST=TUKEY ADJDFE=ROW`, `SIMULATE` | `adj = "tukey"`, `"mvt"` (each pair's own df; SAS's default `ADJDFE=SOURCE` uses the term's F-test df) |
+| NOTE: "Estimated G matrix is not positive definite" | a message about a singular fit; `settings$singular` |
+| `ESTIMATE`, `CONTRAST` | `contrastmeans()`, `pm_joint()` |
+| `DDFM=CONTAIN` | `df_method = "containment"` |
+| `DDFM=BETWITHIN` | `df_method = "between-within"` (`lmer`, `lme`, `gls`) |
+| `DDFM=SATTERTHWAITE` | `df_method = "Satterthwaite"` (`lmer`, `lme`, `gls`) |
+| `DDFM=KR` | `df_method = "Kenward-Roger"` (`lmer`, `lme`, `gls`; the default for REML `lmer`) |
+| `REPEATED / TYPE=UN SUBJECT=` | `gls(..., correlation = corSymm(), weights = varIdent())` |
+| `EMPIRICAL` | `vcov = "HC0"` (or `"HC3"`, `~ cluster`; `lm`/`glm`) |
+
+`df_method = "Kenward-Roger"` (the default for REML `lmer` fits) is Kenward–Roger as SAS
+computes it, with the *observed* information of the variance parameters; pbkrtest and
+emmeans use the *expected* information (`df_method = "KR-expected"`). They agree in balanced
+designs. With missing data they can differ: for the split plot below with one whole plot
+missing, the Kenward–Roger df of a whole-plot comparison are 8.35 with `"Kenward-Roger"` (and
+in SAS) and 9.25 with `"KR-expected"`. predictmeans uses the observed information because it
+stays valid with missing values (Kenward and Molenberghs 1998); in simulations it kept the 5%
+level where the expected information rejected 8.5% of true hypotheses.
+
+```{r}
+library(predictmeans)
+Oats <- as.data.frame(nlme::Oats)
+Oats$nitro <- factor(Oats$nitro)
+oats_wp <- droplevels(subset(Oats, !(Block == "I" & Variety == "Golden Rain")))
+fm <- lmer(yield ~ Variety * nitro + (1 | Block/Variety), data = oats_wp)
+dfs <- sapply(c("containment", "between-within", "Satterthwaite", "Kenward-Roger", "KR-expected"),
+              function(m) predictmeans(fm, "Variety", df_method = m)$pairs$df)
+rownames(dfs) <- c("Golden Rain - Marvellous", "Golden Rain - Victory", "Marvellous - Victory")
+round(dfs, 2)
+```
+
+The SAS values for these pairs are, in the same order: containment 9, 9, 9; between-within
+9, 9, 9; Satterthwaite 8.35, 8.35, 8.10 (as here); Kenward–Roger 8.35, 8.35, 8.10.
+
+## What was checked
+
+The SAS program `dev/sas/pm-reference.sas` (in the package sources) fits four data sets —
+Yates' oats split plot, the same with one sub-plot missing, with one whole plot missing,
+and a repeated-measures trial with an unstructured covariance — with the four `DDFM`
+methods: 16 PROC MIXED runs. Their output was compared with predictmeans value by value
+(`dev/sas/compare-sas.R`): every variance component, LS-mean, difference (estimate, SE,
+df, limits) and Type 3 F test with its df agrees with what SAS prints, to its last digit,
+except LS-mean SEs that differ by about 2e-5 (relative) where the two programs stop
+their REML iterations.
+
+Other real SAS runs (scripts and output in `dev/sas/`) check Tukey–Kramer adjusted
+p-values and limits with `ADJDFE=ROW` (`tests/testthat/test-sas-adjust.R`), Kenward–Roger
+for AR(1) with missing values (`DDFM=KR(FIRSTORDER)`, `test-sas-ar1.R`), covariance
+parameters and `COVTEST` standard errors (`test-sas-reference.R`) and Type III tests with
+an empty cell (`test-anova-empty.R`).
+
+## Genstat
+
+Genstat 23.1 runs (`dev/genstat/`) are the reference for REML with `df_method =
+"KR-average"` (variance components, Wald tests and their df, means and SEDs), for
+`varcomp()` standard errors, for the means over an empty cell, and for `aov` models with
+`Error()` and missing values (Genstat's estimated missing values, stratum mean squares and
+means): `tests/testthat/test-genstat-reference.R` and `test-aov-missing.R`.

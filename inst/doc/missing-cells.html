@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Missing cells and non-estimable means</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Missing cells and non-estimable means</h1>
+
+
+
+<p>A predicted mean is a linear combination of the model’s coefficients.
+When some treatment combinations have no data, or two factors are
+confounded, some of these combinations cannot be estimated from the
+data: emmeans prints them as <code>nonEst</code> and SAS as
+<code>Non-est</code>. This vignette shows what predictmeans does in
+these cases and how to get means and comparisons that are estimable.</p>
+<p>In short:</p>
+<ul>
+<li><strong>Cell means</strong> of combinations with no data are not
+shown.</li>
+<li><strong>A mean that averages over an empty cell</strong> (e.g. the
+mean of a nitrogen level over the varieties when one variety lacks that
+level) keeps the rule of predictmeans 1.x: it is the average of the
+observed cells, with a warning naming it.</li>
+<li><strong>Its comparisons</strong> with other means are made on the
+cells both means have (column <code>over</code> of <code>pairs</code>),
+not as the difference of two averages over different cells.</li>
+<li><strong>The table says so</strong>: column <code>over</code> of
+<code>means</code> names the cells such a mean averages. Nothing read
+off the means can contradict the pair tests: when its pairs are not the
+differences of the shown means, such a mean has no comparison interval,
+<code>letter_ci</code> takes the letters from the p-values, and
+<code>autoplot()</code> draws no comparison or half-LSD bar for it (an
+open point marks every such mean).</li>
+<li><strong>A cell</strong> is a combination of the factors of one
+interaction term of the model. Factors that do not interact do not make
+cells together: a combination of them without data is not an empty cell,
+because an additive model can estimate it.</li>
+<li><strong>Confounded factors</strong> (two factors that do not
+interact in the model and do not occur in all combinations, so that
+their effects cannot be told apart): the mean over all their
+combinations does not exist. The means average over the combinations
+that exist, with a warning that names the two factors and says how to
+state the structure in the model.</li>
+<li><strong>Means that still cannot be estimated</strong> are
+<code>NA</code>, with a message. Their pairwise differences are given
+when they can be estimated, and letters among those.</li>
+<li>The <code>means</code> table has an <code>estimable</code> column
+and the number of observations, <code>n</code>.</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(predictmeans)</span></code></pre></div>
+<div id="an-empty-cell" class="section level2">
+<h2>An empty cell</h2>
+<p>Suppose the plots of Victory at the highest nitrogen level were lost
+in the oats split plot:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>Oats <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(nlme<span class="sc">::</span>Oats)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>Oats<span class="sc">$</span>N <span class="ot">&lt;-</span> <span class="fu">factor</span>(Oats<span class="sc">$</span>nitro)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>Om <span class="ot">&lt;-</span> <span class="fu">subset</span>(Oats, <span class="sc">!</span>(Variety <span class="sc">==</span> <span class="st">&quot;Victory&quot;</span> <span class="sc">&amp;</span> N <span class="sc">==</span> <span class="st">&quot;0.6&quot;</span>))</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">with</span>(Om, <span class="fu">table</span>(Variety, N))</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;              N</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; Variety       0 0.2 0.4 0.6</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;   Golden Rain 6   6   6   6</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;   Marvellous  6   6   6   6</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;   Victory     6   6   6   0</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>fm <span class="ot">&lt;-</span> <span class="fu">lmer</span>(yield <span class="sc">~</span> N <span class="sc">*</span> Variety <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> Block<span class="sc">/</span>Variety), <span class="at">data =</span> Om)</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; fixed-effect model matrix is rank deficient so dropping 1 column / coefficient</span></span></code></pre></div>
+<p>The model with the interaction has one coefficient fewer (lme4 drops
+it). The cell means are those of the 11 combinations with data:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>pm_cells <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm, <span class="st">&quot;N:Variety&quot;</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">nrow</span>(pm_cells<span class="sc">$</span>means)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; [1] 11</span></span></code></pre></div>
+<p>The nitrogen means average over the varieties. For N = 0.6 only two
+varieties have data, so its mean is their average, and predictmeans
+warns:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>pm_n <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm, <span class="st">&quot;N&quot;</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; Warning: No data for N:Variety 0.6:Victory. The mean of N = 0.6 averages only</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; its observed cells; its pairs use the cells both means have (column &#39;over&#39;).</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; See vignette(&quot;missing-cells&quot;).</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>pm_n<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;N&quot;</span>, <span class="st">&quot;over&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;std.error&quot;</span>, <span class="st">&quot;n&quot;</span>)]</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;     N                            over  estimate std.error  n</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; 1   0                            &lt;NA&gt;  79.38889  6.972348 18</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; 2 0.2                            &lt;NA&gt;  98.88889  6.972348 18</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; 3 0.4                            &lt;NA&gt; 114.22222  6.972348 18</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; 4 0.6 Variety Golden Rain, Marvellous 125.83333  7.471667 12</span></span></code></pre></div>
+<p>That mean leaves out Victory, the lowest-yielding variety at the
+other nitrogen levels, so it is too high compared with the others;
+emmeans calls it non-estimable. The difference 125.8 − 79.4 = 46.4 would
+mix the nitrogen effect with the variety effect (Victory is in the mean
+of N = 0 but not in that of 0.6). So predictmeans compares N = 0.6 with
+each other level on the varieties both have, Golden Rain and Marvellous
+(column <code>over</code>): 0.6 − 0 is the average of their two
+differences, 42.5. Pairs among the complete levels are the differences
+of the means as usual:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>pm_n2 <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">predictmeans</span>(fm, <span class="st">&quot;N&quot;</span>, <span class="at">pairwise =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>pm_n2<span class="sc">$</span>pairs[, <span class="fu">c</span>(<span class="st">&quot;level1&quot;</span>, <span class="st">&quot;level2&quot;</span>, <span class="st">&quot;over&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;std.error&quot;</span>, <span class="st">&quot;p.value&quot;</span>)]</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;   level1 level2                            over   estimate std.error</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; 1      0    0.2                            &lt;NA&gt; -19.500000  4.469636</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 2      0    0.4                            &lt;NA&gt; -34.833333  4.469636</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 3    0.2    0.4                            &lt;NA&gt; -15.333333  4.469636</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 4      0    0.6 Variety Golden Rain, Marvellous -42.500000  5.474164</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 5    0.2    0.6 Variety Golden Rain, Marvellous -22.333333  5.474164</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 6    0.4    0.6 Variety Golden Rain, Marvellous  -9.916667  5.474164</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt;        p.value</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; 1 8.760703e-05</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt; 2 1.494073e-09</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt; 3 1.409747e-03</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt; 4 1.639811e-09</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; 5 2.085466e-04</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt; 6 7.755869e-02</span></span></code></pre></div>
+<p>Comparing the two averages instead would wrongly call 0.6 and 0.4
+different here (p = 0.03 against 0.08 on the common varieties). In
+simulations (<code>dev/review-defaults.md</code> in the package sources)
+comparing averages over different cells rejected 8–78% of true null
+hypotheses when the other factor had an effect; comparing on the common
+cells 4–6%. When two means have no cell in common their difference is NA
+(<code>over = &quot;none&quot;</code>). <code>pm_joint()</code> tests a term on
+the cells common to all its means, and <code>contrastmeans()</code>
+compares on the cells the means of each contrast have in common.
+<code>anova()</code> does the same for its Type III tests: the
+interaction keeps the contrasts that use no empty cell (5 df here, not
+6), and the main effects are the <code>pm_joint()</code> tests:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">anova</span>(fm)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; Analysis of Deviance Table (Type III Wald F tests with Kenward-Roger df)</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; Response: yield</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; Empty cells: each term is tested on the cells with data (see ?anova.lmerMod)</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; Advice:</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; ! Empty cells: no type of test answers the question of a main effect over</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt;   all cells. Type III tests use the cells with data; better, state the</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt;   comparisons of interest on the cell means (pm_joint(),</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt;   predictmeans(pairwise = TRUE)).</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; i Unbalanced data: Type III tests compare equally weighted cell means</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt;   (contrasts as sum-to-zero), meaningful with an interaction present. With</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt;   no interaction, Type II tests of main effects are more powerful.</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt;                 F Df Df.res    Pr(&gt;F)    </span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt; N         22.3912  3 40.064 1.123e-08 ***</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; Variety    1.9414  2 11.843    0.1865    </span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt; N:Variety  0.3295  5 40.064    0.8922    </span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span></code></pre></div>
+<p>The mean of N = 0.6 stays in the table, labelled by
+<code>over</code>, because it is the honest estimate of its own quantity
+(the average over the varieties that have it). A table of means over the
+cells common to all levels would not be better: it would change the
+means of complete levels whenever another level loses a cell, and with
+scattered empty cells the cells common to all can shrink to one or none.
+Readings that treat the means as comparable are switched off for it
+instead: no comparison interval (its pairs are on common cells), letters
+from the p-values with <code>letter_ci = TRUE</code>, an open point in
+<code>autoplot()</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>ggplot2<span class="sc">::</span><span class="fu">autoplot</span>(pm_n2, <span class="at">interval =</span> <span class="st">&quot;comparison&quot;</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Other comparisons that stay within the observed cells are sound too,
+e.g. nitrogen levels within each variety:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>pm_v <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fm, <span class="st">&quot;N:Variety&quot;</span>, <span class="at">atvar =</span> <span class="st">&quot;Variety&quot;</span>, <span class="at">adj =</span> <span class="st">&quot;tukey&quot;</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>within <span class="ot">&lt;-</span> <span class="fu">subset</span>(pm_v<span class="sc">$</span>pairs, <span class="sc">!</span><span class="fu">is.na</span>(by))</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">head</span>(within[, <span class="fu">c</span>(<span class="st">&quot;level1&quot;</span>, <span class="st">&quot;level2&quot;</span>, <span class="st">&quot;by&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;p.adj&quot;</span>)])</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;            level1          level2          by  estimate        p.adj</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; 1   0:Golden Rain 0.2:Golden Rain Golden Rain -18.50000 9.544574e-02</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; 2   0:Golden Rain 0.4:Golden Rain Golden Rain -34.66667 3.454196e-04</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; 3   0:Golden Rain 0.6:Golden Rain Golden Rain -44.83333 5.393277e-06</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; 4 0.2:Golden Rain 0.4:Golden Rain Golden Rain -16.16667 1.743691e-01</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; 5 0.2:Golden Rain 0.6:Golden Rain Golden Rain -26.33333 8.011642e-03</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; 6 0.4:Golden Rain 0.6:Golden Rain Golden Rain -10.16667 5.601008e-01</span></span></code></pre></div>
+<p>or contrasts written with <code>specify_contrast()</code>, which
+refuses means that cannot be estimated:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>cm <span class="ot">&lt;-</span> <span class="fu">specify_contrast</span>(<span class="fu">Kmatrix</span>(fm, <span class="st">&quot;N:Variety&quot;</span>),</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">N_effect_GR_and_M =</span> (<span class="st">`</span><span class="at">0.6:Golden Rain</span><span class="st">`</span> <span class="sc">+</span> <span class="st">`</span><span class="at">0.6:Marvellous</span><span class="st">`</span>)<span class="sc">/</span><span class="dv">2</span> <span class="sc">-</span> (<span class="st">`</span><span class="at">0:Golden Rain</span><span class="st">`</span> <span class="sc">+</span> <span class="st">`</span><span class="at">0:Marvellous</span><span class="st">`</span>)<span class="sc">/</span><span class="dv">2</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">contrastmeans</span>(fm, <span class="st">&quot;N:Variety&quot;</span>, <span class="at">ctrmatrix =</span> cm)[[<span class="dv">1</span>]]</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt;                   Estimate Std. Error t value      df Pr(&gt;|t|) lower.CL</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; N_effect_GR_and_M     42.5     5.4742  7.7637 40.0636        0  31.4368</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt;                   upper.CL</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; N_effect_GR_and_M  53.5632</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; attr(,&quot;Note&quot;)</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;The p-value is adjusted by &#39;none&#39; method, if p-value = 0 means p-value &lt; 0.0001.&quot;</span></span></code></pre></div>
+</div>
+<div id="what-counts-as-a-cell" class="section level2">
+<h2>What counts as a cell</h2>
+<p>A cell is a combination of the factors of one interaction term. In
+<code>y ~ date/farm + date*trt</code> the cells are date × farm and date
+× treatment; farm and treatment do not interact. Suppose treatment B has
+no data on farm F2 at date d2:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">11</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>dft <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(<span class="at">rep =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">trt =</span> <span class="fu">factor</span>(<span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>)), <span class="at">farm =</span> <span class="fu">factor</span>(<span class="fu">c</span>(<span class="st">&quot;F1&quot;</span>, <span class="st">&quot;F2&quot;</span>)),</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>                   <span class="at">date =</span> <span class="fu">factor</span>(<span class="fu">c</span>(<span class="st">&quot;d1&quot;</span>, <span class="st">&quot;d2&quot;</span>)))</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>dft <span class="ot">&lt;-</span> dft[<span class="sc">!</span>(dft<span class="sc">$</span>date <span class="sc">==</span> <span class="st">&quot;d2&quot;</span> <span class="sc">&amp;</span> dft<span class="sc">$</span>farm <span class="sc">==</span> <span class="st">&quot;F2&quot;</span> <span class="sc">&amp;</span> dft<span class="sc">$</span>trt <span class="sc">==</span> <span class="st">&quot;B&quot;</span>), ]</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>dft<span class="sc">$</span>y <span class="ot">&lt;-</span> <span class="dv">5</span> <span class="sc">+</span> <span class="fu">as.integer</span>(dft<span class="sc">$</span>farm) <span class="sc">*</span> <span class="fu">as.integer</span>(dft<span class="sc">$</span>date) <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> (dft<span class="sc">$</span>trt <span class="sc">==</span> <span class="st">&quot;B&quot;</span>) <span class="sc">+</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="fu">rnorm</span>(<span class="fu">nrow</span>(dft), <span class="dv">0</span>, <span class="fl">0.3</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>fd <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> date<span class="sc">/</span>farm <span class="sc">+</span> date<span class="sc">*</span>trt, <span class="at">data =</span> dft)</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="fu">predictmeans</span>(fd, <span class="st">&quot;date:trt&quot;</span>)<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;date&quot;</span>, <span class="st">&quot;trt&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;n&quot;</span>)]</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt;   date trt estimate n</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 1   d1   A 6.491091 6</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 2   d1   B 6.835039 6</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 3   d2   A 7.756290 6</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; 4   d2   B 8.618384 3</span></span></code></pre></div>
+<p>Every date × farm and every date × treatment cell has data, and the
+model says the treatment effect is the same on both farms, so the mean
+of B at d2 over both farms can be estimated: no empty cell, no warning.
+(An average over farm F1 only would make B look worse than A just
+because F1 is the poorer farm.) With a farm × treatment interaction in
+the model (<code>date/farm*trt</code>) the same combination is an empty
+cell, and the rule of the first section applies.</p>
+</div>
+<div id="confounded-factors" class="section level2">
+<h2>Confounded factors</h2>
+<p>In this spray trial the highest spray volume was used only with fine
+droplets, and the other two volumes only with medium droplets:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">3</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>spray <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">droplet =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;medium&quot;</span>, <span class="st">&quot;fine&quot;</span>), <span class="fu">c</span>(<span class="dv">40</span>, <span class="dv">10</span>)), <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;medium&quot;</span>, <span class="st">&quot;fine&quot;</span>)),</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">vol =</span> <span class="fu">factor</span>(<span class="fu">c</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;130&quot;</span>, <span class="st">&quot;200&quot;</span>), <span class="dv">20</span>), <span class="fu">rep</span>(<span class="st">&quot;400&quot;</span>, <span class="dv">10</span>))),</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">conc =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;none&quot;</span>, <span class="st">&quot;half&quot;</span>), <span class="dv">25</span>)))</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>spray<span class="sc">$</span>y <span class="ot">&lt;-</span> <span class="dv">5</span> <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> (spray<span class="sc">$</span>conc <span class="sc">==</span> <span class="st">&quot;half&quot;</span>) <span class="sc">-</span> <span class="fl">0.4</span> <span class="sc">*</span> (spray<span class="sc">$</span>droplet <span class="sc">==</span> <span class="st">&quot;fine&quot;</span>) <span class="sc">+</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>  <span class="fu">rnorm</span>(<span class="dv">50</span>, <span class="at">sd =</span> <span class="fl">0.2</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="fu">with</span>(spray, <span class="fu">table</span>(droplet, vol))</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt;         vol</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; droplet  130 200 400</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt;   medium  20  20   0</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt;   fine     0   0  10</span></span></code></pre></div>
+<p>In a model with <code>droplet</code> and <code>vol</code> as separate
+factors, the effect of volume 400 cannot be told apart from that of fine
+droplets. A volume mean averaged over both droplet sizes needs both, so
+it cannot be estimated. <code>predictmeans()</code> then averages over
+the droplet–volume combinations that exist and says so:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>fs <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> droplet <span class="sc">+</span> conc <span class="sc">+</span> vol, <span class="at">data =</span> spray)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>pv <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fs, <span class="st">&quot;vol&quot;</span>, <span class="at">pairwise =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt; Warning: &#39;droplet&#39; and &#39;vol&#39; are confounded in the data: the means average over</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; the combinations that exist (to say so: droplet/vol in the formula, leave one</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt; factor out, or weights = &quot;cells&quot;). No data for droplet:vol fine:130, fine:200,</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; medium:400. The means of vol = 130, 200, 400 average only their observed cells;</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; their pairs use the cells both means have (column &#39;over&#39;). See</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; vignette(&quot;missing-cells&quot;).</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>pv<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;vol&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;std.error&quot;</span>, <span class="st">&quot;n&quot;</span>, <span class="st">&quot;group&quot;</span>)]</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt;   vol estimate  std.error  n group</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 1 130 5.030309 0.06844537 20    A </span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 2 200 5.246957 0.06844537 20    A </span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt; 3 400 4.731546 0.05588541 10     B</span></span></code></pre></div>
+<p>Read these means with the warning in mind: “volume 400” is “volume
+400 with fine droplets”, and its difference from volume 130 is also a
+difference between droplet sizes. The data cannot separate the two.</p>
+<div id="three-ways-to-say-what-you-want" class="section level3">
+<h3>Three ways to say what you want</h3>
+<p>The warning names three ways to get the means without relying on the
+fallback. They are not the same mean:</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Way</th>
+<th>What the mean is</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Write the nesting in the formula (<code>droplet/vol</code>)</td>
+<td>equal-weight average over the combinations that exist; the same
+numbers as the fallback, without the warning about confounding</td>
+</tr>
+<tr class="even">
+<td>Leave out the factor that adds nothing (when one factor is
+determined by the other, as a farm by its pastures)</td>
+<td>equal-weight average over the levels that remain; the same numbers
+again</td>
+</tr>
+<tr class="odd">
+<td><code>weights = &quot;cells&quot;</code></td>
+<td>average over the observed combinations weighted by their numbers of
+observations; depends on how the data are spread over the other
+factors</td>
+</tr>
+</tbody>
+</table>
+<p>The first two change the formula, not the fit: the fitted values and
+the likelihood are the same. Stating the structure in the model is the
+better record of the design:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>fs2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> conc <span class="sc">+</span> droplet<span class="sc">/</span>vol, <span class="at">data =</span> spray)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>pn <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fs2, <span class="st">&quot;vol&quot;</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; &#39;vol&#39; is not a term of the model: its factors do not interact there, so these means are the sums of their effects (the differences between the levels of one factor are the same at every level of the others).</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="fu">cbind</span>(pn<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;vol&quot;</span>, <span class="st">&quot;estimate&quot;</span>)], <span class="at">fallback =</span> pv<span class="sc">$</span>means<span class="sc">$</span>estimate,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>      <span class="at">cells =</span> <span class="fu">predictmeans</span>(fs, <span class="st">&quot;vol&quot;</span>, <span class="at">weights =</span> <span class="st">&quot;cells&quot;</span>)<span class="sc">$</span>means<span class="sc">$</span>estimate)</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   vol estimate fallback    cells</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 1 130 5.030309 5.030309 4.987406</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt; 2 200 5.246957 5.246957 5.289860</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; 3 400 4.731546 4.731546 4.731546</span></span></code></pre></div>
+</div>
+<div id="confounded-within-another-factor" class="section level3">
+<h3>Confounded within another factor</h3>
+<p>Confounding is not always nesting over the whole data set. In a
+grazing trial sampled on several dates, each pasture type is on one farm
+at a date, but a pasture type can be on another farm at a later
+date:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">5</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>past <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="fu">expand.grid</span>(<span class="at">date =</span> <span class="fu">c</span>(<span class="st">&quot;d1&quot;</span>, <span class="st">&quot;d2&quot;</span>), <span class="at">pasture =</span> <span class="fu">c</span>(<span class="st">&quot;P1&quot;</span>, <span class="st">&quot;P2&quot;</span>, <span class="st">&quot;P3&quot;</span>, <span class="st">&quot;P4&quot;</span>),</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>                          <span class="at">trt =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>), <span class="at">rep =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>              <span class="fu">expand.grid</span>(<span class="at">date =</span> <span class="st">&quot;d3&quot;</span>, <span class="at">pasture =</span> <span class="fu">c</span>(<span class="st">&quot;P1&quot;</span>, <span class="st">&quot;P4&quot;</span>), <span class="at">trt =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>), <span class="at">rep =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>))</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>past<span class="sc">$</span>farm <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(past<span class="sc">$</span>date <span class="sc">==</span> <span class="st">&quot;d3&quot;</span>, <span class="fu">ifelse</span>(past<span class="sc">$</span>pasture <span class="sc">==</span> <span class="st">&quot;P1&quot;</span>, <span class="st">&quot;F3&quot;</span>, <span class="st">&quot;F4&quot;</span>),</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>                    <span class="fu">ifelse</span>(past<span class="sc">$</span>pasture <span class="sc">==</span> <span class="st">&quot;P4&quot;</span>, <span class="st">&quot;F2&quot;</span>, <span class="st">&quot;F1&quot;</span>))</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="cf">for</span> (v <span class="cf">in</span> <span class="fu">c</span>(<span class="st">&quot;date&quot;</span>, <span class="st">&quot;pasture&quot;</span>, <span class="st">&quot;trt&quot;</span>, <span class="st">&quot;farm&quot;</span>)) past[[v]] <span class="ot">&lt;-</span> <span class="fu">factor</span>(past[[v]])</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>past<span class="sc">$</span>y <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(past<span class="sc">$</span>date) <span class="sc">+</span> <span class="fu">as.integer</span>(past<span class="sc">$</span>pasture)<span class="sc">/</span><span class="dv">2</span> <span class="sc">+</span> <span class="fl">0.5</span><span class="sc">*</span>(past<span class="sc">$</span>trt <span class="sc">==</span> <span class="st">&quot;B&quot;</span>) <span class="sc">+</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>  <span class="fu">rnorm</span>(<span class="fu">nrow</span>(past), <span class="dv">0</span>, <span class="fl">0.3</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>fp <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> date<span class="sc">/</span>farm <span class="sc">+</span> date<span class="sc">/</span>(trt <span class="sc">+</span> pasture)<span class="sc">^</span><span class="dv">2</span>, <span class="at">data =</span> past)</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">predictmeans</span>(fp, <span class="st">&quot;date:trt&quot;</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; Warning: &#39;farm&#39; and &#39;pasture&#39; are confounded in the data: the means average</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co">#&gt; over the combinations that exist (to say so: farm/pasture in the formula, leave</span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt; one factor out, or weights = &quot;cells&quot;). No data for date:farm d3:F1, d3:F2,</span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="co">#&gt; d1:F3, d2:F3, d1:F4, d2:F4; date:trt:pasture d3:A:P2, d3:B:P2, d3:A:P3,</span></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="co">#&gt; d3:B:P3; farm:pasture F2:P1, F4:P1, F2:P2, F3:P2, F4:P2, F2:P3, .... The means</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a><span class="co">#&gt; of date:trt = d1:A, d1:B, d2:A, d2:B, d3:A, d3:B average only their observed</span></span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="co">#&gt; cells; their pairs use the cells both means have (column &#39;over&#39;). See</span></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="co">#&gt; vignette(&quot;missing-cells&quot;).</span></span></code></pre></div>
+<p>Farm and pasture do not interact in the model, and at each date the
+farm is known from the pasture: the farm terms add nothing to the fit
+(their coefficients are aliased). The package finds the pair of factors
+by trying: it leaves out the combinations without data of one pair at a
+time (first pairs among the factors averaged over) and keeps the first
+choice with which every mean can be estimated. The means equal those of
+the model without <code>farm</code>:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>fp0 <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> date<span class="sc">/</span>(trt <span class="sc">+</span> pasture)<span class="sc">^</span><span class="dv">2</span>, <span class="at">data =</span> past)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>p0 <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">predictmeans</span>(fp0, <span class="st">&quot;date:trt&quot;</span>))</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="fu">cbind</span>(pp<span class="sc">$</span>means[, <span class="fu">c</span>(<span class="st">&quot;date&quot;</span>, <span class="st">&quot;trt&quot;</span>, <span class="st">&quot;estimate&quot;</span>)], <span class="at">without_farm =</span> p0<span class="sc">$</span>means<span class="sc">$</span>estimate)</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt;   date trt estimate without_farm</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt; 1   d1   A 2.301947     2.301947</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; 2   d1   B 2.770451     2.770451</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; 3   d2   A 3.236178     3.236178</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt; 4   d2   B 3.792431     3.792431</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt; 5   d3   A 4.263867     4.263867</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt; 6   d3   B 4.789150     4.789150</span></span></code></pre></div>
+<p>(The remaining warning for <code>fp0</code> is about date d3, where
+two pasture types were not sampled: an ordinary empty cell.)</p>
+<p>Before this rule (decided 2026-11-16) such means were
+<code>NA</code>; in predictmeans 1.x they were the same averages,
+without a warning that said why.</p>
+</div>
+</div>
+<div id="checklist" class="section level2">
+<h2>Checklist</h2>
+<ul>
+<li>Look at the <code>n</code> and <code>estimable</code> columns of the
+<code>means</code> table, and at warnings and messages.</li>
+<li>Compare means that average over the same cells; use
+<code>atvar</code> or contrasts within the observed cells when some are
+empty.</li>
+<li>When the warning says two factors are confounded, the means are over
+the combinations that exist. Write the structure into the model
+(nesting, or leave out the factor that adds nothing) so that the model
+says what the means are; <code>weights = &quot;cells&quot;</code> gives a
+different, frequency-weighted mean.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
